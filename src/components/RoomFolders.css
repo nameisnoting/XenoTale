@@ -10,6 +10,16 @@
 .room-manager .sidebar-empty {
   color: #838383;
   font-size: 14px;
+  text-align: center;
+}
+.room-manager .section-title {
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: nowrap;
+}
+.room-manager .section-title .inline-actions {
+  flex-wrap: nowrap;
+  flex-shrink: 0;
 }
 .folder-list-row {
   display: flex;

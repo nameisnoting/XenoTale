@@ -138,15 +138,15 @@ test('하단 네비게이션 · 색상 · 메인 도구 · 대화방과 제작�
   ).toBe('rgb(255, 255, 255)');
   expect(
     await nav
-      .getByRole('button', { name: '대화 목록', exact: true })
+      .getByRole('button', { name: '대화목록', exact: true })
       .evaluate((e) => getComputedStyle(e).color),
   ).toBe('rgb(131, 131, 131)');
   await expect(page.locator('.main-toolbar button:visible')).toHaveCount(3);
   await expect(page.locator('.mobile-brand')).toHaveText('XenoTale');
   await page.screenshot({ path: `${out}/main.png` });
-  await nav.getByRole('button', { name: '대화 목록', exact: true }).click();
+  await nav.getByRole('button', { name: '대화목록', exact: true }).click();
   await expect(page).toHaveURL(/#\/rooms$/);
-  await expect(nav.getByRole('button', { name: '대화 목록', exact: true })).toHaveAttribute(
+  await expect(nav.getByRole('button', { name: '대화목록', exact: true })).toHaveAttribute(
     'aria-current',
     'page',
   );

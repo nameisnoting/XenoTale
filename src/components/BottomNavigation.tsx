@@ -41,7 +41,7 @@ export function BottomNavigation({
         onClick={() => navigate('/rooms')}
       >
         <MessageSquare size={28} />
-        <span>대화 목록</span>
+        <span>대화목록</span>
       </button>
       <button disabled={creating} onClick={() => void create()}>
         <SquarePlus size={28} />

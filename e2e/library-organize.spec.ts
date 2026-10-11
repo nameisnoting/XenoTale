@@ -138,7 +138,7 @@ for (const width of [1440, 393]) {
   });
   test(`폴더 생성·대화 선택·고정·이름 변경·이동·삭제 후 대화 보존 (${width})`, async ({ page }) => {
     await setup(page, width);
-    if (width < 800) await page.getByRole('button', { name: '대화 목록', exact: true }).click();
+    if (width < 800) await page.getByRole('button', { name: '대화목록', exact: true }).click();
     await page.getByRole('button', { name: '폴더 생성', exact: true }).click();
     const dialog = page.getByRole('dialog');
     await expect(dialog.getByRole('button', { name: '완료', exact: true })).toBeDisabled();

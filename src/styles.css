@@ -16,7 +16,7 @@
   --muted: #969696;
   --accent: #5fddce;
   --gold: #e9d597;
-  color-scheme: dark;
+  color-scheme: only dark;
 }
 * {
   box-sizing: border-box;
