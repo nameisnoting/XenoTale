@@ -171,11 +171,22 @@ function EffectCodeEditor({
   );
 }
 
-export function PersonasSection({ work, update }: Pick<CreatorPanelState, 'work' | 'update'>) {
+export function PersonasSection({
+  work,
+  update,
+  selectedPersonaId,
+  onPersonaSelect,
+}: Pick<CreatorPanelState, 'work' | 'update' | 'selectedPersonaId' | 'onPersonaSelect'>) {
   return (
     <>
       <h2>추천 페르소나</h2>
-      <PersonaLibrary tabs values={work.personas} onChange={(personas) => update({ personas })} />
+      <PersonaLibrary
+        tabs
+        values={work.personas}
+        onChange={(personas) => update({ personas })}
+        selectedId={selectedPersonaId}
+        onSelect={onPersonaSelect}
+      />
     </>
   );
 }

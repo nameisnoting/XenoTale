@@ -1,5 +1,6 @@
 import { MessageInput } from '../components/MessageInput';
 import { SendButton } from '../components/SendButton';
+import { useMessageDraft } from '../components/useMessageDraft';
 import { Fragment, useEffect, useRef, useState } from 'react';
 import type { Work } from '../domain/types';
 import { id } from '../domain/types';
@@ -19,6 +20,7 @@ import './Assistant.css';
 
 export function Assistant({
   work,
+  workspaceId,
   onChange,
   modelId,
   onModelChange,
@@ -32,6 +34,7 @@ export function Assistant({
   onRequestComplete,
 }: {
   work: Work;
+  workspaceId: string;
   onChange: (w: Work) => void;
   modelId: string;
   onModelChange: (modelId: string) => void;
@@ -40,7 +43,7 @@ export function Assistant({
   onRequestComplete: () => void;
 } & ModelProps &
   ApiProps) {
-  const [input, setInput] = useState('');
+  const [input, setInput] = useMessageDraft(`workspace.${workspaceId}.agent`);
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState({ reply: '', receivedChars: 0, thinking: false });
   const [picker, setPicker] = useState(false);
@@ -68,10 +71,10 @@ export function Assistant({
     setBusy(true);
     setProgress({ reply: '', receivedChars: 0, thinking: false });
     const request = input.trim();
+    const clearSentInput = () => setInput((current) => (current === input ? '' : current));
     const original = structuredClone(workRef.current);
     try {
       const model = await resolveModel(modelId, active.signal);
-      setInput('');
       const conversation = historyRef.current.slice(-10).map(({ role, text }) => ({ role, text }));
       const previous = [...historyRef.current]
         .reverse()
@@ -82,6 +85,7 @@ export function Assistant({
           role: 'assistant',
           text: '현재는 예시 모드입니다. API 키와 모델을 선택하면 작품 설정을 함께 작성할 수 있습니다.',
         });
+        clearSentInput();
         return;
       }
       const snapshot = creatorRequest(original);
@@ -119,6 +123,7 @@ export function Assistant({
         text: [answer.reply, ...answer.questions].filter(Boolean).join('\n\n'),
         proposal: answer.proposal.changes.length ? answer.proposal : undefined,
       });
+      clearSentInput();
     } catch (e) {
       if ((e as Error).name !== 'AbortError') {
         const message = (e as Error).message;

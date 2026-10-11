@@ -400,6 +400,8 @@ export function PersonaLibrary({
   onEdit,
   onAdd,
   onDelete,
+  selectedId,
+  onSelect,
 }: {
   values: Persona[];
   onChange: (v: Persona[]) => void;
@@ -407,16 +409,29 @@ export function PersonaLibrary({
   onEdit?: (id: string, patch: Partial<Persona>) => void | Promise<unknown>;
   onAdd?: () => void;
   onDelete?: (id: string) => void | Promise<unknown>;
+  selectedId?: string;
+  onSelect?: (id: string) => void;
 }) {
   const [active, setActive] = useState(0);
+  const activeIndex =
+    selectedId === undefined
+      ? Math.min(active, values.length - 1)
+      : Math.max(
+          0,
+          values.findIndex((v) => v.id === selectedId),
+        );
+  const select = (index: number, list = values) => {
+    setActive(index);
+    onSelect?.(list[index]?.id ?? '');
+  };
   const deletePersona = async (target: Persona) => {
     if (values.length === 1) return;
-    const selectedId = values[Math.min(active, values.length - 1)]?.id;
+    const currentId = values[activeIndex]?.id;
     const retained = values.filter((v) => v.id !== target.id);
     if (onDelete) await onDelete(target.id);
     else onChange(retained);
-    const retainedIndex = retained.findIndex((v) => v.id === selectedId);
-    setActive(retainedIndex >= 0 ? retainedIndex : 0);
+    const retainedIndex = retained.findIndex((v) => v.id === currentId);
+    select(retainedIndex >= 0 ? retainedIndex : 0, retained);
   };
   const update = (index: number, patch: Partial<Persona>) =>
     onEdit
@@ -427,7 +442,7 @@ export function PersonaLibrary({
       onAdd();
       return;
     }
-    onChange([
+    const next = [
       ...values,
       {
         id: id(),
@@ -437,8 +452,9 @@ export function PersonaLibrary({
         prompt: '',
         gender: '',
       },
-    ]);
-    setActive(values.length);
+    ];
+    onChange(next);
+    select(values.length, next);
   };
   return (
     <div className={tabs ? 'creator-personas' : 'persona-library'}>
@@ -448,8 +464,8 @@ export function PersonaLibrary({
             <SelectionPill
               key={v.id}
               name={v.name || `페르소나 ${i + 1}`}
-              selected={i === Math.min(active, values.length - 1)}
-              onSelect={() => setActive(i)}
+              selected={i === activeIndex}
+              onSelect={() => select(i)}
               deletion={
                 values.length === 1
                   ? undefined
@@ -471,7 +487,7 @@ export function PersonaLibrary({
       )}
       {values.map((v, i) =>
         tabs ? (
-          i === Math.min(active, values.length - 1) && (
+          i === activeIndex && (
             <PersonaCard
               key={v.id}
               value={v}

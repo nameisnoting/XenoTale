@@ -524,9 +524,13 @@ test('스트리밍 설명과 수신 상태 · 완료 전 적용 불가 · 완성
   const preview = page.getByLabel('작성 중인 답변');
   await expect(preview).toContainText('설명을 먼저 보여드립니다.');
   await expect(preview.getByRole('status')).toContainText('자 수신');
+  await page.getByRole('textbox', { name: '서포터 메시지', exact: true }).fill('다음 요청 초안');
   await expect(page.getByRole('button', { name: '적용하기', exact: true })).toHaveCount(0);
   await page.evaluate(() => (window as any).finishCreatorStream());
   await expect(preview).toHaveCount(0);
+  await expect(page.getByRole('textbox', { name: '서포터 메시지', exact: true })).toHaveValue(
+    '다음 요청 초안',
+  );
   await expect(page.locator('.assistant .support-transcript')).toContainText(
     '설명을 먼저 보여드립니다.',
   );
@@ -534,5 +538,8 @@ test('스트리밍 설명과 수신 상태 · 완료 전 적용 불가 · 완성
   await page.reload();
   await expect(page.locator('.assistant .support-transcript')).toContainText(
     '설명을 먼저 보여드립니다.',
+  );
+  await expect(page.getByRole('textbox', { name: '서포터 메시지', exact: true })).toHaveValue(
+    '다음 요청 초안',
   );
 });

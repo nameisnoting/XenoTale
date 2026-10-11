@@ -92,10 +92,15 @@ function EditorContent({
     },
   );
   const [assistantHistory, setAssistantHistory] = useState(initial.assistantHistory ?? []);
+  const [testRoom, setTestRoom] = useState(initial.testRoom ?? null);
+  const [personaSelection, setPersonaSelection] = useState(initial.selectedPersonaId ?? '');
+  const selectedPersona = work.personas.find((p) => p.id === personaSelection) ?? work.personas[0];
   const [relationView, setRelationView] = useGraphView(
     `xenotale.relation-view.editor.${initial.id}`,
   );
-  const [openingSelection, setOpeningSelection] = useState(initial.work.openings[0].id);
+  const [openingSelection, setOpeningSelection] = useState(
+    initial.selectedOpeningId ?? initial.testRoom?.openingId ?? initial.work.openings[0].id,
+  );
   const selectedOpeningId = work.openings.some((o) => o.id === openingSelection)
     ? openingSelection
     : work.openings[0].id;
@@ -197,11 +202,21 @@ function EditorContent({
   }, []);
   const save = (
     value: Work,
-    updates: Pick<Workspace, 'supporterSettings' | 'assistantHistory'> = {},
+    updates: Pick<
+      Workspace,
+      | 'supporterSettings'
+      | 'assistantHistory'
+      | 'testRoom'
+      | 'selectedPersonaId'
+      | 'selectedOpeningId'
+    > = {},
   ) => {
     setWork(value);
     if (updates.supporterSettings) setSupporterSettings(updates.supporterSettings);
     if (updates.assistantHistory) setAssistantHistory(updates.assistantHistory);
+    if (Object.hasOwn(updates, 'testRoom')) setTestRoom(updates.testRoom ?? null);
+    if (updates.selectedPersonaId !== undefined) setPersonaSelection(updates.selectedPersonaId);
+    if (updates.selectedOpeningId !== undefined) setOpeningSelection(updates.selectedOpeningId);
     latest.current = { ...latest.current, ...clone(updates), work: clone(value) };
     pending.current++;
     setStatus('saving');
@@ -219,6 +234,9 @@ function EditorContent({
           work: latest.current.work,
           supporterSettings: latest.current.supporterSettings,
           assistantHistory: latest.current.assistantHistory,
+          testRoom: latest.current.testRoom,
+          selectedPersonaId: latest.current.selectedPersonaId,
+          selectedOpeningId: latest.current.selectedOpeningId,
         };
       })
       .catch((e) => {
@@ -237,6 +255,10 @@ function EditorContent({
   }, []);
   const changeSupporterSettings = (patch: Partial<NonNullable<Workspace['supporterSettings']>>) =>
     save(latest.current.work, { supporterSettings: { ...supporterSettings, ...patch } });
+  const selectPersona = (selectedPersonaId: string) =>
+    save(latest.current.work, { selectedPersonaId });
+  const selectOpening = (selectedOpeningId: string) =>
+    save(latest.current.work, { selectedOpeningId });
   const change = (value: Work) => {
     if (Date.now() - lastEdit.current.time > 700 || lastEdit.current.section !== section) {
       undo.current.push(clone(work));
@@ -657,7 +679,9 @@ function EditorContent({
             onChange={change}
             profile={profile}
             selectedOpeningId={selectedOpeningId}
-            onOpeningSelect={setOpeningSelection}
+            onOpeningSelect={selectOpening}
+            selectedPersonaId={selectedPersona?.id ?? ''}
+            onPersonaSelect={selectPersona}
             relationView={{ view: relationView, onViewChange: setRelationView }}
           />
         </fieldset>
@@ -697,6 +721,7 @@ function EditorContent({
           <div className="editor-support-pane" hidden={supportTab !== 'agent'}>
             <Assistant
               work={work}
+              workspaceId={initial.id}
               history={assistantHistory}
               onHistoryChange={(assistantHistory) =>
                 save(latest.current.work, { assistantHistory })
@@ -716,6 +741,10 @@ function EditorContent({
           <div className="editor-support-pane" hidden={supportTab !== 'test'}>
             <CreatorTest
               work={work}
+              workspaceId={initial.id}
+              room={testRoom}
+              onRoomChange={(testRoom) => save(latest.current.work, { testRoom })}
+              persona={selectedPersona}
               modelId={supporterSettings.testModelId}
               creativity={supporterSettings.testCreativity}
               onModelChange={(testModelId, testCreativity) =>
@@ -723,7 +752,7 @@ function EditorContent({
               }
               onRequestComplete={balance.refresh}
               openingId={selectedOpeningId}
-              onOpeningChange={setOpeningSelection}
+              onOpeningChange={selectOpening}
               {...props}
             />
           </div>

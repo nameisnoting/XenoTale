@@ -335,6 +335,9 @@ const workspace = z.object({
   revision: z.number(),
   publishedVersion: z.number(),
   createdAt: z.number(),
+  testRoom: roomSchema.nullable().optional(),
+  selectedPersonaId: identifier.optional(),
+  selectedOpeningId: identifier.optional(),
   supporterSettings: z
     .object({
       agentModelId: short,
@@ -453,8 +456,9 @@ export async function exportBackup({ includeApiKey = true }: { includeApiKey?: b
   );
   downloadJson(`XenoTale_${new Date().toISOString().slice(0, 10)}.backup.json`, value);
 }
-function validateRoom(room: Room) {
-  validateWork(room.work, true);
+function validateRoom(room: Room, publish = true) {
+  // Creator tests may start with an unfinished draft when playing an opening effect.
+  if (publish) validateWork(room.work, true);
   for (const e of room.timeline)
     if (e.kind === 'turn' && !e.candidates.some((c) => c.id === e.selectedId))
       throw new Error('선택된 응답을 찾을 수 없는 대화방 파일입니다.');
@@ -610,6 +614,7 @@ export async function readImport(file: File): Promise<ImportData> {
     }
     if (value.kind === 'xenotale.workspace') {
       const entry = workspace.parse(value.workspace);
+      if (entry.testRoom) validateRoom(entry.testRoom, false);
       return { kind: 'workspace', workspace: entry };
     }
     if (value.kind === 'xenotale.room') {
@@ -620,7 +625,10 @@ export async function readImport(file: File): Promise<ImportData> {
     if (value.kind === 'xenotale.backup') {
       const data = backup.parse(value);
       data.works.forEach((w) => validateWork(w.work, true));
-      data.rooms.forEach(validateRoom);
+      data.rooms.forEach((room) => validateRoom(room));
+      data.workspaces.forEach((workspace) => {
+        if (workspace.testRoom) validateRoom(workspace.testRoom, false);
+      });
       return { kind: 'backup', data };
     }
   } catch (e) {

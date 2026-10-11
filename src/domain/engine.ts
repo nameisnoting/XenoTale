@@ -196,8 +196,8 @@ export function createRoom(
   validateWork(work, true);
   return createPreviewRoom(work, modelId, persona, openingId);
 }
-// Ephemeral creator rendering accepts unfinished drafts. Persisted conversations
-// continue to require createRoom's publish validation.
+// Creator previews accept unfinished drafts. Starting a chat turn still requires
+// createRoom's publish validation.
 export function createPreviewRoom(
   work: Work,
   modelId = 'demo',

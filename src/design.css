@@ -290,10 +290,10 @@
   padding-top: 24px;
   padding-bottom: 24px;
 }
-.chat-shell .story-body {
+:is(.chat-shell, .creator-test) .story-body {
   color: #fff;
 }
-.chat-shell .story-body .markdown {
+:is(.chat-shell, .creator-test) .story-body .markdown {
   line-height: inherit;
 }
 .chat-shell .user-message {
@@ -333,35 +333,35 @@
 .chat-shell .user-message .markdown {
   color: #ccc;
 }
-.chat-shell .character-message {
+:is(.chat-shell, .creator-test) .character-message {
   gap: 20px;
   align-items: flex-start;
   margin: 24px 0;
 }
-.chat-shell .character-message > div {
+:is(.chat-shell, .creator-test) .character-message > div {
   background: none;
   padding: 0;
   border: 0;
 }
-.chat-shell .character-message strong {
+:is(.chat-shell, .creator-test) .character-message strong {
   color: #fff;
   font-size: 16px;
   font-weight: 500;
 }
-.chat-shell .character-message .markdown {
+:is(.chat-shell, .creator-test) .character-message .markdown {
   color: #ccc;
 }
-.chat-shell .character-message .markdown {
+:is(.chat-shell, .creator-test) .character-message .markdown {
   background: none;
   border: 0;
   border-radius: 0;
   padding: 0;
 }
-.chat-shell .story-body > div > .markdown,
-.chat-shell .story-body > div > .markdown em {
+:is(.chat-shell, .creator-test) .story-body > div > .markdown,
+:is(.chat-shell, .creator-test) .story-body > div > .markdown em {
   color: #fff;
 }
-.chat-shell .story-body .markdown p,
+:is(.chat-shell, .creator-test) .story-body .markdown p,
 .chat-shell .user-message .markdown p {
   line-height: inherit;
 }
@@ -1618,11 +1618,11 @@
     min-width: 0;
   }
   .chat-shell .user-message,
-  .chat-shell .character-message {
+  :is(.chat-shell, .creator-test) .character-message {
     gap: 12px;
   }
   .chat-shell .user-message > .avatar,
-  .chat-shell .character-message > .avatar {
+  :is(.chat-shell, .creator-test) .character-message > .avatar {
     width: 40px !important;
     height: 40px !important;
   }

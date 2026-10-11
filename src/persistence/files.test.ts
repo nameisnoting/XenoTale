@@ -1,7 +1,7 @@
 import 'fake-indexeddb/auto';
 import { describe, it, expect } from 'vitest';
 import { readImport } from './files';
-import { createRoom, addResponse, emptyDelta } from '../domain/engine';
+import { createRoom, createPreviewRoom, addResponse, emptyDelta } from '../domain/engine';
 import { workspace, defaultProfile } from '../domain/defaults';
 import {
   creatorRequest,
@@ -97,10 +97,27 @@ describe('portable files', () => {
       { id: 'request', role: 'user', text: '제목을 바꿔줘' },
       { id: 'reply', role: 'assistant', text: '제목을 제안합니다.', proposal },
     ];
+    w.selectedPersonaId = 'chosen-persona';
+    w.selectedOpeningId = w.work.openings[0].id;
+    w.testRoom = addResponse(
+      createRoom(exampleWork()),
+      '테스트 입력',
+      {
+        kind: 'turn',
+        requestedCharacterIds: [],
+        body: '테스트 답변',
+        choices: [],
+        delta: emptyDelta(),
+      },
+      { model: 'demo' },
+    );
     const imported = await readImport(file('workspace', 'workspace', w));
     if (imported.kind !== 'workspace') throw new Error();
     expect(imported.workspace.supporterSettings).toEqual(w.supporterSettings);
     expect(imported.workspace.assistantHistory).toEqual(w.assistantHistory);
+    expect(imported.workspace.testRoom).toEqual(w.testRoom);
+    expect(imported.workspace.selectedPersonaId).toBe('chosen-persona');
+    expect(imported.workspace.selectedOpeningId).toBe(w.work.openings[0].id);
     expect(
       applyCreatorProposal(
         imported.workspace.work,
@@ -126,6 +143,16 @@ describe('portable files', () => {
     );
     if (backup.kind !== 'backup') throw new Error();
     expect(backup.data.workspaces[0]).toEqual(w);
+  });
+  it('imports unfinished creator previews while still rejecting broken test state references', async () => {
+    const w = workspace('작가');
+    w.testRoom = createPreviewRoom(w.work);
+    const imported = await readImport(file('workspace', 'workspace', w));
+    if (imported.kind !== 'workspace') throw new Error();
+    expect(imported.workspace.testRoom).toEqual(w.testRoom);
+    await expect(readImport(file('room', 'room', w.testRoom))).rejects.toThrow('제목');
+    w.testRoom.current.runtime.presence.push('missing');
+    await expect(readImport(file('workspace', 'workspace', w))).rejects.toThrow('스냅샷');
   });
   it('rejects imported proposals that would change managed work identity', async () => {
     const w = workspace('작가');

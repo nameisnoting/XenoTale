@@ -165,6 +165,9 @@ export type Workspace = {
     testCreativity: number;
   };
   assistantHistory?: CreatorMessage[];
+  testRoom?: Room | null;
+  selectedPersonaId?: string;
+  selectedOpeningId?: string;
 };
 export type PublishedWork = {
   id: string;

@@ -9,6 +9,7 @@ import { activeShortMemories, applyMemories } from '../../domain/memory';
 import { navigate } from '../../app/navigation';
 import { useNotify } from '../../components/UI';
 import { useCreditBalance } from '../../components/useCreditBalance';
+import { useMessageDraft } from '../../components/useMessageDraft';
 import type { ApiProps, ModelProps } from '../Profile';
 
 export const CONTINUE = '[이어서 내용 전개]';
@@ -24,7 +25,7 @@ export function useChatSession({
   const [room, setRoom] = useState(persistedRoom);
   const balance = useCreditBalance(apiKey);
   const pendingMutations = useRef(0);
-  const [input, setInput] = useState(room.pendingInput);
+  const [input, setInput] = useMessageDraft(`room.${room.id}`, room.pendingInput);
   const [busy, setBusy] = useState(false);
   const [phase, setPhase] = useState('');
   const controller = useRef<AbortController | null>(null);

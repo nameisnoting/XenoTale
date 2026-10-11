@@ -12,6 +12,8 @@ export type CreatorPanelProps = {
   profile: Profile;
   selectedOpeningId: string;
   onOpeningSelect: (id: string) => void;
+  selectedPersonaId: string;
+  onPersonaSelect: (id: string) => void;
   relationView?: GraphViewProps;
 };
 
@@ -23,6 +25,8 @@ export function useCreatorPanelState({
   profile,
   selectedOpeningId,
   onOpeningSelect,
+  selectedPersonaId,
+  onPersonaSelect,
   relationView,
 }: CreatorPanelProps) {
   const [tab, setTab] = useState(0);
@@ -119,6 +123,8 @@ export function useCreatorPanelState({
     profile,
     selectedOpeningId,
     onOpeningSelect,
+    selectedPersonaId,
+    onPersonaSelect,
     relationView,
     setTab,
     grouping,

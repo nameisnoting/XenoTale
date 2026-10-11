@@ -1,8 +1,9 @@
 import { MessageInput } from '../components/MessageInput';
 import { SendButton } from '../components/SendButton';
+import { useMessageDraft } from '../components/useMessageDraft';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronRight, RefreshCw } from 'lucide-react';
-import type { Room, Work } from '../domain/types';
+import type { Persona, Room, Work } from '../domain/types';
 import { selected } from '../domain/types';
 import { addResponse, createPreviewRoom, createRoom } from '../domain/engine';
 import { generate } from '../engine/openrouter';
@@ -14,9 +15,13 @@ import { canCompleteEffect, completeEffect } from '../domain/effects';
 import { ModelPicker } from '../components/ModelPicker';
 import type { ApiProps, ModelProps } from './Profile';
 
-// Test conversations stay in this workspace panel; published works and saved rooms are untouched.
+// Test conversations are saved inside their workspace; published works and saved rooms are untouched.
 export function CreatorTest({
   work,
+  workspaceId,
+  room,
+  onRoomChange,
+  persona,
   modelId,
   creativity,
   onModelChange,
@@ -30,6 +35,10 @@ export function CreatorTest({
   onRequestComplete,
 }: {
   work: Work;
+  workspaceId: string;
+  room: Room | null;
+  onRoomChange: (room: Room | null) => void;
+  persona?: Persona;
   modelId: string;
   creativity: number;
   onModelChange: (modelId: string, creativity: number) => void;
@@ -38,9 +47,8 @@ export function CreatorTest({
   onRequestComplete: () => void;
 } & ApiProps &
   ModelProps) {
-  const [room, setRoom] = useState<Room | null>(null);
   const [effect, setEffect] = useState<EffectRequest | null>(null);
-  const [input, setInput] = useState('');
+  const [input, setInput] = useMessageDraft(`workspace.${workspaceId}.test`);
   const [picker, setPicker] = useState(false);
   const [openingPicker, setOpeningPicker] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -49,12 +57,16 @@ export function CreatorTest({
   const lock = useRef(false);
   const notify = useNotify();
   const previewRoom = useMemo(
-    () => createPreviewRoom(work, modelId, undefined, openingId),
-    [work, modelId, openingId],
+    () => createPreviewRoom(work, modelId, persona, openingId),
+    [work, modelId, persona, openingId],
   );
   const displayRoom = room ?? previewRoom;
   const roomRef = useRef(displayRoom);
   roomRef.current = displayRoom;
+  const setRoom = (next: Room | null) => {
+    roomRef.current = next ?? previewRoom;
+    onRoomChange(next);
+  };
   useEffect(() => () => abort.current?.abort(), []);
   const reset = () => {
     setRoom(null);
@@ -67,7 +79,7 @@ export function CreatorTest({
     setBusy(true);
     abort.current = new AbortController();
     try {
-      const next = room ? structuredClone(room) : createRoom(work, modelId, undefined, openingId);
+      const next = room ? structuredClone(room) : createRoom(work, modelId, persona, openingId);
       next.current.context.settings.modelId = modelId;
       next.current.context.settings.creativity = creativity;
       const model = await resolveModel(modelId, abort.current.signal);
