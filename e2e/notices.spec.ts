@@ -22,15 +22,15 @@ for (const width of [1440, 393]) {
         weight: getComputedStyle(el).fontWeight,
         size: getComputedStyle(el).fontSize,
       })),
-    ).toEqual({ color: 'rgb(255, 255, 255)', weight: '700', size: '14px' });
+    ).toEqual({ color: 'rgb(255, 255, 255)', weight: '700', size: '16px' });
     await expect(page.getByRole('tab', { name: '기타', exact: true })).toHaveCSS(
       'font-size',
-      '14px',
+      '16px',
     );
     for (const selector of ['.notice-category', '.notice-title', 'time']) {
       await expect(page.locator('.notice-row').first().locator(selector)).toHaveCSS(
         'font-size',
-        '12px',
+        '14px',
       );
       await expect(page.locator('.notice-row').first().locator(selector)).toHaveCSS(
         'font-weight',
@@ -46,6 +46,7 @@ for (const width of [1440, 393]) {
     await expect(page.locator('.notice-body')).toContainText('업데이트와 안내 사항');
     await expect(page.locator('.notice-detail h2')).toHaveCSS('font-size', '20px');
     await expect(page.locator('.notice-meta')).toHaveCSS('font-size', '12px');
+    await expect(page.locator('.notice-meta')).toHaveCSS('padding', '10px 16px');
     await expect(page.locator('.notice-body .markdown p').first()).toHaveCSS('font-size', '14px');
     expect(await page.locator('.notice-body').evaluate((el) => getComputedStyle(el).color)).toBe(
       'rgb(255, 255, 255)',
