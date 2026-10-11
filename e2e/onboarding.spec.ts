@@ -85,6 +85,10 @@ for (const width of [1440, 393])
     expect(check.width).toBe(input.width);
     expect(Math.abs(input.x + input.width - check.x - check.width)).toBeLessThan(1);
     const skip = page.getByRole('button', { name: '키 없이 먼저 둘러보기', exact: true });
+    const start = page.getByRole('button', { name: 'XenoTale 시작', exact: true });
+    const startBox = (await start.boundingBox())!;
+    const skipBox = (await skip.boundingBox())!;
+    expect(skipBox.y - startBox.y - startBox.height).toBeCloseTo(4 * (96 / 72), 1);
     const before = await skip.evaluate((e) => ({
       background: getComputedStyle(e).backgroundColor,
       color: getComputedStyle(e).color,

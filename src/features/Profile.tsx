@@ -182,7 +182,7 @@ export function ProfilePage({
             </Field>
             {keyContents}
             <Button
-              className={canStart ? 'primary full' : 'full'}
+              className="primary full"
               disabled={!canStart}
               onClick={() =>
                 run(

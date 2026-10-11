@@ -167,7 +167,7 @@ svg {
   border-color: var(--accent);
   color: #173b36;
 }
-.button.primary:hover {
+.button.primary:not(:disabled):hover {
   background: #82eddf;
   color: #153831;
 }
@@ -723,6 +723,9 @@ svg {
 .onboarding-card h2 {
   font-size: 18px;
   margin: 0 0 24px;
+}
+.onboarding-card > .button + .text-button {
+  margin-top: 4pt;
 }
 .external-button {
   display: flex;
