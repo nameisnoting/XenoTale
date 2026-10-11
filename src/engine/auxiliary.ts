@@ -18,6 +18,7 @@ export async function requestJson(
   options: {
     maxTokens?: number;
     allowTextFallback?: boolean;
+    preserveInvalidOutput?: boolean;
     onProgress?: (progress: JsonProgress) => void;
   } = {},
 ) {
@@ -57,11 +58,15 @@ export async function requestJson(
     content = answer?.message?.content;
     finishReason = answer?.finish_reason;
   }
-  if (finishReason !== 'stop') throw new Error('응답이 완성되지 않았습니다.');
+  if (finishReason !== 'stop') {
+    if (options.preserveInvalidOutput && typeof content === 'string') return content;
+    throw new Error('응답이 완성되지 않았습니다.');
+  }
   try {
     return JSON.parse(content.replace(/^```(?:json)?\s*|\s*```$/g, ''));
   } catch {
-    if (options.allowTextFallback && typeof content === 'string') return content;
+    if ((options.allowTextFallback || options.preserveInvalidOutput) && typeof content === 'string')
+      return content;
     throw new Error('모델이 올바른 JSON을 반환하지 않았습니다.');
   }
 }

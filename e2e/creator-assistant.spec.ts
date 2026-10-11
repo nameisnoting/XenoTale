@@ -243,7 +243,7 @@ test('모바일 제안 수정 요청 · 임시 제안 전달 · 사이드메뉴�
   );
 });
 
-test('제안 후 직접 수정한 대상은 덮어쓰기 거부 · 다른 필드는 보존', async ({ page }) => {
+test('제안 후 직접 수정한 대상은 오류로 표시하고 현재 내용을 보존', async ({ page }) => {
   await page.route('https://openrouter.ai/api/v1/chat/completions', async (r) => {
     const data = JSON.parse(r.request().postDataJSON().messages[1].content);
     await r.fulfill({
@@ -273,8 +273,8 @@ test('제안 후 직접 수정한 대상은 덮어쓰기 거부 · 다른 필드
   await ask(page, '제목만 써줘');
   await expect(page.getByRole('button', { name: '적용하기', exact: true }).last()).toBeVisible();
   await page.getByRole('textbox', { name: '제목', exact: false }).fill('직접 수정');
-  await page.getByRole('button', { name: '적용하기', exact: true }).last().click();
-  await expect(page.getByRole('status').filter({ hasText: '수정하셨습니다' })).toBeVisible();
+  await expect(page.getByRole('button', { name: '적용하기', exact: true }).last()).toBeDisabled();
+  await expect(page.locator('.support-proposal')).toContainText('요청 후 직접 수정한 항목');
   await expect(page.getByRole('textbox', { name: '제목', exact: false })).toHaveValue('직접 수정');
   await ask(page, '제목만 다시 써줘');
   await expect(page.getByRole('button', { name: '적용하기', exact: true }).last()).toBeVisible();
@@ -291,7 +291,7 @@ test('제안 후 직접 수정한 대상은 덮어쓰기 거부 · 다른 필드
   );
 });
 
-test('잘못된 연결 · 잘린 응답 · Q&A는 적용 버튼 없음 · 초안 유지', async ({ page }) => {
+test('잘못된 연결은 부분 적용 · 잘린 응답은 원문 보존 · Q&A는 제안 추가 없음', async ({ page }) => {
   let calls = 0;
   await page.route('https://openrouter.ai/api/v1/chat/completions', async (r) => {
     const data = JSON.parse(r.request().postDataJSON().messages[1].content);
@@ -318,15 +318,19 @@ test('잘못된 연결 · 잘린 응답 · Q&A는 적용 버튼 없음 · 초안
   await start(page);
   await ask(page);
   await expect(page.locator('.assistant .support-transcript')).toContainText('이전 노드');
-  await expect(page.getByRole('button', { name: '적용하기', exact: true }).last()).toHaveCount(0);
+  await expect(page.getByRole('button', { name: '적용하기', exact: true }).last()).toBeEnabled();
   await expect(page.getByRole('textbox', { name: '제목', exact: false })).toHaveValue('');
   await ask(page);
-  await expect(page.locator('.assistant .support-transcript')).toContainText('완성되지 않았습니다');
+  await expect(page.locator('.assistant .support-transcript')).toContainText(
+    '응답이 완성되지 않았거나',
+  );
+  await expect(page.getByRole('button', { name: '적용하기', exact: true }).last()).toBeDisabled();
+  await expect(page.locator('.support-proposal')).toHaveCount(2);
   await ask(page, '구조가 어떻게 되니?');
   await expect(page.locator('.assistant .support-transcript')).toContainText(
     '구조에 대한 답변입니다',
   );
-  await expect(page.getByRole('button', { name: '적용하기', exact: true }).last()).toHaveCount(0);
+  await expect(page.locator('.support-proposal')).toHaveCount(2);
 });
 
 test('서포터 잔액 · 에이전트와 대화 테스트 후 갱신 · 모바일 공유 · 조회 실패 복구', async ({
@@ -556,6 +560,95 @@ for (const mobile of [false, true])
   });
 
 for (const mobile of [false, true]) {
+  test(`잘못된 챕터만 빨간 테두리 · 정상 변경 적용 · 오류와 원문 재접속 보존 (${mobile ? '모바일' : 'PC'})`, async ({
+    page,
+  }) => {
+    let calls = 0;
+    let followUp: any;
+    await page.route('https://openrouter.ai/api/v1/chat/completions', async (route) => {
+      const payload = JSON.parse(route.request().postDataJSON().messages[1].content);
+      const raw = result(payload.draft);
+      calls++;
+      if (calls === 2) followUp = payload;
+      const scenarios = raw.proposals.find((p) => p.section === 'scenarios')!.replacement;
+      scenarios.title = '시나리오에는 없는 필드';
+      const good = structuredClone(scenarios.chapters[0]);
+      scenarios.chapters[0].from = 'not-an-opening';
+      scenarios.chapters.push({ ...good, id: 'valid-second', name: '정상 챕터' });
+      raw.reply = '비용을 쓴 답변과 제안을 모두 보존합니다.';
+      await route.fulfill({
+        json: { choices: [{ finish_reason: 'stop', message: { content: JSON.stringify(raw) } }] },
+      });
+    });
+    await start(page, mobile);
+    await ask(page);
+    const proposal = page.locator('.support-proposal').last();
+    await expect(page.locator('.assistant')).toContainText(
+      '비용을 쓴 답변과 제안을 모두 보존합니다.',
+    );
+    await proposal.locator('summary').filter({ hasText: '시나리오' }).click();
+    const overview = proposal
+      .locator('details')
+      .filter({ has: page.locator('summary').filter({ hasText: '작품 개요' }) });
+    const scenario = proposal
+      .locator('details')
+      .filter({ has: page.locator('summary').filter({ hasText: '시나리오' }) });
+    await expect(
+      overview
+        .locator('.proposal-field')
+        .filter({ has: page.locator('strong').filter({ hasText: /^제목$/ }) }),
+    ).not.toHaveClass(/proposal-invalid/);
+    await expect(
+      scenario
+        .locator('.proposal-field')
+        .filter({ has: page.locator('strong').filter({ hasText: /^제목$/ }) }),
+    ).toHaveClass(/proposal-invalid/);
+    const bad = proposal.locator('.proposal-item.proposal-invalid');
+    await expect(bad).toHaveCount(1);
+    await expect(bad).toContainText('이전 노드');
+    expect(await bad.evaluate((e) => getComputedStyle(e).borderColor)).toBe('rgb(198, 72, 80)');
+    await expect(
+      proposal.locator('.proposal-item').filter({ hasText: '정상 챕터' }),
+    ).not.toHaveClass(/proposal-invalid/);
+    await proposal.getByRole('button', { name: '적용하기', exact: true }).click();
+    await expect(proposal.getByRole('button', { name: '적용 완료', exact: true })).toBeDisabled();
+    await expect(proposal).toContainText('오류 표시된 부분을 제외하고 적용했습니다.');
+    if (mobile) await page.getByRole('button', { name: '제작 메뉴 닫기', exact: true }).click();
+    await expect(page.getByRole('textbox', { name: '제목', exact: false })).toHaveValue(
+      '약속의 정원',
+    );
+    const work = await exported(page);
+    expect(work.chapters.map((chapter: any) => chapter.id)).toEqual(['valid-second']);
+    expect(work.statuses).toHaveLength(1);
+    await page.getByRole('button', { name: '실행 취소', exact: true }).click();
+    await expect(page.getByRole('textbox', { name: '제목', exact: false })).toHaveValue('');
+    expect((await exported(page)).chapters).toHaveLength(0);
+    await page.getByRole('button', { name: '다시 실행', exact: true }).click();
+    await expect(page.getByRole('textbox', { name: '제목', exact: false })).toHaveValue(
+      '약속의 정원',
+    );
+    await expect(page.getByText('저장완료', { exact: true })).toBeVisible();
+    await page.reload();
+    if (mobile) {
+      await page.getByRole('button', { name: '제작 도구', exact: true }).click();
+      await page
+        .locator('.editor-workspace')
+        .getByRole('button', { name: '제작 서포터', exact: true })
+        .click();
+    }
+    await expect(page.locator('.assistant')).toContainText(
+      '비용을 쓴 답변과 제안을 모두 보존합니다.',
+    );
+    await expect(proposal).toContainText('not-an-opening');
+    await proposal.locator('summary').filter({ hasText: '시나리오' }).click();
+    await expect(proposal.locator('.proposal-item.proposal-invalid')).toContainText('이전 노드');
+    await ask(page, '제목만 후속 수정해줘');
+    await expect(page.locator('.support-proposal')).toHaveCount(2);
+    expect(followUp.draft.scenarios.chapters.map((chapter: any) => chapter.id)).toEqual([
+      'valid-second',
+    ]);
+  });
+
   test(`429 실패 시 전송문 복원 · 새 초안은 덮어쓰지 않음 (${mobile ? '모바일' : 'PC'})`, async ({
     page,
   }) => {

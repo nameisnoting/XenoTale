@@ -9,12 +9,55 @@ import {
   applyCreatorProposal,
 } from '../domain/creatorAssistant';
 import { exampleWork } from '../test/exampleWork';
+import { reviewCreatorProposal } from '../domain/creatorReview';
 const file = (kind: string, key: string, value: unknown) =>
   new File(
     [JSON.stringify({ kind: `xenotale.${kind}`, schemaVersion: 2, [key]: value })],
     'test.json',
   );
 describe('portable files', () => {
+  it('keeps invalid proposal originals and partial-application diagnostics in portable workspace history', async () => {
+    const w = workspace('작가');
+    const request = creatorRequest(w.work);
+    const parsed = parseCreatorAnswer(
+      {
+        reply: '원문 보존',
+        questions: [],
+        proposals: [
+          {
+            section: 'overview',
+            reason: '정상 제목',
+            replacement: { ...request.draft.overview, title: '정상 제목' },
+          },
+          {
+            section: 'statuses',
+            reason: '오류 있는 상태값',
+            replacement: { ...request.draft.statuses, statuses: [42] },
+          },
+          { section: 'unregistered', reason: '등록되지 않은 항목', replacement: { mystery: true } },
+        ],
+      },
+      w.work,
+      request,
+    );
+    const review = reviewCreatorProposal(w.work, parsed.proposal);
+    w.work = review.work;
+    w.assistantHistory = [
+      {
+        id: 'reply',
+        role: 'assistant',
+        text: parsed.reply,
+        proposal: parsed.proposal,
+        applied: true,
+        appliedIssues: review.issues,
+      },
+    ];
+    const imported = await readImport(file('workspace', 'workspace', w));
+    if (imported.kind !== 'workspace') throw new Error();
+    expect(imported.workspace.work.title).toBe('정상 제목');
+    expect(imported.workspace.work.statuses).toEqual([]);
+    expect(imported.workspace.assistantHistory).toEqual(w.assistantHistory);
+  });
   it('accepts exported rooms and rejects broken snapshot references', async () => {
     const r = addResponse(
       createRoom(exampleWork()),

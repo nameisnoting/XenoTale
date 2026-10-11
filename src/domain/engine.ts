@@ -55,15 +55,43 @@ export const emptyDelta = (): Envelope['delta'] => ({
 function fail(s: string): never {
   throw new Error(s);
 }
-export function validateWork(w: Work, publish = false) {
+export type WorkIssue = {
+  field: keyof Work;
+  index?: number;
+  message: string;
+  related: (keyof Work)[];
+};
+export function validateWork(w: Work, publish = false, report?: (issue: WorkIssue) => void) {
+  let location: Omit<WorkIssue, 'message'> = { field: 'title', related: [] };
+  const at = (field: keyof Work, index?: number, related: (keyof Work)[] = []) => {
+    location = { field, index, related };
+  };
+  const fail = (message: string) => {
+    if (report) report({ ...location, message });
+    else throw new Error(message);
+  };
   if (publish && (!w.title.trim() || !w.prompt.trim()))
     fail('작품 제목과 프롬프트를 입력해 주세요.');
   if (publish && !effectiveSystemPrompt(w).trim()) fail('시스템 프롬프트를 입력해 주세요.');
-  if (!w.characters.length || !w.openings.length) fail('캐릭터와 도입부가 하나 이상 필요합니다.');
-  const ids = (list: { id: string }[]) => {
+  at('characters');
+  if (!w.characters.length) fail('캐릭터와 도입부가 하나 이상 필요합니다.');
+  at('openings');
+  if (!w.openings.length) fail('캐릭터와 도입부가 하나 이상 필요합니다.');
+  const ids = (list: { id: string }[], field: keyof Work, related: (keyof Work)[] = []) => {
+    at(field, undefined, related);
     if (new Set(list.map((x) => x.id)).size !== list.length) fail('중복된 ID가 있습니다.');
   };
-  [w.characters, w.openings, w.statuses, w.items, w.relations, w.chapters, w.effects].forEach(ids);
+  for (const field of [
+    'characters',
+    'openings',
+    'statuses',
+    'items',
+    'relations',
+    'chapters',
+    'effects',
+  ] as const)
+    ids(w[field], field);
+  at('effects');
   if (publish && w.effects.some((e) => !e.name.trim() || !e.content.trim()))
     fail('연출의 이름과 내용을 입력해 주세요.');
   if (
@@ -72,7 +100,8 @@ export function validateWork(w: Work, publish = false) {
       w.effects.some((e) => /[{}]/.test(e.name) || /^(user|img:.*|effect:.*)$/.test(e.name)))
   )
     fail('연출 이름은 서로 다르게 입력하고 user·img:·effect:·중괄호는 사용하지 마세요.');
-  ids([...w.openings, ...w.chapters]);
+  ids([...w.openings, ...w.chapters], 'chapters', ['openings']);
+  at('characters');
   if (w.characters.some((c) => c.id === 'user')) fail('user는 플레이어 전용 ID입니다.');
   if (publish) {
     if (
@@ -84,7 +113,8 @@ export function validateWork(w: Work, publish = false) {
     if (w.openings.some((o) => !o.name.trim() || !o.body.trim()))
       fail('도입부 제목과 내용을 입력해 주세요.');
   }
-  for (const d of w.statuses) {
+  for (const [index, d] of w.statuses.entries()) {
+    at('statuses', index);
     if (d.levels?.some((level) => level.min > level.max))
       fail(`${d.name}: 레벨 구간의 범위를 확인해 주세요.`);
     if (
@@ -102,25 +132,39 @@ export function validateWork(w: Work, publish = false) {
       fail(`${d.name}: 문자 초기값을 입력해 주세요.`);
   }
   const entityIds = new Set(['user', ...w.characters.map((c) => c.id)]);
+  at('quality', undefined, ['characters']);
   for (const key of [w.quality.viewpointActorId, w.quality.viewpointTargetId])
     if (key && !entityIds.has(key)) fail('서술 시점의 인물 참조를 확인해 주세요.');
-  for (const r of w.relations)
+  for (const [index, r] of w.relations.entries()) {
+    at('relations', index, ['characters']);
     if (!entityIds.has(r.from) || !entityIds.has(r.to))
       fail('관계도의 인물 참조가 올바르지 않습니다.');
-  for (const o of w.openings)
+  }
+  for (const [index, o] of w.openings.entries()) {
+    at('openings', index, ['characters']);
     if (o.presence.some((p) => !w.characters.some((c) => c.id === p)))
       fail('도입부의 등장인물 참조가 올바르지 않습니다.');
-  for (const c of w.chapters) {
+  }
+  for (const [index, c] of w.chapters.entries()) {
+    at('chapters', index, ['openings', 'chapters']);
     if (![...w.openings, ...w.chapters].some((n) => n.id === c.from))
       fail(`${c.name}: 이전 노드를 선택해 주세요.`);
     const seen = new Set([c.id]);
     let current = c.from;
     while (w.chapters.some((n) => n.id === current)) {
-      if (seen.has(current)) fail('시나리오는 순환해서 연결할 수 없습니다.');
+      if (seen.has(current)) {
+        fail('시나리오는 순환해서 연결할 수 없습니다.');
+        break;
+      }
       seen.add(current);
       current = w.chapters.find((n) => n.id === current)!.from;
     }
     for (const condition of c.conditions) {
+      at(
+        'chapters',
+        index,
+        ['number', 'choice'].includes(condition.kind) ? ['statuses'] : ['items'],
+      );
       const d = w.statuses.find((s) => s.id === condition.ref);
       if (
         (condition.kind === 'number' && d?.type !== 'number') ||
@@ -147,7 +191,8 @@ export function validateWork(w: Work, publish = false) {
         fail(`${c.name}: 강화 가능한 아이템을 선택해 주세요.`);
     }
   }
-  for (const item of w.items)
+  for (const [index, item] of w.items.entries()) {
+    at('items', index, ['statuses']);
     if (item.enhancement) {
       const e = item.enhancement;
       if (
@@ -170,6 +215,12 @@ export function validateWork(w: Work, publish = false) {
       )
         fail(`${item.name}: 강화 수치를 확인해 주세요.`);
     }
+  }
+}
+export function workIssues(work: Work): WorkIssue[] {
+  const issues: WorkIssue[] = [];
+  validateWork(work, false, (issue) => issues.push(issue));
+  return issues;
 }
 export function initialState(w: Work, openingId: string): Runtime {
   const opening = w.openings.find((o) => o.id === openingId) ?? w.openings[0];

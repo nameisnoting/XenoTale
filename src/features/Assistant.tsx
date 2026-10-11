@@ -6,15 +6,15 @@ import type { Work } from '../domain/types';
 import { id } from '../domain/types';
 import type { ModelProps, ApiProps } from './Profile';
 import { requestJson } from '../engine/auxiliary';
-import { ActionButton, Button, Markdown, useNotify } from '../components/UI';
+import { ActionButton, Markdown, useNotify } from '../components/UI';
 import { ModelPicker } from '../components/ModelPicker';
 import {
   creatorRequest,
   parseCreatorAnswer,
-  applyCreatorProposal,
-  creatorPreview,
   type CreatorMessage,
 } from '../domain/creatorAssistant';
+import { reviewCreatorProposal } from '../domain/creatorReview';
+import { CreatorProposalCard } from './CreatorProposalCard';
 import assistantPrompt from '../engine/prompts/creator_assistant_v2.txt?raw';
 import './Assistant.css';
 
@@ -46,6 +46,7 @@ export function Assistant({
   const [input, setInput, beginSend] = useMessageDraft(`workspace.${workspaceId}.agent`);
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState({ reply: '', receivedChars: 0, thinking: false });
+  const progressRef = useRef(progress);
   const [picker, setPicker] = useState(false);
   const controller = useRef<AbortController | null>(null);
   const workRef = useRef(work);
@@ -70,6 +71,7 @@ export function Assistant({
     controller.current = active;
     setBusy(true);
     setProgress({ reply: '', receivedChars: 0, thinking: false });
+    progressRef.current = { reply: '', receivedChars: 0, thinking: false };
     const draft = beginSend();
     const request = draft.text.trim();
     const original = structuredClone(workRef.current);
@@ -108,13 +110,23 @@ export function Assistant({
           draft: snapshot.draft,
           localAssets: Object.keys(snapshot.assets),
           pendingDraft: pending,
+          pendingIssues: previous?.proposal
+            ? reviewCreatorProposal(original, previous.proposal).issues
+            : [],
           request,
           conversation,
         },
         model,
         apiKey,
         active.signal,
-        { maxTokens: 16384, onProgress: setProgress },
+        {
+          maxTokens: 16384,
+          preserveInvalidOutput: true,
+          onProgress: (progress) => {
+            progressRef.current = progress;
+            setProgress(progress);
+          },
+        },
       );
       if (active.signal.aborted) {
         draft.restore();
@@ -124,7 +136,10 @@ export function Assistant({
       append({
         role: 'assistant',
         text: [answer.reply, ...answer.questions].filter(Boolean).join('\n\n'),
-        proposal: answer.proposal.changes.length ? answer.proposal : undefined,
+        proposal:
+          answer.proposal.changes.length || answer.proposal.issues?.length
+            ? answer.proposal
+            : undefined,
       });
       draft.complete();
     } catch (e) {
@@ -132,7 +147,12 @@ export function Assistant({
       if ((e as Error).name !== 'AbortError') {
         const message = (e as Error).message;
         notify(message);
-        append({ role: 'assistant', text: `제안을 준비하지 못했습니다. ${message}` });
+        append({
+          role: 'assistant',
+          text: [progressRef.current.reply, `제안을 준비하지 못했습니다. ${message}`]
+            .filter(Boolean)
+            .join('\n\n'),
+        });
       }
     } finally {
       controller.current = null;
@@ -143,13 +163,21 @@ export function Assistant({
   const apply = (message: CreatorMessage) => {
     if (!message.proposal || message.applied || busy) return;
     try {
-      onChange(applyCreatorProposal(workRef.current, message.proposal));
+      const review = reviewCreatorProposal(workRef.current, message.proposal);
+      if (!review.applicable) return;
+      onChange(review.work);
       setHistory(
         historyRef.current.map((entry) =>
-          entry.id === message.id ? { ...entry, applied: true } : entry,
+          entry.id === message.id
+            ? { ...entry, applied: true, appliedIssues: review.issues }
+            : entry,
         ),
       );
-      notify('제안을 적용했습니다. 실행 취소로 되돌릴 수 있습니다.');
+      notify(
+        review.issues.length
+          ? '오류 표시된 부분을 제외하고 적용했습니다. 실행 취소로 되돌릴 수 있습니다.'
+          : '제안을 적용했습니다. 실행 취소로 되돌릴 수 있습니다.',
+      );
     } catch (e) {
       notify((e as Error).message);
     }
@@ -170,28 +198,12 @@ export function Assistant({
               <Markdown>{message.text}</Markdown>
             )}
             {message.proposal && (
-              <section className="support-proposal" aria-label="변경 제안">
-                <h4>변경 제안</h4>
-                {message.proposal.sections.map((section) => (
-                  <details key={section.id}>
-                    <summary>{section.name}</summary>
-                    <p>{section.reason}</p>
-                    <pre>{creatorPreview(section.replacement)}</pre>
-                  </details>
-                ))}
-                <p className="muted">
-                  {message.applied
-                    ? '작품에 적용한 제안입니다.'
-                    : '적용하면 위 항목이 함께 변경됩니다.'}
-                </p>
-                <Button
-                  className="primary full"
-                  disabled={busy || message.applied}
-                  onClick={() => apply(message)}
-                >
-                  {message.applied ? '적용 완료' : '적용하기'}
-                </Button>
-              </section>
+              <CreatorProposalCard
+                message={message}
+                work={work}
+                busy={busy}
+                onApply={() => apply(message)}
+              />
             )}
           </Fragment>
         ))}

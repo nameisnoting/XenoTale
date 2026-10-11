@@ -14,6 +14,34 @@
   cursor: pointer;
   color: #fff;
 }
+.proposal-field,
+.proposal-item {
+  margin-top: 12px;
+  padding: 8px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+}
+.proposal-invalid {
+  border-color: var(--homura-red);
+}
+.support-proposal details.proposal-section-invalid {
+  border: 1px solid var(--homura-red);
+  border-radius: 4px;
+  padding: 12px 8px;
+}
+.proposal-errors,
+.proposal-warning-label {
+  color: var(--homura-red);
+  font-size: 12px;
+}
+.proposal-errors {
+  margin: 8px 0;
+  padding-left: 20px;
+  overflow-wrap: anywhere;
+}
+.proposal-warning-label {
+  font-weight: 400;
+}
 .support-proposal pre {
   white-space: pre-wrap;
   overflow-wrap: anywhere;

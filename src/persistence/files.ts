@@ -330,6 +330,12 @@ const published = z.object({
   hidden: z.boolean(),
   createdAt: z.number(),
 });
+const creatorIssueSchema = z.object({
+  field: short.optional(),
+  index: z.number().int().nonnegative().optional(),
+  sectionIndex: z.number().int().nonnegative().optional(),
+  message: str,
+});
 const workspace = z.object({
   id: identifier,
   work: workSchema,
@@ -354,24 +360,12 @@ const workspace = z.object({
       role: z.enum(['user', 'assistant']),
       text: str,
       applied: z.boolean().optional(),
+      appliedIssues: arr(creatorIssueSchema).optional(),
       proposal: z
         .object({
           sections: arr(
             z.object({
-              id: z.enum([
-                'overview',
-                'characters',
-                'openings',
-                'media',
-                'relations',
-                'statuses',
-                'items',
-                'scenarios',
-                'shortcuts',
-                'effects',
-                'personas',
-                'guide',
-              ]),
+              id: short,
               name: short,
               reason: str,
               replacement: z.record(short, z.unknown()),
@@ -392,6 +386,7 @@ const workspace = z.object({
                 after: change.after,
               })),
           ),
+          issues: arr(creatorIssueSchema).optional(),
         })
         .optional(),
     }),
