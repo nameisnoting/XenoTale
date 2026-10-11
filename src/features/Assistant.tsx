@@ -25,7 +25,14 @@ export function Assistant({
   refreshModels,
   resolveModel,
   apiKey,
-}: { work: Work; onChange: (w: Work) => void; profile: Profile } & ModelProps & ApiProps) {
+  onRequestComplete,
+}: {
+  work: Work;
+  onChange: (w: Work) => void;
+  profile: Profile;
+  onRequestComplete: () => void;
+} & ModelProps &
+  ApiProps) {
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
   const [history, setHistory] = useState<{ role: 'user' | 'assistant'; text: string }[]>([]);
@@ -110,6 +117,7 @@ export function Assistant({
     } finally {
       controller.current = null;
       setBusy(false);
+      onRequestComplete();
     }
   };
   const apply = () => {

@@ -1,4 +1,6 @@
 import { useMediaQuery } from '../components/useMediaQuery';
+import { CreditBalanceButton } from '../components/CreditBalanceButton';
+import { useCreditBalance } from '../components/useCreditBalance';
 import { validateWork } from '../domain/engine';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -73,6 +75,14 @@ function EditorContent({
   profile,
   ...props
 }: { initial: Workspace; profile: Profile } & ApiProps & ModelProps) {
+  const balance = useCreditBalance(props.apiKey);
+  const balanceButton = (
+    <CreditBalanceButton
+      balance={balance}
+      actionLabel="잔액 새로고침"
+      onClick={() => balance.refresh(true)}
+    />
+  );
   const [work, setWork] = useState(initial.work);
   const [relationView, setRelationView] = useGraphView(
     `xenotale.relation-view.editor.${initial.id}`,
@@ -362,6 +372,7 @@ function EditorContent({
             <div className="editor-sidebar-support" hidden={wide || sidebarView !== 'support'}>
               <div className="nav-heading">
                 <strong>제작 서포터</strong>
+                {balanceButton}
               </div>
               <div ref={sidebarSupport} className="editor-support-slot" />
             </div>
@@ -642,7 +653,9 @@ function EditorContent({
               <PanelRightClose size={20} />
             </IconButton>
           }
-        />
+        >
+          {balanceButton}
+        </PanelHeader>
         <div ref={desktopSupport} className="editor-support-slot" />
       </aside>
       {createPortal(
@@ -659,6 +672,7 @@ function EditorContent({
           <div className="editor-support-pane" hidden={supportTab !== 'agent'}>
             <Assistant
               work={work}
+              onRequestComplete={balance.refresh}
               onChange={(next) => {
                 // A multi-section AI application is one separate undo transaction.
                 lastEdit.current.time = 0;
@@ -672,6 +686,7 @@ function EditorContent({
           <div className="editor-support-pane" hidden={supportTab !== 'test'}>
             <CreatorTest
               work={work}
+              onRequestComplete={balance.refresh}
               profile={profile}
               openingId={selectedOpeningId}
               onOpeningChange={setOpeningSelection}

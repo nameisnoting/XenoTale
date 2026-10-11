@@ -25,11 +25,13 @@ export function CreatorTest({
   apiKey,
   openingId,
   onOpeningChange,
+  onRequestComplete,
 }: {
   work: Work;
   profile: Profile;
   openingId: string;
   onOpeningChange: (id: string) => void;
+  onRequestComplete: () => void;
 } & ApiProps &
   ModelProps) {
   const [room, setRoom] = useState<Room | null>(null);
@@ -83,6 +85,7 @@ export function CreatorTest({
       lock.current = false;
       setBusy(false);
       abort.current = null;
+      onRequestComplete();
     }
   };
   return (

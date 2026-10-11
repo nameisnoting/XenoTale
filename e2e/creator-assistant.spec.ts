@@ -5,7 +5,7 @@ const model = {
   id: 'test/creator',
   name: '제작 테스트 모델',
   context_length: 200000,
-  supported_parameters: ['response_format'],
+  supported_parameters: ['response_format', 'structured_outputs'],
   top_provider: { max_completion_tokens: 16000 },
 };
 async function start(page: Page, mobile = false) {
@@ -323,4 +323,73 @@ test('잘못된 연결 · 잘린 응답 · Q&A는 적용 버튼 없음 · 초안
     '구조에 대한 답변입니다',
   );
   await expect(page.getByRole('button', { name: '적용하기', exact: true })).toHaveCount(0);
+});
+
+test('서포터 잔액 · 에이전트와 대화 테스트 후 갱신 · 모바일 공유 · 조회 실패 복구', async ({
+  page,
+}) => {
+  await start(page);
+  let usage = 0;
+  let denied = false;
+  await page.route('https://openrouter.ai/api/v1/credits', (r) =>
+    denied
+      ? r.fulfill({ status: 403, json: {} })
+      : r.fulfill({ json: { data: { total_credits: 10, total_usage: usage } } }),
+  );
+  await page.route('https://openrouter.ai/api/v1/chat/completions', (r) => {
+    const payload = JSON.parse(r.request().postDataJSON().messages[1].content);
+    usage += 0.25;
+    const answer = payload.draft
+      ? result(payload.draft)
+      : {
+          kind: 'turn',
+          requestedCharacterIds: [],
+          body: '*여기에 지문이 나옵니다.*',
+          choices: [],
+          delta: {
+            numeric: [],
+            text: [],
+            choice: [],
+            inventory: [],
+            presence: [],
+            relationships: [],
+          },
+        };
+    return r.fulfill({
+      json: {
+        choices: [{ finish_reason: 'stop', message: { content: JSON.stringify(answer) } }],
+        usage: { prompt_tokens: 100, completion_tokens: 20, cost: 0.25 },
+      },
+    });
+  });
+  const desktop = page.locator('.assistant-desktop');
+  const credit = desktop.getByRole('button', { name: '잔액 새로고침', exact: true });
+  await expect(credit).toHaveText('$10');
+  await ask(page, '현재 구조를 설명해줘');
+  await expect(credit).toHaveText('$9.75');
+  await page.getByRole('button', { name: '적용하기', exact: true }).click();
+  await desktop.getByRole('tab', { name: '대화 테스트', exact: true }).click();
+  await desktop.getByRole('textbox', { name: '테스트 메시지', exact: true }).fill('안녕');
+  await desktop.getByRole('button', { name: '테스트 전송', exact: true }).click();
+  await expect(credit).toHaveText('$9.5');
+  for (const width of [393, 320]) {
+    await page.setViewportSize({ width, height: 852 });
+    await page.getByRole('button', { name: '제작 도구', exact: true }).click();
+    const menu = page.locator('.editor-workspace');
+    await menu.getByRole('button', { name: '제작 서포터', exact: true }).click();
+    await expect(menu.getByRole('button', { name: '잔액 새로고침', exact: true })).toHaveText(
+      '$9.5',
+    );
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(width);
+    await page.getByRole('button', { name: '제작 메뉴 닫기', exact: true }).click();
+  }
+  await page.setViewportSize({ width: 1440, height: 852 });
+  denied = true;
+  await credit.click();
+  await expect(credit).toHaveText('조회 불가');
+  await expect(credit).toHaveAttribute('title', /계정 잔액 조회 권한/);
+  denied = false;
+  usage = 0.75;
+  await credit.click();
+  await expect(credit).toHaveText('$9.25');
 });

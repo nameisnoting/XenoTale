@@ -4,9 +4,11 @@ import type { CreditBalance } from './useCreditBalance';
 export function CreditBalanceButton({
   balance,
   onClick,
+  actionLabel = '사용량 보기',
 }: {
   balance: CreditBalance;
   onClick: () => void;
+  actionLabel?: string;
 }) {
   const label = !balance.hasKey
     ? '0'
@@ -18,9 +20,9 @@ export function CreditBalanceButton({
   return (
     <button
       className="chat-cost"
-      aria-label="사용량 보기"
+      aria-label={actionLabel}
       aria-busy={balance.loading}
-      title={balance.error || 'OpenRouter 잔액 (USD) · 사용량 보기'}
+      title={balance.error || `OpenRouter 잔액 (USD) · ${actionLabel}`}
       onClick={onClick}
     >
       {label}
