@@ -422,8 +422,8 @@ export function Toggle({
   disabled?: boolean;
 }) {
   return (
-    <label className="toggle-row">
-      <span>{displayLabel ?? label}</span>
+    <label className="toggle-row" data-checked={value}>
+      <span className="toggle-label">{displayLabel ?? label}</span>
       <button
         type="button"
         disabled={disabled}

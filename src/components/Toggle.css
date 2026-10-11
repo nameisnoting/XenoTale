@@ -1,6 +1,12 @@
 .toggle-row.toggle-row {
   font-size: var(--body-5-size, 12px);
 }
+.toggle-row > .toggle-label {
+  color: #ccc;
+}
+.toggle-row[data-checked='true'] > .toggle-label {
+  color: #fff;
+}
 .toggle.toggle {
   width: 29.33px;
   height: 16px;
