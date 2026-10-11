@@ -20,14 +20,33 @@ for (const width of [1440, 393]) {
       await selected.evaluate((el) => ({
         color: getComputedStyle(el).color,
         weight: getComputedStyle(el).fontWeight,
+        size: getComputedStyle(el).fontSize,
       })),
-    ).toEqual({ color: 'rgb(255, 255, 255)', weight: '700' });
+    ).toEqual({ color: 'rgb(255, 255, 255)', weight: '700', size: '14px' });
+    await expect(page.getByRole('tab', { name: '기타', exact: true })).toHaveCSS(
+      'font-size',
+      '14px',
+    );
+    for (const selector of ['.notice-category', '.notice-title', 'time']) {
+      await expect(page.locator('.notice-row').first().locator(selector)).toHaveCSS(
+        'font-size',
+        '12px',
+      );
+      await expect(page.locator('.notice-row').first().locator(selector)).toHaveCSS(
+        'font-weight',
+        '400',
+      );
+    }
+    await expect(page.locator('.notice-row').first()).toHaveCSS('padding', '12px 16px');
     await page.getByRole('tab', { name: '기타', exact: true }).click();
     await expect(page.locator('.notice-row')).toHaveCount(1);
     await page.locator('.notice-row').click();
     await expect(page.getByRole('heading', { name: '공지사항 안내', exact: true })).toBeVisible();
     await page.reload();
     await expect(page.locator('.notice-body')).toContainText('업데이트와 안내 사항');
+    await expect(page.locator('.notice-detail h2')).toHaveCSS('font-size', '20px');
+    await expect(page.locator('.notice-meta')).toHaveCSS('font-size', '12px');
+    await expect(page.locator('.notice-body .markdown p').first()).toHaveCSS('font-size', '14px');
     expect(await page.locator('.notice-body').evaluate((el) => getComputedStyle(el).color)).toBe(
       'rgb(255, 255, 255)',
     );
@@ -58,6 +77,7 @@ test('잘못된 공지 링크도 목록으로 복귀 가능', async ({ page }) =
   await page.getByRole('button', { name: '키 없이 먼저 둘러보기', exact: true }).click();
   await page.goto('/#/profile/notices/missing?tab=other');
   await expect(page.getByText('존재하지 않는 공지사항입니다.')).toBeVisible();
+  await expect(page.locator('.notices-empty')).toHaveCSS('font-size', '14px');
   await page.getByRole('button', { name: '공지 목록으로 돌아가기', exact: true }).click();
   await expect(page.getByRole('tab', { name: '기타', exact: true })).toHaveAttribute(
     'aria-selected',

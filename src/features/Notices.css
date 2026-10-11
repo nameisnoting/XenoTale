@@ -8,8 +8,8 @@
 }
 .notices-page .work-info-tabs > button {
   flex: 0 0 auto;
-  padding: 12pt 0;
-  font-size: 14pt;
+  padding: 12px 0;
+  font-size: 14px;
   line-height: 1.5;
   font-weight: 400;
   color: #cccccc;
@@ -28,13 +28,13 @@
   align-items: center;
   gap: 12px;
   width: 100%;
-  padding: 12pt 16px;
+  padding: 12px 16px;
   background: transparent;
   border: 0;
   border-bottom: 1px solid #4e4e4e;
   border-radius: 0;
   color: #ffffff;
-  font-size: 12pt;
+  font-size: 12px;
   font-weight: 400;
   line-height: 1.5;
   text-align: left;
@@ -59,10 +59,10 @@
 }
 .notices-page .notice-detail h2 {
   margin: 0;
-  padding: 16px 16pt;
+  padding: 16px 16px;
   border: 1px solid #333333;
   color: #ffffff;
-  font-size: 20pt;
+  font-size: 20px;
   font-weight: 700;
   line-height: 1.5;
   overflow-wrap: anywhere;
@@ -72,10 +72,10 @@
   justify-content: space-between;
   align-items: center;
   gap: 12px;
-  padding: 8px 16pt;
+  padding: 8px 16px;
   border-bottom: 1px solid #333333;
   color: #cccccc;
-  font-size: 12pt;
+  font-size: 12px;
   font-weight: 400;
   line-height: 1.5;
 }
@@ -83,9 +83,9 @@
   white-space: nowrap;
 }
 .notice-body {
-  padding: 16px 16pt 0;
+  padding: 16px 16px 0;
   color: #ffffff;
-  font-size: 14pt;
+  font-size: 14px;
   font-weight: 400;
   line-height: 1.7;
   overflow-wrap: anywhere;
@@ -100,7 +100,7 @@
 .notices-page .notices-empty {
   padding: 16px;
   color: #cccccc;
-  font-size: 14pt;
+  font-size: 14px;
 }
 @media (max-width: 480px) {
   .notices-page .notice-row {
