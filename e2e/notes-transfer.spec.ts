@@ -64,8 +64,8 @@ for (const width of [1440, 393])
       font: '14px',
       weight: '700',
       line: '24px',
-      body: '12px',
-      bodyLine: '18px',
+      body: '14px',
+      bodyLine: '22px',
       padding: '12px',
     });
     expect(metrics.toggle[0]).toBeCloseTo(29.33, 1);

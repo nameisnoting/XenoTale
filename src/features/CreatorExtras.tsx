@@ -3,20 +3,10 @@ import { requiresDeleteConfirmation } from '../domain/deletion';
 import { useRef, useState } from 'react';
 import { MediaCard, CodePill, CodeRange, TemplateInput } from '../components/MediaFields';
 import { MediaPreview } from './MediaPreview';
-import { Plus, X } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import type { Work } from '../domain/types';
 import { clone, id } from '../domain/types';
-import {
-  Area,
-  Avatar,
-  Button,
-  Field,
-  IconButton,
-  Modal,
-  NumberInput,
-  TextInput,
-  safeUrl,
-} from '../components/UI';
+import { Area, Avatar, Button, Field, Modal, TextInput } from '../components/UI';
 
 export function ViewpointActors({ work, onChange }: { work: Work; onChange: (w: Work) => void }) {
   const q = work.quality;

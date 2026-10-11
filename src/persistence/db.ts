@@ -1,7 +1,7 @@
 import Dexie, { liveQuery, type Table } from 'dexie';
 import { useEffect, useState } from 'react';
 import type { Workspace, PublishedWork, Room, Profile } from '../domain/types';
-import { clone, id } from '../domain/types';
+import { clone } from '../domain/types';
 import { defaultProfile } from '../domain/defaults';
 import { validateWork } from '../domain/engine';
 import { upgradeProvidedSystemPrompt } from '../domain/systemPrompt';

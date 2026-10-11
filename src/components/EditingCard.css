@@ -1,0 +1,137 @@
+/* Shared editing card surface, typography and spacing. Loaded after page styles. */
+
+.edit-card-typography {
+  background: var(--surface-deep);
+  --edit-card-title-size: 16px;
+  --edit-card-body-size: 14px;
+  --edit-card-detail-size: 12px;
+  --body-5-size: var(--edit-card-body-size);
+  --body-5-line-height: 22px;
+  font-size: var(--edit-card-body-size);
+  line-height: 22px;
+  --edit-card-padding: 16px;
+  --edit-card-heading-gap: 16px;
+  --edit-card-content-gap: 16px;
+  --edit-card-section-gap: 24px;
+  --edit-card-field-gap: 8px;
+  --edit-card-column-gap: 12px;
+}
+
+.edit-card-typography.edit-card-typography > .card-header,
+.edit-card-typography .card-header .disclosure-title,
+.edit-card-typography .card-header .disclosure-title input,
+.edit-card-typography h3,
+.edit-card-typography h4 {
+  font-size: var(--edit-card-title-size);
+  line-height: 24px;
+  font-weight: 700;
+}
+
+.edit-card-typography .field .field-label,
+.edit-card-typography.edit-card-typography
+  input:where(:not([type='radio'], [type='checkbox'], [type='range'], [type='file'])),
+.edit-card-typography.edit-card-typography textarea,
+.edit-card-typography select,
+.edit-card-typography .design-select-trigger,
+.edit-card-typography .design-select-list,
+.edit-card-typography .radio-options,
+.edit-card-typography .keyword-pills > span,
+.edit-card-typography .segmented button,
+.edit-card-typography .button,
+.edit-card-typography.edit-card-typography .toggle-row > span,
+.edit-card-typography .image-upload > span {
+  font-size: var(--edit-card-body-size);
+  line-height: 22px;
+}
+
+.edit-card-typography.edit-card-typography :is(input, textarea)::placeholder {
+  font-size: var(--edit-card-body-size);
+  line-height: 22px;
+}
+
+.edit-card-typography .field > small,
+.edit-card-typography .enhancement-failure-hint,
+.edit-card-typography .enhancement-percent,
+.edit-card-typography .memory-inactive,
+.edit-card-typography .memory-prompt-reset {
+  font-size: var(--edit-card-detail-size);
+  line-height: 18px;
+}
+
+/* Renaming a card edits its heading, so it keeps the heading size. */
+.edit-card-typography.edit-card-typography .card-header .disclosure-title input {
+  font-size: var(--edit-card-title-size);
+  line-height: 24px;
+}
+
+.edit-card-typography.edit-card-typography {
+  padding: var(--edit-card-padding);
+}
+
+.edit-card-typography > :is(.disclosure-body, .persona-card-body) {
+  margin-top: var(--edit-card-heading-gap);
+  gap: var(--edit-card-content-gap);
+}
+
+.edit-card-typography .persona-fields {
+  gap: var(--edit-card-content-gap);
+}
+
+.edit-card-typography .note-body {
+  margin: var(--edit-card-heading-gap) 0 var(--edit-card-content-gap);
+}
+
+/* Rows supply their own gap; field margins must not add extra vertical space. */
+.edit-card-typography .field.field,
+.edit-card-typography .form-row > .field.field {
+  margin: 0;
+  gap: var(--edit-card-field-gap);
+}
+
+.edit-card-typography .form-row {
+  column-gap: var(--edit-card-column-gap);
+  row-gap: var(--edit-card-content-gap);
+}
+
+.edit-card-typography .basic-info > div:not(.field) {
+  display: flex;
+  flex-direction: column;
+  gap: var(--edit-card-content-gap);
+}
+
+.edit-card-typography .edit-card-section,
+.edit-card-typography .edit-card-section-body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.edit-card-typography .edit-card-section {
+  gap: var(--edit-card-heading-gap);
+}
+
+.edit-card-section > h3 {
+  margin: 0;
+}
+
+.edit-card-typography .edit-card-section-body {
+  gap: var(--edit-card-content-gap);
+}
+
+.edit-card-typography .enhancement-editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--edit-card-section-gap);
+}
+
+.edit-card-section-body > .enhancement-failure-hint {
+  margin: 0;
+}
+
+@media (max-width: 800px) {
+  /* An inset edge avoids changing card dimensions; selected personas keep
+     their existing selection border. */
+  .samsung-internet .edit-card-typography:not(.selected) {
+    box-shadow: inset 0 0 0 1px #4e4e4e;
+  }
+}

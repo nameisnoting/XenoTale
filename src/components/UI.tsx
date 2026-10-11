@@ -19,16 +19,7 @@ import type {
   CSSProperties,
   Ref,
 } from 'react';
-import {
-  X,
-  Check,
-  Loader2,
-  UserRound,
-  Camera,
-  ChevronDown,
-  AlertCircle,
-  Trash2,
-} from 'lucide-react';
+import { X, Check, Loader2, UserRound, Camera, AlertCircle, Trash2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 const Notify = createContext<(message: string) => void>(() => {});

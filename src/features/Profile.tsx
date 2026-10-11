@@ -20,7 +20,6 @@ import {
   Check,
   Loader2,
   Plus,
-  Trash2,
   Megaphone,
 } from 'lucide-react';
 import type { Profile, Model, Persona } from '../domain/types';
@@ -40,7 +39,6 @@ import {
   TextInput,
   ImageUpload,
   Modal,
-  IconButton,
   Empty,
   useAction,
   useNotify,

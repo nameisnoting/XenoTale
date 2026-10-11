@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { type ReactNode } from 'react';
 import { PanelLeftClose, PanelLeftOpen, PanelRightClose, Info } from 'lucide-react';
 import type { Room } from '../domain/types';
 import { after, selected } from '../domain/types';
@@ -6,18 +6,6 @@ import { availableChapters } from '../domain/engine';
 import { PanelHeader } from '../components/Headers';
 import { IconRail } from '../components/IconRail';
 import { IconButton } from '../components/UI';
-
-export function useMediaQuery(query: string) {
-  const [matches, setMatches] = useState(() => window.matchMedia(query).matches);
-  useEffect(() => {
-    const media = window.matchMedia(query);
-    const update = () => setMatches(media.matches);
-    update();
-    media.addEventListener('change', update);
-    return () => media.removeEventListener('change', update);
-  }, [query]);
-  return matches;
-}
 
 // Desktop destinations mirror the original design. The mobile sheet has its own menu layout.
 const destinations = [

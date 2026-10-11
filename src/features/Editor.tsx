@@ -1,3 +1,4 @@
+import { useMediaQuery } from '../components/useMediaQuery';
 import { validateWork } from '../domain/engine';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -27,7 +28,8 @@ import {
 } from '../persistence/db';
 import { exportWorkspace, exportBackup } from '../persistence/files';
 import { navigate } from '../app/navigation';
-import { EditorPanels, sections } from './EditorPanels';
+import { EditorPanels } from './EditorPanels';
+import { sections } from './creator/sections';
 import { newWorkspace } from './Library';
 import type { ApiProps, ModelProps } from './Profile';
 import { CollapsedPanel, PanelHeader } from '../components/Headers';
@@ -109,7 +111,7 @@ function EditorContent({
   const panels = useResizablePanels({ layout: 'editor', leftCollapsed, rightCollapsed });
   const [rename, setRename] = useState(false);
   const [mobile, setMobile] = useState(false);
-  const [wide, setWide] = useState(() => window.matchMedia('(min-width: 1200px)').matches);
+  const wide = useMediaQuery('(min-width: 1200px)');
   const sidebarSupport = useRef<HTMLDivElement>(null);
   const desktopSupport = useRef<HTMLDivElement>(null);
   const [supportRoot] = useState(() => {
@@ -158,14 +160,7 @@ function EditorContent({
     if (view !== 'history') cancelSelection();
     setSidebarView(view);
   };
-  useEffect(() => {
-    const media = window.matchMedia('(min-width: 1200px)');
-    const update = () => setWide(media.matches);
-    media.addEventListener('change', update);
-    // The viewport can change between initial render and listener registration.
-    update();
-    return () => media.removeEventListener('change', update);
-  }, []);
+
   useLayoutEffect(() => {
     const target = wide ? desktopSupport.current : sidebarSupport.current;
     // A stable portal root moves the same panel without remounting its inputs/history.

@@ -8,14 +8,15 @@ async function start(page: Page) {
   await page.getByRole('button', { name: '키 없이 먼저 둘러보기' }).click();
 }
 
-test('작품 카드 절반 크기 · 공통 아이콘 메뉴와 제목 크기', async ({ page }) => {
+test('작품 카드 크기 · 공통 아이콘 메뉴와 제목 크기', async ({ page }) => {
   const out = 'docs/screenshots/components';
   await fs.mkdir(out, { recursive: true });
   await start(page);
   await expect(page.getByText('XenoTale 시작하기', { exact: true })).toHaveCount(0);
-  const box = await page.locator('.examples .work-art').boundingBox();
-  expect(box?.width).toBe(130);
-  expect(box?.height).toBeCloseTo((130 * 253) / 194, 0);
+  // The developer carousel is hidden; use the owned regression fixture instead.
+  const box = await page.locator('.work-art').first().boundingBox();
+  expect(box?.width).toBe(169);
+  expect(box?.height).toBeCloseTo((169 * 253) / 194, 0);
   await page.screenshot({ path: `${out}/library.png` });
   await page.getByRole('button', { name: '작품 만들기', exact: true }).click();
   const rail = page.getByRole('navigation', { name: '제작 기능 메뉴' });
@@ -94,7 +95,7 @@ test('메인과 관리의 공통 대화방 메뉴 · 고정/이름/폴더/삭제
     await page
       .getByRole('heading', { name: '대화방 폴더', exact: true })
       .evaluate((el) => getComputedStyle(el).fontSize),
-  ).toBe('16px');
+  ).toBe('20px');
   await page.getByRole('button', { name: '폴더 생성', exact: true }).click();
   await page.getByRole('textbox', { name: '제목', exact: true }).fill('연습');
   await page.getByRole('button', { name: '완료', exact: true }).click();

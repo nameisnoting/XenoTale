@@ -1,18 +1,7 @@
 import { effectiveSystemPrompt } from './systemPrompt';
 import { z } from 'zod';
-import type {
-  Work,
-  Runtime,
-  Context,
-  Checkpoint,
-  Room,
-  Candidate,
-  Turn,
-  TimelineEvent,
-  Usage,
-  Item,
-} from './types';
-import { id, clone, selected, after, fingerprint } from './types';
+import type { Work, Runtime, Checkpoint, Room, Candidate, Turn, Usage } from './types';
+import { id, clone, after } from './types';
 import { defaultPersona, settings } from './defaults';
 import { validMemories, repairMemoryActivity } from './memory';
 import { runtimeRelations } from './relations';

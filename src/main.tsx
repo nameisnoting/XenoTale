@@ -20,5 +20,4 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 import './design.css';
 import './ui-tokens.css';
 import './features/Editor.css';
-import './components/EditCardTypography.css';
-import './components/EditCardSpacing.css';
+import './components/EditingCard.css';

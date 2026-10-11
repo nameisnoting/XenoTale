@@ -3,7 +3,7 @@ import { db, initialize, useLive } from '../persistence/db';
 import { demoModel, listModels } from '../engine/openrouter';
 import { waitForCatalog } from '../engine/modelCatalog';
 import type { Model, Profile } from '../domain/types';
-import { useRoute, navigate } from './navigation';
+import { useRoute } from './navigation';
 import { Library, RoomManager, enterWorkspace } from '../features/Library';
 import { BottomNavigation } from '../components/BottomNavigation';
 import { ProfilePage, ProfileLibraryPage, PROFILE_LIBRARIES } from '../features/Profile';

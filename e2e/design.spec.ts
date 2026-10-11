@@ -105,7 +105,7 @@ test('관계도 연결과 내면 · 시나리오 노드 편집 · 작업 공간 
     .getByRole('textbox', { name: '안내인 → {{user}} 표면 관계', exact: true })
     .fill('친구');
   await page.getByRole('switch', { name: '표면 / 내면 분리', exact: true }).click();
-  await page.getByRole('button', { name: '⇄ 내면으로', exact: true }).click();
+  await page.getByRole('button', { name: '내면으로', exact: true }).click();
   await page
     .getByRole('textbox', { name: '안내인 → {{user}} 내면 관계', exact: true })
     .fill('신뢰');
@@ -116,7 +116,8 @@ test('관계도 연결과 내면 · 시나리오 노드 편집 · 작업 공간 
   await expect(page.locator('.scenario-node')).toContainText(['도입부 1', '정원']);
   await page.reload();
   await section(page, '관계도');
-  await page.getByRole('button', { name: '⇄ 내면으로', exact: true }).click();
+  await page.getByRole('button', { name: '내면으로', exact: true }).click();
+  await page.getByRole('button', { name: '전체 관계', exact: true }).click();
   await expect(
     page.getByRole('textbox', { name: '안내인 → {{user}} 내면 관계', exact: true }),
   ).toHaveValue('신뢰');

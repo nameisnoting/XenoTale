@@ -55,6 +55,8 @@ API 키는 AES-GCM으로 암호화되어 브라우저에 저장되고 새로고�
 
 ## 코드 구조
 
+파일별 역할과 제작·대화·저장의 실행 흐름은 [코드 읽기 지도](docs/code-map.md)를 참고하세요.
+
 ```text
 src/domain/       작품·대화 타입과 상태 처리
 src/persistence/  IndexedDB, 파일 검증, 백업과 복원

@@ -109,7 +109,7 @@ for (const width of [1440, 393]) {
         await expect(library.locator('.note-group')).toContainText('페이지 그룹');
         expect(
           await library.locator('.note-card').evaluate((e) => getComputedStyle(e).backgroundColor),
-        ).toBe('rgb(0, 0, 0)');
+        ).toBe('rgb(28, 28, 28)');
         expect(
           await page.locator('html').evaluate((e) => getComputedStyle(e).backgroundColor),
         ).not.toBe('rgb(0, 0, 0)');

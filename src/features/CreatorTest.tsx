@@ -207,7 +207,7 @@ export function CreatorTest({
             inventory: displayRoom.current.runtime.inventory,
             nodeId: displayRoom.current.runtime.nodeId,
           }}
-          readOnly={!room || !canCompleteEffect(room, effect.id, effect.source)}
+          readOnly={!canCompleteEffect(displayRoom, effect.id, effect.source)}
           onResult={async (result) => {
             if (lock.current || !roomRef.current)
               throw new Error('답변 생성이 끝난 뒤 실행해 주세요.');

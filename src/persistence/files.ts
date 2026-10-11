@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { db } from './db';
-import type { Work, Room, Runtime, Workspace, PublishedWork, Profile } from '../domain/types';
+import type { Work, Room, Runtime, Workspace } from '../domain/types';
 import { clone, id } from '../domain/types';
 import { validateWork } from '../domain/engine';
 import { effectRecordSchema, canCompleteEffect } from '../domain/effects';

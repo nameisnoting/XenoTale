@@ -11,32 +11,27 @@ import {
   SlidersHorizontal,
   Settings,
   Download,
-  Plus,
-  Trash2,
 } from 'lucide-react';
-import type { Room, Profile, Model, RoomSettings, Work } from '../domain/types';
-import { clone, id } from '../domain/types';
+import type { Room, Profile, RoomSettings, Work } from '../domain/types';
+
 import { availableChapters, enhance, enterChapter } from '../domain/engine';
 import { exportRoom } from '../persistence/files';
 import {
   Button,
   Field,
-  TextInput,
-  Area,
-  NumberInput,
   Toggle,
   Markdown,
   Avatar,
   Empty,
-  IconButton,
   safeUrl,
   useAction,
 } from '../components/UI';
-import { QualityEditor, RelationGraph, ScenarioGraph } from './EditorPanels';
+import { QualityEditor } from './creator/QualityEditor';
+import { RelationGraph } from './Graphs';
 import { relationGraphWork } from '../domain/relations';
 import { RoomNotes } from './RoomNotes';
 import { RoomMemory, type MemoryTab } from './RoomMemory';
-import { summaryCountdown } from '../engine/auxiliary';
+
 import { ChatPersona } from './ChatPersona';
 import type { GraphViewProps } from './Graphs';
 import { RadioOptions, Stepper } from '../components/DesignControls';

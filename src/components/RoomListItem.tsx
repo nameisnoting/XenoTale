@@ -4,17 +4,7 @@ import { MoreVertical, Pin, Pencil, Trash2 } from 'lucide-react';
 import type { Profile, Room } from '../domain/types';
 import { selected } from '../domain/types';
 import { db, commitRoom } from '../persistence/db';
-import {
-  ActionButton,
-  Avatar,
-  Button,
-  Confirm,
-  Field,
-  IconButton,
-  Modal,
-  TextInput,
-  useAction,
-} from './UI';
+import { ActionButton, Avatar, Button, Confirm, Field, Modal, TextInput, useAction } from './UI';
 import './RoomListItem.css';
 import './ListRows.css';
 

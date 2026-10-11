@@ -35,27 +35,6 @@
   font-weight: 400;
   color: #ccc;
 }
-.design-ui .edit-card {
-  background: var(--surface-deep);
-  border: 0;
-  border-radius: 4px;
-  padding: 24px;
-}
-.design-ui .edit-card > summary {
-  font-size: 18px;
-  font-weight: 500;
-}
-.design-ui .edit-card > summary::before {
-  display: none;
-}
-.design-ui .edit-card > summary::after {
-  content: '⌄';
-  margin-left: auto;
-  color: #ccc;
-}
-.design-ui .edit-card[open] > summary::after {
-  transform: rotate(180deg);
-}
 .design-ui .segmented {
   background: transparent;
   border: 0;
@@ -228,7 +207,6 @@
 }
 .chat-workspace-header h2,
 .chat-log-header h2 {
-  font-size: 20px;
   font-weight: 500;
   margin: 0;
   white-space: nowrap;
@@ -268,15 +246,6 @@
 }
 .chat-panel-content .field {
   margin: 20px 0;
-}
-.chat-panel-content .edit-card {
-  padding: 16px;
-}
-.chat-panel-content .edit-card > summary {
-  font-size: 16px;
-}
-.chat-panel-content .edit-card > summary > span {
-  flex: 1;
 }
 .chat-shell .chat-main {
   min-height: 0;
@@ -1052,7 +1021,6 @@
 }
 .assistant-top {
   display: flex;
-  justify-content: space-between;
   align-items: center;
   min-height: 56px;
   padding: 0 16px;
@@ -1494,7 +1462,6 @@
 .room-manager.design-ui > header {
   position: relative;
   justify-content: center;
-  margin-bottom: 36px;
 }
 .profile-page.design-ui > header h1,
 .room-manager.design-ui > header h1 {
@@ -1725,9 +1692,6 @@
   }
   .editor-shell .section-title {
     flex-wrap: wrap;
-  }
-  .design-ui .edit-card {
-    padding: 16px;
   }
   .design-ui .segmented {
     gap: 8px;

@@ -42,7 +42,7 @@ test('미디어 카드 시안 · 커서에 코드 삽입 · 검증 후 등록 ·
   const min = media.getByRole('spinbutton', { name: '최솟값', exact: true });
   const max = media.getByRole('spinbutton', { name: '최댓값', exact: true });
   await expect(min).toHaveValue('1');
-  await expect(max).toHaveValue('9999');
+  await expect(max).toHaveValue('999');
   expect((await min.boundingBox())!.height).toBeLessThanOrEqual(24);
   await page.screenshot({ path: `${out}/media-empty.png` });
   const url = media.getByRole('textbox', { name: '이미지 URL', exact: true });

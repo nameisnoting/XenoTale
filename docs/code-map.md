@@ -1,0 +1,184 @@
+# XenoTale 코드 읽기 지도
+
+앱의 구조를 공부하거나 특정 기능을 고칠 때 시작할 파일을 찾기 위한 문서입니다.
+기능과 디자인을 유지하면서 제작 화면, 대화 저장 처리, 공통 입력 카드 스타일을 정리했습니다.
+새 라이브러리나 서버, 별도의 전역 상태 관리 도구는 추가하지 않았습니다.
+
+## 먼저 알아둘 네 가지 영역
+
+| 폴더          | 역할                            | 예시                                      |
+| ------------- | ------------------------------- | ----------------------------------------- |
+| `features`    | 화면과 사용자의 조작            | 아이템 입력란, 대화 전송 버튼             |
+| `domain`      | 작품과 대화의 규칙, 데이터 타입 | 강화 결과 계산, 관계 변경, 응답 후보 선택 |
+| `engine`      | AI에 보낼 내용과 AI 요청        | 프롬프트 조립, OpenRouter 호출, 기억 요약 |
+| `persistence` | 브라우저 저장과 파일 처리       | IndexedDB, 자동저장, 백업과 가져오기      |
+
+화면이 규칙을 바꾸거나 저장소를 직접 덮어쓰는 코드를 새로 만들기보다,
+기존 `domain` 함수와 `persistence` 함수를 호출하는 방식으로 이어가는 것이 좋습니다.
+화면에 보이는 내용을 바꾸는 일과 데이터의 의미를 바꾸는 일을 구분하면 추적하기 쉽습니다.
+
+## 사이트가 열리는 순서
+
+1. [`src/main.tsx`](../src/main.tsx)가 React를 시작하고 공통 스타일을 불러옵니다.
+2. [`src/app/App.tsx`](../src/app/App.tsx)가 IndexedDB와 API 키를 준비합니다.
+3. [`src/app/navigation.ts`](../src/app/navigation.ts)가 주소의 `#/...` 부분을 읽습니다.
+4. `App.tsx`가 그 주소에 맞는 메인·제작·대화·마이페이지 화면을 보여줍니다.
+
+예를 들어 `#/create/작업공간ID`는 제작 화면, `#/chat/대화방ID`는 대화 화면입니다.
+섹션 선택이나 입력값이 어디에 저장되는지는 주소만으로 결정되지 않습니다.
+작품 데이터는 IndexedDB, 관계도 위치 같은 화면 설정은 해당 화면의 저장 로직을 확인해야 합니다.
+
+## 제작 화면을 고치려면
+
+[`src/features/Editor.tsx`](../src/features/Editor.tsx)는 제작 화면 전체의 틀입니다.
+작업 공간 불러오기, 자동저장, 섹션 이동, 사이드바, 테스트 플레이를 연결합니다.
+
+[`src/features/EditorPanels.tsx`](../src/features/EditorPanels.tsx)는 현재 섹션에 맞는 입력 화면을 고릅니다.
+과거 약 1,600줄에 섞여 있던 섹션 내용을 아래 파일로 옮겼습니다.
+
+| 바꾸려는 내용                           | 파일                                                                                 |
+| --------------------------------------- | ------------------------------------------------------------------------------------ |
+| 섹션 이름과 순서                        | [`creator/sections.ts`](../src/features/creator/sections.ts)                         |
+| 작품 개요·시스템 프롬프트               | [`creator/OverviewSection.tsx`](../src/features/creator/OverviewSection.tsx)         |
+| 등장 캐릭터                             | [`creator/CharactersSection.tsx`](../src/features/creator/CharactersSection.tsx)     |
+| 도입부                                  | [`creator/OpeningsSection.tsx`](../src/features/creator/OpeningsSection.tsx)         |
+| 상태값과 상태창 템플릿                  | [`creator/StatusSection.tsx`](../src/features/creator/StatusSection.tsx)             |
+| 아이템과 강화 입력 화면                 | [`creator/ItemsSection.tsx`](../src/features/creator/ItemsSection.tsx)               |
+| 챕터·엔딩과 조건 입력 화면              | [`creator/ScenarioSection.tsx`](../src/features/creator/ScenarioSection.tsx)         |
+| 단축어·연출·추천 페르소나·플레이가이드  | [`creator/ExtraSections.tsx`](../src/features/creator/ExtraSections.tsx)             |
+| 로어북 입력 카드                        | [`creator/LoreEditor.tsx`](../src/features/creator/LoreEditor.tsx)                   |
+| 제작·대화에서 공유하는 대화 품질 설정   | [`creator/QualityEditor.tsx`](../src/features/creator/QualityEditor.tsx)             |
+| 저장·불러오기·그룹화·연출 미리보기 모달 | [`creator/CreatorPanelDialogs.tsx`](../src/features/creator/CreatorPanelDialogs.tsx) |
+| 미디어 입력 화면                        | [`CreatorExtras.tsx`](../src/features/CreatorExtras.tsx)의 `MediaEditor`             |
+| 관계도·시나리오 지도                    | [`Graphs.tsx`](../src/features/Graphs.tsx)                                           |
+
+짧은 섹션까지 각각 독립된 폴더나 복잡한 등록 시스템으로 만들지 않았습니다.
+`ExtraSections.tsx` 안에서는 해당 이름의 함수로 바로 이동하면 됩니다.
+
+### 입력값이 저장되는 예시
+
+아이템 이름을 수정하는 흐름은 다음과 같습니다.
+
+```text
+ItemsSection.tsx의 TextInput
+  → changeItem(몇 번째 아이템인지, 바뀐 이름)
+  → useCreatorPanelState.ts의 update
+  → Editor.tsx의 작품 변경 처리
+  → 기존 작업 공간 자동저장
+  → persistence/db.ts의 IndexedDB
+```
+
+[`creator/useCreatorPanelState.ts`](../src/features/creator/useCreatorPanelState.ts)는 섹션에서 사용하는 선택 상태와 편집 함수를 모읍니다.
+`work`는 현재 작품, `update`는 작품 일부 변경, `changeItem`은 특정 아이템 변경입니다.
+캐릭터 삭제 시 연결된 관계·등장 정보·미디어를 정리하는 기존 처리도 여기 있습니다.
+
+캐릭터 선택이나 가이드 미리보기 상태는 이 훅이 보관합니다.
+`Editor.tsx`는 기존처럼 `EditorPanels`에 `key={section}`을 주므로,
+섹션을 나갔다 돌아오면 캐릭터 선택과 미리보기는 초기화됩니다. 입력한 작품 데이터는 남습니다.
+이 `key`는 React가 화면을 새로 만드는 기준입니다. 리팩터링하면서 이 기준을 바꾸지 않았습니다.
+도입부 선택은 상위 제작 화면에서 관리하고, 관계도 위치 저장·제작 섹션 새로고침 복원·테스트 진행 유지도 기존 처리로 유지합니다.
+
+각 섹션의 `Pick<CreatorPanelState, ...>`는 그 화면이 필요한 값의 목록을 뜻합니다.
+새 저장소나 복잡한 기능이 아니라 TypeScript의 타입 표기이며, 배포되는 JavaScript에는 포함되지 않습니다.
+
+## 대화가 전송되는 순서
+
+[`src/features/Chat.tsx`](../src/features/Chat.tsx)는 대화 화면 배치와 메뉴·입력창·모달을 담당합니다.
+전송과 저장은 [`src/features/chat/useChatSession.ts`](../src/features/chat/useChatSession.ts)로 분리했습니다.
+
+```text
+Chat.tsx의 전송 버튼
+  → useChatSession.ts의 send
+  → App.tsx의 resolveModel: 선택한 모델 확인, 목록이 로딩 중이면 기다림
+  → engine/openrouter.ts의 generate
+  → 같은 파일의 buildMessages: 프롬프트 조립
+  → OpenRouter 요청 또는 체험 모드 응답
+  → domain/engine.ts의 addResponse: 응답과 상태 적용
+  → persistence/db.ts의 commitRoom: 대화방 저장
+  → Chat.tsx에 새 응답 표시
+```
+
+자동 요약이 필요한 경우 대화를 먼저 저장한 뒤 `engine/auxiliary.ts`의 요약을 수행합니다.
+요약이 실패해도 이미 저장한 대화를 잃지 않는 기존 정책을 유지합니다.
+
+`useChatSession`에서 자주 볼 함수는 다음과 같습니다.
+
+| 함수           | 역할                                              |
+| -------------- | ------------------------------------------------- |
+| `send()`       | 새 답변 생성. 리롤도 같은 경로를 사용             |
+| `mutate()`     | 설정이나 응답 후보 등 대화방 변경을 순서대로 저장 |
+| `summarize()`  | 기억 요약과 저장                                  |
+| `makeBranch()` | 특정 시점에서 새로운 대화방 생성                  |
+| `cancel()`     | 진행 중인 요청 중단                               |
+
+훅 안의 `lock`은 요청 중복 실행을 막고, `queue`는 먼저 시작한 변경의 저장을 기다리게 합니다.
+`revision`은 저장된 대화방의 변경 번호입니다.
+다른 탭에서 수정한 내용을 오래된 화면이 덮어쓰지 않도록 `commitRoom`에서 번호를 확인합니다.
+이 처리는 화면과 분리했지만 순서와 조건을 바꾸지 않았습니다.
+
+## 색상·글자 크기·간격을 고치려면
+
+| 대상                                    | 먼저 볼 파일                                                                 |
+| --------------------------------------- | ---------------------------------------------------------------------------- |
+| 공통 색상과 디자인 값                   | [`src/ui-tokens.css`](../src/ui-tokens.css)                                  |
+| 제작·마이페이지·대화방의 공통 입력 카드 | [`src/components/EditingCard.css`](../src/components/EditingCard.css)        |
+| 카드 접기·헤더 구조                     | [`src/components/DisclosureCard.tsx`](../src/components/DisclosureCard.tsx)  |
+| 페르소나·유저노트의 개별 구조           | `PersonaCard.tsx`, `NoteLibrary.tsx`와 각 CSS                                |
+| 제작 화면 전체 배치                     | [`src/features/Editor.css`](../src/features/Editor.css)                      |
+| 개별 화면·컴포넌트                      | 해당 이름의 `.css` 파일                                                      |
+| 기존 공통 배치·화면 디자인 규칙         | [`src/styles.css`](../src/styles.css), [`src/design.css`](../src/design.css) |
+
+입력 카드의 배경·제목 16px·입력/라벨 14px·설명 12px·간격은 `EditingCard.css`에서 함께 관리합니다.
+이 파일은 `main.tsx`에서 화면별 스타일 뒤에 불러와 공통 정책을 적용합니다.
+기존 카드 클래스 이름 `edit-card-typography`는 계속 사용합니다.
+
+삼성인터넷 식별은 `main.tsx` 한 곳에서 합니다.
+삼성인터넷 모바일에만 필요한 얇은 외곽선은 `EditingCard.css` 마지막 부분에 모았습니다.
+PC/모바일 화면 폭 판별은 공통 [`useMediaQuery.ts`](../src/components/useMediaQuery.ts)를 사용합니다.
+
+`styles.css`와 `design.css`에는 아직 여러 화면의 기존 규칙이 있습니다.
+이번에는 사용되지 않는 `edit-card` 규칙과 나중 규칙에 의해 항상 덮이는 일부 선언을 제거했습니다.
+화면을 바꾸기 위해 해당 파일 맨 아래에 같은 선택자를 계속 덧붙이기보다,
+관련 컴포넌트와 기존 규칙을 먼저 찾고 그 위치에서 수정하는 것이 좋습니다.
+
+## 작은 수정부터 공부하는 순서
+
+1. 공지 내용 수정: [`src/content/notices.ts`](../src/content/notices.ts), [공지 작성 방법](notices.md).
+2. 공통 입력 카드의 크기나 간격: `EditingCard.css`의 `--edit-card-...` 값.
+3. 아이템 입력 라벨: `creator/ItemsSection.tsx`의 `<Field label="...">`.
+4. 입력값 변경 추적: 같은 파일의 `onChange`에서 `changeItem`과 `update`를 따라가기.
+5. 실제 강화 규칙: `domain/engine.ts`와 관련 테스트에서 성공·실패 처리 읽기.
+6. AI 전송 추적: `Chat.tsx` → `useChatSession.ts` → `engine/openrouter.ts`.
+
+코드에서 `onClick`은 클릭했을 때 실행할 처리이고, `onChange`는 입력값이 바뀔 때 실행할 처리입니다.
+`.tsx`는 주로 화면과 그 동작, `.css`는 모양, `.ts`는 데이터와 처리 함수에 사용합니다.
+다만 폴더와 실제 함수를 함께 확인해야 합니다. 확장자만으로 역할이 전부 정해지는 것은 아닙니다.
+
+## 확인 방법과 이번 정리의 범위
+
+```sh
+npm run build
+npm test
+npm run test:e2e
+```
+
+빌드는 타입 오류와 사용하지 않는 import를 검사합니다.
+`noUnusedLocals`를 켜서 사용하지 않는 변수가 다시 쌓이면 빌드에서 알려주게 했습니다.
+기본 테스트는 데이터 규칙을, 브라우저 테스트는 실제 화면 조작을 확인합니다.
+섹션 분리 후 입력값 보존과 내부 선택·미리보기 초기화가 기존과 같은지 확인하는 테스트도 추가했습니다.
+
+전체 검사 중 첫 대화 전에 실행한 제작 테스트의 연출이 결과를 반영하지 못하는 기존 문제를 발견했습니다.
+`CreatorTest.tsx`에서 현재 표시 중인 임시 대화방을 기준으로 결과 반영 가능 여부를 확인하도록 고쳤습니다.
+실제 대화방이나 라이브러리에 저장하지 않는 정책은 그대로입니다.
+
+이번 정리는 파일을 찾고 실행 흐름을 읽기 쉽게 만드는 작업입니다.
+데이터 형식·프롬프트 내용·저장 정책·기존 UI 값은 유지했습니다.
+새 의존성은 추가하지 않았으며, 파일을 나누는 것만으로 초기 다운로드 크기가 크게 줄어드는 것은 아닙니다.
+초기 로딩용 코드 분할은 CSS 적용 순서까지 함께 확인해야 하는 별도의 성능 작업입니다.
+
+### 2026-10-12 검증 결과
+
+- TypeScript 검사와 배포 빌드 통과.
+- 기본 테스트 148개, 브라우저 테스트 193개 통과.
+- 같은 데이터로 비교한 PC 1440px·모바일 393px의 주요 화면 34개는 화면 배치·글자·색상과 스크린샷이 동일.
+- 사용하지 않는 카드 CSS 규칙 15개, 항상 덮이는 선언 3개와 사용하지 않는 import 제거.
