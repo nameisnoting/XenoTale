@@ -43,7 +43,7 @@ export function Assistant({
   onRequestComplete: () => void;
 } & ModelProps &
   ApiProps) {
-  const [input, setInput] = useMessageDraft(`workspace.${workspaceId}.agent`);
+  const [input, setInput, beginSend] = useMessageDraft(`workspace.${workspaceId}.agent`);
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState({ reply: '', receivedChars: 0, thinking: false });
   const [picker, setPicker] = useState(false);
@@ -70,8 +70,8 @@ export function Assistant({
     controller.current = active;
     setBusy(true);
     setProgress({ reply: '', receivedChars: 0, thinking: false });
-    const request = input.trim();
-    const clearSentInput = () => setInput((current) => (current === input ? '' : current));
+    const draft = beginSend();
+    const request = draft.text.trim();
     const original = structuredClone(workRef.current);
     try {
       const model = await resolveModel(modelId, active.signal);
@@ -85,7 +85,7 @@ export function Assistant({
           role: 'assistant',
           text: '현재는 예시 모드입니다. API 키와 모델을 선택하면 작품 설정을 함께 작성할 수 있습니다.',
         });
-        clearSentInput();
+        draft.complete();
         return;
       }
       const snapshot = creatorRequest(original);
@@ -116,15 +116,19 @@ export function Assistant({
         active.signal,
         { maxTokens: 16384, onProgress: setProgress },
       );
-      if (active.signal.aborted) return;
+      if (active.signal.aborted) {
+        draft.restore();
+        return;
+      }
       const answer = parseCreatorAnswer(result, original, snapshot);
       append({
         role: 'assistant',
         text: [answer.reply, ...answer.questions].filter(Boolean).join('\n\n'),
         proposal: answer.proposal.changes.length ? answer.proposal : undefined,
       });
-      clearSentInput();
+      draft.complete();
     } catch (e) {
+      draft.restore();
       if ((e as Error).name !== 'AbortError') {
         const message = (e as Error).message;
         notify(message);

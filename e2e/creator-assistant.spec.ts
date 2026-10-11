@@ -490,56 +490,152 @@ test('작업공간별 대화·미적용/적용 제안 복원 · 이전 제안 �
   await expect(page.getByRole('button', { name: '적용 완료', exact: true })).toBeDisabled();
 });
 
-test('스트리밍 설명과 수신 상태 · 완료 전 적용 불가 · 완성된 제안만 검증', async ({ page }) => {
-  await page.addInitScript(() => {
-    const original = window.fetch;
-    window.fetch = async (...args) => {
-      if (String(args[0]).endsWith('/chat/completions')) {
-        const encoder = new TextEncoder();
-        const prefix = '{"reply":"설명을 먼저 보여드립니다.';
-        const body = new ReadableStream({
-          start(controller) {
-            controller.enqueue(
-              encoder.encode(
-                `data: ${JSON.stringify({ choices: [{ delta: { content: prefix } }] })}\n\n`,
-              ),
-            );
-            (window as any).finishCreatorStream = () => {
+for (const mobile of [false, true])
+  test(`스트리밍 중 전송문 비우기 · 새 초안 보존 · 완료 전 적용 불가 (${mobile ? '모바일' : 'PC'})`, async ({
+    page,
+  }) => {
+    await page.addInitScript(() => {
+      const original = window.fetch;
+      window.fetch = async (...args) => {
+        if (String(args[0]).endsWith('/chat/completions')) {
+          const encoder = new TextEncoder();
+          const prefix = '{"reply":"설명을 먼저 보여드립니다.';
+          const body = new ReadableStream({
+            start(controller) {
               controller.enqueue(
                 encoder.encode(
-                  `data: ${JSON.stringify({ choices: [{ delta: { content: '","proposals":[],"questions":[]}' }, finish_reason: 'stop' }] })}\n\ndata: [DONE]\n\n`,
+                  `data: ${JSON.stringify({ choices: [{ delta: { content: prefix } }] })}\n\n`,
                 ),
               );
-              controller.close();
-            };
-          },
-        });
-        return new Response(body, { headers: { 'Content-Type': 'text/event-stream' } });
-      }
-      return original(...args);
-    };
+              (window as any).finishCreatorStream = () => {
+                controller.enqueue(
+                  encoder.encode(
+                    `data: ${JSON.stringify({ choices: [{ delta: { content: '","proposals":[],"questions":[]}' }, finish_reason: 'stop' }] })}\n\ndata: [DONE]\n\n`,
+                  ),
+                );
+                controller.close();
+              };
+            },
+          });
+          return new Response(body, { headers: { 'Content-Type': 'text/event-stream' } });
+        }
+        return original(...args);
+      };
+    });
+    await start(page, mobile);
+    await ask(page, '설명해줘');
+    const preview = page.getByLabel('작성 중인 답변');
+    await expect(preview).toContainText('설명을 먼저 보여드립니다.');
+    await expect(preview.getByRole('status')).toContainText('자 수신');
+    await expect(page.getByRole('textbox', { name: '서포터 메시지', exact: true })).toHaveValue('');
+    await page.getByRole('textbox', { name: '서포터 메시지', exact: true }).fill('다음 요청 초안');
+    await expect(page.getByRole('button', { name: '적용하기', exact: true })).toHaveCount(0);
+    await page.evaluate(() => (window as any).finishCreatorStream());
+    await expect(preview).toHaveCount(0);
+    await expect(page.getByRole('textbox', { name: '서포터 메시지', exact: true })).toHaveValue(
+      '다음 요청 초안',
+    );
+    await expect(page.locator('.assistant .support-transcript')).toContainText(
+      '설명을 먼저 보여드립니다.',
+    );
+    await expect(page.getByText('저장완료', { exact: true })).toBeVisible();
+    await page.reload();
+    if (mobile) {
+      await page.getByRole('button', { name: '제작 도구', exact: true }).click();
+      await page
+        .locator('.editor-workspace')
+        .getByRole('button', { name: '제작 서포터', exact: true })
+        .click();
+    }
+    await expect(page.locator('.assistant .support-transcript')).toContainText(
+      '설명을 먼저 보여드립니다.',
+    );
+    await expect(page.getByRole('textbox', { name: '서포터 메시지', exact: true })).toHaveValue(
+      '다음 요청 초안',
+    );
   });
-  await start(page);
-  await ask(page, '설명해줘');
-  const preview = page.getByLabel('작성 중인 답변');
-  await expect(preview).toContainText('설명을 먼저 보여드립니다.');
-  await expect(preview.getByRole('status')).toContainText('자 수신');
-  await page.getByRole('textbox', { name: '서포터 메시지', exact: true }).fill('다음 요청 초안');
-  await expect(page.getByRole('button', { name: '적용하기', exact: true })).toHaveCount(0);
-  await page.evaluate(() => (window as any).finishCreatorStream());
-  await expect(preview).toHaveCount(0);
-  await expect(page.getByRole('textbox', { name: '서포터 메시지', exact: true })).toHaveValue(
-    '다음 요청 초안',
-  );
-  await expect(page.locator('.assistant .support-transcript')).toContainText(
-    '설명을 먼저 보여드립니다.',
-  );
-  await expect(page.getByText('저장완료', { exact: true })).toBeVisible();
-  await page.reload();
-  await expect(page.locator('.assistant .support-transcript')).toContainText(
-    '설명을 먼저 보여드립니다.',
-  );
-  await expect(page.getByRole('textbox', { name: '서포터 메시지', exact: true })).toHaveValue(
-    '다음 요청 초안',
-  );
-});
+
+for (const mobile of [false, true]) {
+  test(`429 실패 시 전송문 복원 · 새 초안은 덮어쓰지 않음 (${mobile ? '모바일' : 'PC'})`, async ({
+    page,
+  }) => {
+    let release = () => {};
+    let calls = 0;
+    await page.route('https://openrouter.ai/api/v1/chat/completions', async (route) => {
+      await new Promise<void>((resolve) => {
+        release = resolve;
+        calls++;
+      });
+      await route.fulfill({ status: 429, json: { error: { message: 'Rate limit exceeded' } } });
+    });
+    await start(page, mobile);
+    const input = page.getByRole('textbox', { name: '서포터 메시지', exact: true });
+    for (const [index, nextDraft] of ['', '새로 쓰던 요청'].entries()) {
+      await ask(page, '실패하면 복원할 문장');
+      await expect(input).toHaveValue('');
+      await expect(
+        page.getByRole('button', { name: '서포터 생성 중단', exact: true }),
+      ).toBeVisible();
+      if (nextDraft) await input.fill(nextDraft);
+      await expect.poll(() => calls).toBe(index + 1);
+      release();
+      await expect(page.getByRole('button', { name: '서포터 전송', exact: true })).toBeVisible();
+      await expect(input).toHaveValue(nextDraft || '실패하면 복원할 문장');
+    }
+    await page.reload();
+    if (mobile) {
+      await page.getByRole('button', { name: '제작 도구', exact: true }).click();
+      await page
+        .locator('.editor-workspace')
+        .getByRole('button', { name: '제작 서포터', exact: true })
+        .click();
+    }
+    await expect(input).toHaveValue('새로 쓰던 요청');
+  });
+
+  test(`스트리밍 중단 시 복원 · 생성 중 새로고침해도 전송문 보존 (${mobile ? '모바일' : 'PC'})`, async ({
+    page,
+  }) => {
+    await page.addInitScript(() => {
+      const original = window.fetch;
+      window.fetch = async (...args) => {
+        if (!String(args[0]).endsWith('/chat/completions')) return original(...args);
+        return new Response(
+          new ReadableStream({
+            start(controller) {
+              controller.enqueue(
+                new TextEncoder().encode(
+                  `data: ${JSON.stringify({ choices: [{ delta: { content: '{"reply":"진행 중인 답변' } }] })}\n\n`,
+                ),
+              );
+            },
+          }),
+          { headers: { 'Content-Type': 'text/event-stream' } },
+        );
+      };
+    });
+    await start(page, mobile);
+    const input = page.getByRole('textbox', { name: '서포터 메시지', exact: true });
+    for (const nextDraft of ['', '중단해도 남을 새 초안']) {
+      await ask(page, '중단하면 복원할 문장');
+      await expect(page.getByLabel('작성 중인 답변')).toContainText('진행 중인 답변');
+      await expect(input).toHaveValue('');
+      if (nextDraft) await input.fill(nextDraft);
+      await page.getByRole('button', { name: '서포터 생성 중단', exact: true }).click();
+      await expect(input).toHaveValue(nextDraft || '중단하면 복원할 문장');
+      await expect(page.getByRole('button', { name: '서포터 전송', exact: true })).toBeVisible();
+    }
+    await ask(page, '새로고침 때 복원할 문장');
+    await expect(page.getByLabel('작성 중인 답변')).toContainText('진행 중인 답변');
+    await expect(input).toHaveValue('');
+    await page.reload();
+    if (mobile) {
+      await page.getByRole('button', { name: '제작 도구', exact: true }).click();
+      await page
+        .locator('.editor-workspace')
+        .getByRole('button', { name: '제작 서포터', exact: true })
+        .click();
+    }
+    await expect(input).toHaveValue('새로고침 때 복원할 문장');
+  });
+}

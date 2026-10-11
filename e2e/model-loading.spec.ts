@@ -99,6 +99,7 @@ for (const width of [1440, 393]) {
     await send(page).click();
     await expect(page.getByRole('button', { name: '생성 중단', exact: true })).toBeVisible();
     expect(state.completions).toHaveLength(0);
+    await expect(messages(page)).toHaveValue('');
     expect(state.catalogCalls).toBe(before + 1);
     state.release();
     await expect(page.locator('.assistant-section .story-body')).toContainText(
@@ -213,6 +214,7 @@ for (const panel of ['대화 테스트', '제작 서포터']) {
     ).toBeVisible();
     expect(state.completions).toHaveLength(0);
     expect(state.catalogCalls).toBe(before + 1);
+    await expect(input).toHaveValue('');
     state.release();
     await expect(page.locator(isTest ? '.creator-test' : '.assistant')).toContainText(
       isTest ? '목록 로딩 후 대화 응답' : '목록 로딩 후 제작 답변',

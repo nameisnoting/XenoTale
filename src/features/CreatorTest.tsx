@@ -48,7 +48,7 @@ export function CreatorTest({
 } & ApiProps &
   ModelProps) {
   const [effect, setEffect] = useState<EffectRequest | null>(null);
-  const [input, setInput] = useMessageDraft(`workspace.${workspaceId}.test`);
+  const [input, setInput, beginSend] = useMessageDraft(`workspace.${workspaceId}.test`);
   const [picker, setPicker] = useState(false);
   const [openingPicker, setOpeningPicker] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -78,6 +78,7 @@ export function CreatorTest({
     lock.current = true;
     setBusy(true);
     abort.current = new AbortController();
+    const draft = beginSend();
     try {
       const next = room ? structuredClone(room) : createRoom(work, modelId, persona, openingId);
       next.current.context.settings.modelId = modelId;
@@ -86,14 +87,15 @@ export function CreatorTest({
       // Freeze this opening and draft as soon as a test starts. Editing or
       // selecting another opening only affects the next explicit restart.
       setRoom(next);
-      const text = input.trim() || '[이어서 내용 전개]';
+      const text = draft.text.trim() || '[이어서 내용 전개]';
       const result = await generate(next, next.current, text, model, apiKey, abort.current.signal, {
         reroll: false,
         onPhase: setPhase,
       });
       setRoom(addResponse(next, text, result.result, result.usage));
-      setInput('');
+      draft.complete();
     } catch (e) {
+      draft.restore();
       if ((e as Error).name !== 'AbortError') notify((e as Error).message);
     } finally {
       lock.current = false;

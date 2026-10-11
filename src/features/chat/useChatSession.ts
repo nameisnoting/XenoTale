@@ -28,7 +28,7 @@ export function useChatSession({
   const [room, setRoom] = useState(persistedRoom);
   const balance = useCreditBalance(apiKey);
   const pendingMutations = useRef(0);
-  const [input, setInput] = useMessageDraft(`room.${room.id}`, room.pendingInput);
+  const [input, setInput, beginSend] = useMessageDraft(`room.${room.id}`, room.pendingInput);
   const [busy, setBusy] = useState(false);
   const [phase, setPhase] = useState('');
   const controller = useRef<AbortController | null>(null);
@@ -93,6 +93,7 @@ export function useChatSession({
     setBusy(true);
     setPhase('답변을 준비하고 있습니다…');
     controller.current = new AbortController();
+    const draft = isReroll ? undefined : beginSend();
     try {
       await queue.current;
       const stored = await db.rooms.get(room.id);
@@ -104,7 +105,7 @@ export function useChatSession({
         throw new Error('이 이야기는 끝났습니다. 이전 대화에서 분기할 수 있습니다.');
       const last = snapshot.timeline.at(-1);
       if (isReroll && last?.kind !== 'turn') throw new Error('마지막 응답에서 리롤할 수 있습니다.');
-      const typed = input.trim();
+      const typed = draft?.text.trim();
       const text = isReroll ? (last as Turn).input : typed || CONTINUE;
       const dice = isReroll
         ? (last as Turn).dice
@@ -141,7 +142,7 @@ export function useChatSession({
       );
       current.current = saved;
       setRoom(saved);
-      if (!isReroll) setInput('');
+      draft?.complete();
       if (settings.autoSummary && summarySources(saved).length >= settings.summaryEvery) {
         setPhase('대화를 기억에 정리하고 있습니다…');
         try {
@@ -178,6 +179,7 @@ export function useChatSession({
         }
       }
     } catch (e) {
+      draft?.restore();
       if ((e as Error).name !== 'AbortError') notify((e as Error).message);
     } finally {
       controller.current = null;

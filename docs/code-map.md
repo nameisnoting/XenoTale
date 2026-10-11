@@ -99,7 +99,10 @@ ItemsSection.tsx의 TextInput
 전송 전 입력은 공통 [`components/useMessageDraft.ts`](../src/components/useMessageDraft.ts)가
 각 대화방·작업공간·에이전트/테스트별로 localStorage에 즉시 저장합니다.
 채팅을 입력할 때마다 대화 전체를 IndexedDB에 다시 저장하지 않습니다.
-전송 성공 시 입력을 지우고, 실패나 중단 시에는 남깁니다. 입력 초안은 작품·백업 파일에 포함되지 않습니다.
+전송 버튼을 누르면 화면의 입력을 즉시 비웁니다. 응답 완료 전까지 저장된 복사본은 유지해
+도중에 새로고침해도 복원할 수 있고, 완료되면 정리합니다. 실패·중단 시에는 입력을 복원합니다.
+기다리며 새로 작성한 초안은 성공·실패 어느 경우에도 덮어쓰지 않습니다.
+입력 초안은 작품·백업 파일에 포함되지 않습니다.
 
 [`src/features/Assistant.tsx`](../src/features/Assistant.tsx)는 대화와 제안을 표시하고,
 [`domain/creatorAssistant.ts`](../src/domain/creatorAssistant.ts)가 응답 검증과 제안 적용을 담당합니다.

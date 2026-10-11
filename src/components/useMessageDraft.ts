@@ -1,4 +1,4 @@
-import { useRef, useState, type SetStateAction } from 'react';
+import { useEffect, useRef, useState, type SetStateAction } from 'react';
 
 // Save synchronously so navigation or refresh immediately after typing keeps the draft.
 // Drafts are UI state; they do not change room revisions or enter the AI conversation.
@@ -12,6 +12,13 @@ export function useMessageDraft(key: string, fallback = '') {
     }
   });
   const current = useRef(value);
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
   const setDraft = (update: SetStateAction<string>) => {
     const next = typeof update === 'function' ? update(current.current) : update;
     current.current = next;
@@ -22,5 +29,21 @@ export function useMessageDraft(key: string, fallback = '') {
     }
     setValue(next);
   };
-  return [value, setDraft] as const;
+  const beginSend = () => {
+    const text = current.current;
+    current.current = '';
+    setValue('');
+    // Keep the saved copy until completion so refresh during a request recovers it.
+    // Typing a new draft replaces that copy and must survive either outcome.
+    return {
+      text,
+      complete: () => {
+        if (mounted.current) setDraft(current.current);
+      },
+      restore: () => {
+        if (mounted.current) setDraft((value) => value || text);
+      },
+    };
+  };
+  return [value, setDraft, beginSend] as const;
 }
