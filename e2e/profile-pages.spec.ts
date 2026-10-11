@@ -29,6 +29,39 @@ for (const width of [1440, 393]) {
     await page.goto('/');
     await page.getByRole('button', { name: '키 없이 먼저 둘러보기', exact: true }).click();
     await page.goto('/#/profile');
+    const github = page.getByRole('link', { name: '개발자 GitHub', exact: true });
+    for (const row of [
+      github,
+      page.getByRole('button', { name: '공지사항', exact: true }),
+      page.getByRole('button', { name: '마이 캐릭터', exact: true }),
+    ]) {
+      await expect(row).toHaveCSS('font-size', '16px');
+      await expect(row).toHaveCSS('border-bottom-width', '0px');
+      await expect(row).toHaveCSS('padding-top', '16px');
+    }
+    await expect(github).toHaveAttribute('href', 'https://github.com/nameisnoting');
+    await page.evaluate(async () => {
+      await document.fonts.ready;
+    });
+    const spacing = await page.locator('.profile-content').evaluate((content) => {
+      const groups = content.querySelectorAll('.settings-list');
+      const line = groups[0].getBoundingClientRect().bottom - 0.5;
+      const character = groups[0].lastElementChild!.querySelector('span')!.getBoundingClientRect();
+      const notice = groups[1].firstElementChild!.querySelector('span')!.getBoundingClientRect();
+      const hint = content.querySelector('p.muted')!.getBoundingClientRect();
+      return {
+        above: line - character.bottom,
+        below: notice.top - line,
+        hint: hint.top - groups[1].getBoundingClientRect().bottom,
+      };
+    });
+    expect(Math.abs(spacing.above - spacing.below)).toBeLessThan(2);
+    expect(spacing.hint).toBe(8);
+    await fs.mkdir('docs/screenshots/profile-pages', { recursive: true });
+    await page.screenshot({
+      path: `docs/screenshots/profile-pages/menu-${width}.png`,
+      fullPage: true,
+    });
     const originalHeader = (await page.locator('.page-header').boundingBox())!;
     const libraryList = [
       ['notes', '유저노트'],

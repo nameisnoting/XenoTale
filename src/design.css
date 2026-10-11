@@ -1532,24 +1532,27 @@
   font-size: var(--section-title-size);
 }
 .profile-page.design-ui .settings-list {
-  margin-top: 32px;
+  margin: 32px 0 0;
   padding: 24px 0;
   border-top: 1px solid #4e4e4e;
   border-bottom: 1px solid #4e4e4e;
 }
-.profile-page.design-ui .settings-list button {
+.profile-page.design-ui .settings-list > .settings-menu-item {
   min-height: 56px;
   font-size: var(--section-title-size);
   border: 0;
   padding-block: 16px;
 }
-.profile-page.design-ui .settings-list button svg {
+.profile-page.design-ui .settings-menu-item svg {
   width: 24px;
   height: 24px;
 }
 .profile-page.design-ui .settings-list.secondary {
   margin: 0;
   border-top: 0;
+}
+.profile-page.design-ui .settings-list.secondary + p.muted {
+  margin: 8px 0 0;
 }
 .profile-subpage {
   margin-top: 32px;

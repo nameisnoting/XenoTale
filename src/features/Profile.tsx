@@ -5,6 +5,7 @@ import { PersonaCard } from '../components/PersonaCard';
 import { SelectionPill } from '../components/SelectionPill';
 export { NoteLibrary } from '../components/NoteLibrary';
 import { PageHeader } from '../components/Headers';
+import { SettingsMenuItem } from '../components/SettingsMenuItem';
 import { AddButton } from '../components/AddButton';
 import './ProfileLibrary.css';
 import { useEffect, useState } from 'react';
@@ -238,30 +239,28 @@ export function ProfilePage({
             <div className="settings-list">
               {[{ id: 'keys', name: 'API 키 관리', icon: KeyRound }, ...PROFILE_LIBRARIES].map(
                 (i) => (
-                  <button
+                  <SettingsMenuItem
                     key={i.id}
+                    icon={<i.icon />}
+                    label={i.name}
                     onClick={() =>
                       i.id === 'keys' ? setPanel('keys') : navigate(`/profile/${i.id}`)
                     }
-                  >
-                    <i.icon size={19} />
-                    <span>{i.name}</span>
-                    <ChevronRight size={17} />
-                  </button>
+                  />
                 ),
               )}
             </div>
             <div className="settings-list secondary">
-              <button onClick={() => navigate('/profile/notices')}>
-                <Megaphone />
-                <span>공지사항</span>
-                <ChevronRight />
-              </button>
-              <a href="https://github.com/nameisnoting" target="_blank" rel="noopener noreferrer">
-                <img src="/icons/chat/github.png" width="24" height="24" alt="" />
-                <span>개발자 GitHub</span>
-                <ExternalLink size={17} />
-              </a>
+              <SettingsMenuItem
+                icon={<Megaphone />}
+                label="공지사항"
+                onClick={() => navigate('/profile/notices')}
+              />
+              <SettingsMenuItem
+                icon={<img src="/icons/chat/github.png" width="24" height="24" alt="" />}
+                label="개발자 GitHub"
+                href="https://github.com/nameisnoting"
+              />
             </div>
             <p className="muted">
               작품과 대화는 이 브라우저에 저장됩니다. 주기적으로 전체 백업을 내려받아 주세요.
