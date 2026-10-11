@@ -144,7 +144,7 @@ for (const width of [1440, 393])
       .toBe(2);
     await page.locator('.memory-card summary').click();
     await expect(page.getByRole('textbox', { name: '요약내용', exact: true })).toContainText(
-      '직접 수정한 요약 내용',
+      '여기에 장기기억 요약이 나옵니다.',
     );
     await page.screenshot({ path: `docs/screenshots/room-memory/long-${width}.png` });
     await page.getByRole('tab', { name: '단기요약', exact: true }).click();

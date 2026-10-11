@@ -68,6 +68,7 @@ describe('memory intervals', () => {
       );
     expect(summarySources(room)).toHaveLength(20);
     const memories = await summarize(room, demoModel, '', new AbortController().signal);
+    expect(memories[0].body).toBe('여기에 단기기억 요약이 나옵니다.');
     expect(memories[0].sources).toHaveLength(20);
     room.current.context.memories = memories;
     expect(summarySources(room)).toHaveLength(0);
@@ -99,8 +100,8 @@ describe('memory intervals', () => {
     expect(result).toHaveLength(4);
     expect(result.find((m) => m.id === 'manual')?.body).toBe('직접 고친 기억');
     expect(result.find((m) => m.id === 'manual')?.active).toBe(false);
-    expect(result.find((m) => m.kind === 'long')?.body).toContain('직접 고친 기억');
-    expect(result.find((m) => m.kind === 'long')?.body).toContain('둘째 사건');
+    expect(result.find((m) => m.kind === 'long')?.body).toBe('여기에 장기기억 요약이 나옵니다.');
+    expect(result.find((m) => m.id === 'b')?.body).toBe('둘째 사건');
   });
 });
 
@@ -216,10 +217,15 @@ it('counts down long memory in turns and excludes archived short memories from p
   for (let i = 0; i < 10; i++) room = nextTurn(room);
   room = applyMemories(room, await summarize(room, demoModel, '', new AbortController().signal));
   room.current.context.memories[0].body = '수정된 첫 요약';
+  const fetchMock = mockSummary('{"content":"수정된 첫 요약을 반영한 장기기억"}');
   room = applyMemories(
     room,
-    await summarize(room, demoModel, '', new AbortController().signal, true),
+    await summarize(room, summaryModel, 'fake', new AbortController().signal, true),
   );
+  const request = JSON.parse(
+    (fetchMock.mock.calls[0] as unknown as [string, RequestInit])[1].body as string,
+  );
+  expect(JSON.parse(request.messages[1].content).entries[0].content).toBe('수정된 첫 요약');
   expect(room.current.context.memories).toHaveLength(3);
   expect(activeShortMemories(room)).toHaveLength(0);
   expect(activeMemories(room)).toHaveLength(1);

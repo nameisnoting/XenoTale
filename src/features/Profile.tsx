@@ -67,17 +67,20 @@ export function ProfilePage({
   const [nickname, setNickname] = useState(profile.nickname);
   useEffect(() => setNickname(profile.nickname), [profile.nickname]);
   const [checking, setChecking] = useState(false);
-  const [verified, setVerified] = useState(false);
+  const [verifiedKey, setVerifiedKey] = useState<string | null>(null);
+  const verified = !!apiKey.trim() && verifiedKey === apiKey;
   const [modelTarget, setModelTarget] = useState<'chat' | 'summary' | null>(null);
   const run = useAction();
   const notify = useNotify();
   const label = (modelId: string) =>
     modelId === 'demo' ? '체험 모드' : (models.find((m) => m.id === modelId)?.name ?? modelId);
   const validate = async () => {
+    const keyToVerify = apiKey;
     setChecking(true);
+    setVerifiedKey(null);
     try {
-      await verifyKey(apiKey);
-      setVerified(true);
+      await verifyKey(keyToVerify);
+      setVerifiedKey(keyToVerify);
       refreshModels();
       notify('유효한 API 키입니다.');
     } finally {
@@ -109,7 +112,7 @@ export function ProfilePage({
             value={apiKey}
             onChange={(v) => {
               setApiKey(v);
-              setVerified(false);
+              setVerifiedKey(null);
             }}
             placeholder="Openrouter의 api 키만 이용 가능합니다."
           />
@@ -132,7 +135,7 @@ export function ProfilePage({
               disabled={!apiKey}
               onClick={() => {
                 setApiKey('');
-                setVerified(false);
+                setVerifiedKey(null);
               }}
             >
               저장된 API 키 삭제
@@ -179,7 +182,7 @@ export function ProfilePage({
             {keyContents}
             <Button
               className="primary full"
-              disabled={!nickname.trim()}
+              disabled={!nickname.trim() || !verified || checking}
               onClick={() =>
                 run(
                   changeProfile((p) => {
@@ -198,6 +201,7 @@ export function ProfilePage({
                   changeProfile((p) => {
                     p.onboarded = true;
                     p.defaultModel = 'demo';
+                    p.summaryModel = 'demo';
                     p.nickname = nickname.trim() || profile.nickname;
                   }),
                 )

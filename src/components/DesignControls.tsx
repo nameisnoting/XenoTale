@@ -6,6 +6,7 @@ import { effectiveStatus } from '../domain/engine';
 import { Area, Field, ImageUpload, TextInput, Markdown, safeUrl } from './UI';
 import './PersonaFields.css';
 import { AuthoredHtml } from './AuthoredHtml';
+import { demoStatusContent } from '../domain/demo';
 
 export function RadioOptions<T extends string>({
   value,
@@ -224,11 +225,13 @@ export function StatusDisplay({
   runtime,
   expanded = true,
   collapsible = true,
+  demo = false,
 }: {
   work: Work;
   runtime: Runtime;
   expanded?: boolean;
   collapsible?: boolean;
+  demo?: boolean;
 }) {
   if (!work.statuses.length && !work.statusTemplate) return null;
   const content = work.statuses.reduce(
@@ -246,7 +249,13 @@ export function StatusDisplay({
     .join('\n');
   const body = (
     <AuthoredContent
-      content={content.trim() ? content : `\`\`\`\n${fallback}\n\`\`\``}
+      content={
+        demo
+          ? demoStatusContent(work.statuses.length)
+          : content.trim()
+            ? content
+            : `\`\`\`\n${fallback}\n\`\`\``
+      }
       title="상태창"
       unframed
     />

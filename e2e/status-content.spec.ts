@@ -107,15 +107,15 @@ for (const width of [1440, 393]) {
   });
 }
 for (const width of [1440, 393]) {
-  test(`예시 대화 상태창은 버튼 옆에 표시 · 접으면 한 줄 · 현재 상태값 반영 (${width})`, async ({
+  test(`예시 대화 상태창은 버튼 옆에 표시 · 접으면 한 줄 · 중립 상태값 표시 (${width})`, async ({
     page,
   }) => {
     await start(page, width);
     await page.getByRole('button', { name: '정원 앞에서 대화 시작', exact: true }).click();
     await page.getByRole('button', { name: '전송', exact: true }).click();
     const status = page.locator('.assistant-section .status-display');
-    await expect(status.locator('pre code')).toContainText('아리아 호감도: 12');
-    await expect(status.locator('pre code')).toContainText('골드: 100G');
+    await expect(status.locator('pre code')).toContainText('상태1: 여기에 상태값이 나옵니다.');
+    await expect(status.locator('pre code')).toContainText('상태3: 여기에 상태값이 나옵니다.');
     expect(await status.evaluate((element) => getComputedStyle(element).backgroundColor)).toBe(
       'rgba(0, 0, 0, 0)',
     );
@@ -156,10 +156,10 @@ for (const width of [1440, 393]) {
     await expect(status.locator('pre')).toBeVisible();
     await page.getByRole('button', { name: '전송', exact: true }).click();
     await expect(page.locator('.status-display').last().locator('pre code')).toContainText(
-      '아리아 호감도: 14',
+      '상태1: 여기에 상태값이 나옵니다.',
     );
     await expect(page.locator('.status-display').first().locator('pre code')).toContainText(
-      '아리아 호감도: 12',
+      '상태1: 여기에 상태값이 나옵니다.',
     );
     await page.locator('.status-display').last().scrollIntoViewIfNeeded();
     await page.screenshot({ path: `${out}/chat-default-${width}.png` });

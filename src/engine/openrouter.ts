@@ -6,6 +6,7 @@ import enginePrompt from './prompts/engine_system_v2.txt?raw';
 import { effectiveSystemPrompt } from '../domain/systemPrompt';
 import { buildQualityDirectives } from '../domain/qualityDirectives';
 import { runtimeRelations } from '../domain/relations';
+import { demoChoices, demoTurnBody } from '../domain/demo';
 import responseSchema from './turn-envelope.schema.json';
 
 const BASE = 'https://openrouter.ai/api/v1';
@@ -210,38 +211,13 @@ function parseContent(text: string) {
   const framed = trimmed.match(/^<XENOTALE_RESULT_V2>\s*([\s\S]+?)\s*<\/XENOTALE_RESULT_V2>$/);
   return envelopeSchema.parse(JSON.parse(framed ? framed[1] : trimmed));
 }
-function mockResponse(room: Room, before: Checkpoint, input: string, variant: number): Envelope {
-  const name = room.work.characters[0].name;
-  const next = before.runtime.turnCount + 1;
-  const delta = emptyDelta();
-  const affinity = room.work.statuses.find((s) => s.id === 'affinity');
-  if (affinity) delta.numeric.push({ fieldId: affinity.id, amount: variant % 2 === 0 ? 2 : 3 });
-  if (room.work.statuses.some((s) => s.id === 'place') && /정원/.test(input))
-    delta.choice.push({ fieldId: 'place', optionId: '정원' });
-  if (
-    next >= 3 &&
-    room.work.items.some((i) => i.id === 'key') &&
-    !before.runtime.inventory.key?.owned
-  )
-    delta.inventory.push({ itemId: 'key', owned: true });
-  if (next >= 2 && room.work.relations.some((r) => r.id === 'aria-user'))
-    delta.relationships.push({
-      relationId: 'aria-user',
-      label: variant % 2 ? '마음을 여는 사이' : '조금 익숙한 방문객',
-    });
-  const bodies = [
-    `*${name}는 잠시 생각하더니 문 옆으로 한 걸음 물러선다. 바람이 잎을 스치는 소리가 두 사람 사이의 침묵을 채운다.*\n\n@${name}: 아직 모르는 것이 많겠지요. 급하게 답을 찾지 않아도 괜찮아요. 하나씩 살펴보면 됩니다.\n\n*가까운 길을 가리키는 손끝이 정원을 향한다. 선택은 당신에게 남겨져 있다.*`,
-    `*작은 미소가 ${name}의 얼굴에 번진다. 주머니 속 열쇠가 가볍게 부딪히는 소리가 들린다.*\n\n@${name}: 그렇게 말씀하실 줄은 몰랐네요. 그럼, 제가 알고 있는 이야기를 하나 들려드릴까요?\n\n*저택의 창문에 구름 사이로 나온 빛이 내려앉는다.*`,
-    `@${name}: 이곳에는 오래된 약속이 남아 있어요. 누군가는 기다리고, 누군가는 다시 찾아오죠.\n\n*말을 마친 ${name}는 한동안 길 끝을 바라본다. 무언가 더 할 말이 있는 듯하지만, 당신의 대답을 기다린다.*`,
-  ];
+function mockResponse(room: Room, before: Checkpoint): Envelope {
   return {
     kind: 'turn',
     requestedCharacterIds: [],
-    body:
-      bodies[(next + variant - 1) % bodies.length] +
-      (delta.inventory.length ? '\n\n*아리아가 서고의 열쇠를 건넨다.*' : ''),
-    choices: ['이야기를 더 듣는다', '주변을 천천히 살펴본다'],
-    delta,
+    body: demoTurnBody(room.work, before.runtime),
+    choices: [...demoChoices],
+    delta: emptyDelta(),
   };
 }
 export async function generate(
@@ -270,14 +246,8 @@ export async function generate(
         { once: true },
       );
     });
-    const last = room.timeline.at(-1);
     return {
-      result: mockResponse(
-        room,
-        before,
-        input,
-        options.reroll && last?.kind === 'turn' ? last.candidates.length : 0,
-      ),
+      result: mockResponse(room, before),
       usage: { model: 'demo', cost: 0 },
     };
   }

@@ -648,6 +648,7 @@ function ChatContent({
                       work={room.work}
                       runtime={displayed(event).checkpoint.runtime}
                       expanded={cfg.statusExpanded}
+                      demo={displayed(event).usage.model === 'demo'}
                     />
                     <div className="response-tools">
                       {canBrowseLatest && event.id === latestTurn?.id && (

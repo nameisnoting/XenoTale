@@ -7,6 +7,7 @@ import {
 export { summarySources, summaryCountdown } from '../domain/memory';
 import type { Room, Model, Memory } from '../domain/types';
 import { id, selected, fingerprint } from '../domain/types';
+import { demoSummary } from '../domain/demo';
 export async function requestJson(
   system: string,
   data: unknown,
@@ -131,14 +132,7 @@ export async function summarize(
       ];
   let body: string;
   let title: string | undefined;
-  if (model.id === 'demo')
-    body = consolidate
-      ? entries.map((m) => m.body).join('\n')
-      : sourceData
-          .map((entry) =>
-            'body' in entry ? `${'input' in entry ? entry.input + ' → ' : ''}${entry.body}` : '',
-          )
-          .join('\n');
+  if (model.id === 'demo') body = demoSummary(consolidate);
   else {
     const value = parseSummary(
       await requestJson(

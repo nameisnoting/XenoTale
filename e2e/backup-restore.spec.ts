@@ -44,7 +44,7 @@ async function restore(page: Page, file: string, expectedCount: number) {
   await page.goto('/#/rooms');
   await expect(page.locator('.room-manager .room-list-item')).toHaveCount(expectedCount);
   await page.locator('.room-manager .room-list-open').last().click();
-  await expect(page.getByTestId('status-affinity')).toHaveText('12');
+  await expect(page.getByTestId('status-affinity')).toHaveText('10');
   await expect(page.locator('.conversation-turn')).toHaveCount(1);
   await page.getByRole('button', { name: '메인으로', exact: true }).click();
 }
@@ -58,7 +58,8 @@ for (const width of [1440, 393]) {
     await start(page, width);
     await page.getByRole('button', { name: '정원 앞에서 대화 시작', exact: true }).click();
     await page.getByRole('button', { name: '전송', exact: true }).click();
-    await expect(page.getByTestId('status-affinity')).toHaveText('12');
+    await expect(page.locator('.conversation-turn')).toHaveCount(1);
+    await expect(page.getByTestId('status-affinity')).toHaveText('10');
     const original = await roomIds(page);
     await page.getByRole('button', { name: '메인으로', exact: true }).click();
     await page.getByRole('button', { name: '백업 및 동기화', exact: true }).click();

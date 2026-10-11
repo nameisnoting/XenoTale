@@ -39,6 +39,29 @@ test('후보 이동은 마지막 응답에만 · 새 방 없음 · 강화 로그
   page,
 }) => {
   await start(page);
+  // This test exercises chapter navigation, independent of demo state changes.
+  await page.evaluate(async () => {
+    const database = await new Promise<IDBDatabase>((resolve) => {
+      const request = indexedDB.open('xenotale-v1');
+      request.onsuccess = () => resolve(request.result);
+    });
+    await new Promise<void>((resolve, reject) => {
+      const transaction = database.transaction('works', 'readwrite');
+      const table = transaction.objectStore('works');
+      const read = table.getAll();
+      read.onsuccess = () => {
+        const entry = read.result[0];
+        entry.work.chapters[0].conditions = [];
+        table.put(entry);
+      };
+      transaction.oncomplete = () => {
+        database.close();
+        resolve();
+      };
+      transaction.onerror = () => reject(transaction.error);
+    });
+  });
+  await page.reload();
   await page.getByRole('button', { name: '정원 앞에서 대화 시작', exact: true }).click();
   await expect(page.locator('.candidate-pager')).toHaveCount(0);
   await expect(page.locator('.work-lore')).toContainText('키워드: 정원');
@@ -51,11 +74,11 @@ test('후보 이동은 마지막 응답에만 · 새 방 없음 · 강화 로그
   const url = page.url();
   await page.getByRole('button', { name: '이전 응답', exact: true }).click();
   await expect(page.locator('.candidate-pager')).toContainText('1 / 2');
-  await expect(page.getByTestId('status-affinity')).toHaveText('12');
+  await expect(page.getByTestId('status-affinity')).toHaveText('10');
   await expect(page).toHaveURL(url);
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await page.getByRole('button', { name: '다음 응답', exact: true }).click();
-  await expect(page.getByTestId('status-affinity')).toHaveText('13');
+  await expect(page.getByTestId('status-affinity')).toHaveText('10');
   await send(page, 2);
   await expect(page.locator('.candidate-pager')).toHaveCount(0);
   await reroll(page);

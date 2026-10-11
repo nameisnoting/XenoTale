@@ -13,30 +13,30 @@ test('빈 입력 전송 · 리롤 후보 상태 복원 · 과거 분기 · 재�
   await page.getByRole('button', { name: '정원 앞에서 대화 시작' }).click();
   await expect(page.getByRole('button', { name: '전송', exact: true })).toBeEnabled();
   await page.getByRole('button', { name: '전송', exact: true }).click();
-  await expect(page.getByTestId('status-affinity')).toHaveText('12');
+  await expect(page.getByTestId('status-affinity')).toHaveText('10');
   await expect(page.locator('.user-message')).toContainText('이어서 내용 전개');
   await page.getByRole('button', { name: '리롤', exact: true }).click();
   await page.getByRole('button', { name: '다른 응답 생성' }).click();
   await expect(page.locator('.candidate-pager')).toContainText('2 / 2');
-  await expect(page.getByTestId('status-affinity')).toHaveText('13');
+  await expect(page.getByTestId('status-affinity')).toHaveText('10');
   await page.getByRole('button', { name: '이전 응답', exact: true }).click();
-  await expect(page.getByTestId('status-affinity')).toHaveText('12');
+  await expect(page.getByTestId('status-affinity')).toHaveText('10');
   await page.getByRole('button', { name: '다음 응답', exact: true }).click();
-  await expect(page.getByTestId('status-affinity')).toHaveText('13');
+  await expect(page.getByTestId('status-affinity')).toHaveText('10');
   await page.getByRole('textbox', { name: '메시지', exact: true }).fill('정원에 갈게요');
   await page.getByRole('button', { name: '전송', exact: true }).click();
-  await expect(page.getByTestId('status-affinity')).toHaveText('15');
-  await expect(page.getByTestId('status-place')).toHaveText('정원');
+  await expect(page.getByTestId('status-affinity')).toHaveText('10');
+  await expect(page.getByTestId('status-place')).toHaveText('문 앞');
   await page.screenshot({ path: 'test-results/chat-desktop.png', fullPage: true });
   const oldURL = page.url();
   await page.getByRole('button', { name: '이 지점에서 분기', exact: true }).first().click();
   await page.getByRole('button', { name: '분기 만들기' }).click();
   await expect(page).not.toHaveURL(oldURL);
-  await expect(page.getByTestId('status-affinity')).toHaveText('13');
+  await expect(page.getByTestId('status-affinity')).toHaveText('10');
   await expect(page.getByTestId('status-place')).toHaveText('문 앞');
   await expect(page.locator('.conversation-turn')).toHaveCount(1);
   await page.reload();
-  await expect(page.getByTestId('status-affinity')).toHaveText('13');
+  await expect(page.getByTestId('status-affinity')).toHaveText('10');
   await expect(page.getByRole('button', { name: '전송', exact: true })).toBeEnabled();
   expect(errors).toEqual([]);
 });
@@ -92,7 +92,7 @@ test('모바일 바텀시트 · 케밥 로그 · 창의성 슬라이더', async 
   await page.screenshot({ path: 'test-results/mobile-model.png' });
   await page.getByRole('button', { name: '선택 완료' }).click();
   await page.getByRole('button', { name: '전송', exact: true }).click();
-  await expect(page.getByTestId('status-affinity')).toHaveText('12');
+  await expect(page.getByTestId('status-affinity')).toHaveText('10');
   await page.getByRole('button', { name: '대화 로그', exact: true }).click();
   await expect(page.locator('.side-drawer')).toContainText('이어서 내용 전개');
   await page.getByRole('button', { name: '닫기', exact: true }).click();
@@ -106,7 +106,7 @@ test('전체 백업 파일 가져오기는 현재 대화를 보존하고 복사�
   await start(page);
   await page.getByRole('button', { name: '정원 앞에서 대화 시작' }).click();
   await page.getByRole('button', { name: '전송', exact: true }).click();
-  await expect(page.getByTestId('status-affinity')).toHaveText('12');
+  await expect(page.getByTestId('status-affinity')).toHaveText('10');
   await page.getByRole('button', { name: '메인으로', exact: true }).click();
   await page.getByRole('button', { name: '백업 및 동기화', exact: true }).click();
   const download = page.waitForEvent('download');
@@ -118,7 +118,7 @@ test('전체 백업 파일 가져오기는 현재 대화를 보존하고 복사�
   await page.getByRole('button', { name: '가져오기', exact: true }).click();
   await expect(page.locator('.room-sidebar .room-list-item')).toHaveCount(2);
   await page.locator('.room-sidebar .room-list-item .room-list-open').last().click();
-  await expect(page.getByTestId('status-affinity')).toHaveText('12');
+  await expect(page.getByTestId('status-affinity')).toHaveText('10');
 });
 test('실제 연결 경로의 요청 형식 · 빈 입력 continue · 추론 토큰 (API 모의 응답)', async ({
   page,

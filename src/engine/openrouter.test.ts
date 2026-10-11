@@ -1,7 +1,7 @@
 import { afterEach, describe, it, expect, vi } from 'vitest';
 import { exampleWork } from '../domain/defaults';
-import { createRoom, emptyDelta } from '../domain/engine';
-import { buildMessages, generate, reasoningFor, reasoningSupported } from './openrouter';
+import { addResponse, createRoom, emptyDelta } from '../domain/engine';
+import { buildMessages, demoModel, generate, reasoningFor, reasoningSupported } from './openrouter';
 import type { Model } from '../domain/types';
 const model: Model = {
   id: 'anthropic/test',
@@ -31,6 +31,37 @@ const reply = (value: unknown, finish = 'stop') =>
   );
 afterEach(() => vi.unstubAllGlobals());
 describe('provider contract', () => {
+  it('demo replies keep custom characters, avoid provider requests and never invent state changes', async () => {
+    const fetch = vi.fn();
+    vi.stubGlobal('fetch', fetch);
+    const work = exampleWork();
+    work.characters[0].name = '우주 탐사원';
+    work.characters[0].image = 'data:image/png;base64,test';
+    let room = createRoom(work);
+    const initial = structuredClone(room.current.runtime);
+    for (let turn = 0; turn < 3; turn++) {
+      const answer = await generate(
+        room,
+        room.current,
+        '정원',
+        demoModel,
+        '',
+        new AbortController().signal,
+        { reroll: false },
+      );
+      expect(answer.result.body).toBe(
+        '*여기에 지문이 나옵니다.*\n\n@우주 탐사원: 여기에 캐릭터 대사가 나옵니다.',
+      );
+      expect(answer.result.delta).toEqual(emptyDelta());
+      expect(answer.usage).toEqual({ model: 'demo', cost: 0 });
+      room = addResponse(room, '정원', answer.result, answer.usage);
+    }
+    expect(room.current.runtime.status).toEqual(initial.status);
+    expect(room.current.runtime.inventory).toEqual(initial.inventory);
+    expect(room.current.runtime.relationships).toEqual(initial.relationships);
+    expect(room.work).toEqual(work);
+    expect(fetch).not.toHaveBeenCalled();
+  });
   it('uses five reasoning budgets, respects supported efforts, and omits unsupported reasoning', () => {
     expect(reasoningFor(model, 4)?.max_tokens).toBe(16384);
     expect(
