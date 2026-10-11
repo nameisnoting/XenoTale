@@ -8,21 +8,26 @@ export { summarySources, summaryCountdown } from '../domain/memory';
 import type { Room, Model, Memory } from '../domain/types';
 import { id, selected, fingerprint } from '../domain/types';
 import { demoSummary } from '../domain/demo';
+import { readJsonStream, type JsonProgress } from './jsonStream';
 export async function requestJson(
   system: string,
   data: unknown,
   model: Model,
   key: string,
   signal: AbortSignal,
-  options: { maxTokens?: number; allowTextFallback?: boolean } = {},
+  options: {
+    maxTokens?: number;
+    allowTextFallback?: boolean;
+    onProgress?: (progress: JsonProgress) => void;
+  } = {},
 ) {
   if (!key) throw new Error('마이페이지에서 API 키를 연결해 주세요.');
-  const content = JSON.stringify(data);
+  const requestContent = JSON.stringify(data);
   const maxTokens = Math.min(
     options.maxTokens ?? 4096,
     model.top_provider?.max_completion_tokens ?? Infinity,
   );
-  if (content.length + system.length + maxTokens > model.context_length * 0.94)
+  if (requestContent.length + system.length + maxTokens > model.context_length * 0.94)
     throw new Error('모델의 컨텍스트가 부족합니다. 더 큰 모델을 선택해 주세요.');
   const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
@@ -31,9 +36,10 @@ export async function requestJson(
       model: model.id,
       messages: [
         { role: 'system', content: system },
-        { role: 'user', content },
+        { role: 'user', content: requestContent },
       ],
       max_tokens: maxTokens,
+      ...(options.onProgress ? { stream: true } : {}),
       ...(model.supported_parameters.includes('response_format')
         ? { response_format: { type: 'json_object' } }
         : {}),
@@ -41,14 +47,21 @@ export async function requestJson(
     signal,
   });
   if (!response.ok) throw new Error(`모델 요청에 실패했습니다 (${response.status}).`);
-  const result = await response.json();
-  const answer = result.choices?.[0];
-  if (answer?.finish_reason !== 'stop') throw new Error('응답이 완성되지 않았습니다.');
+  let content: string;
+  let finishReason: string | null;
+  if (options.onProgress && response.headers.get('content-type')?.includes('text/event-stream')) {
+    ({ content, finishReason } = await readJsonStream(response, options.onProgress, signal));
+  } else {
+    const result = await response.json();
+    const answer = result.choices?.[0];
+    content = answer?.message?.content;
+    finishReason = answer?.finish_reason;
+  }
+  if (finishReason !== 'stop') throw new Error('응답이 완성되지 않았습니다.');
   try {
-    return JSON.parse(answer.message.content.replace(/^```(?:json)?\s*|\s*```$/g, ''));
+    return JSON.parse(content.replace(/^```(?:json)?\s*|\s*```$/g, ''));
   } catch {
-    if (options.allowTextFallback && typeof answer.message.content === 'string')
-      return answer.message.content;
+    if (options.allowTextFallback && typeof content === 'string') return content;
     throw new Error('모델이 올바른 JSON을 반환하지 않았습니다.');
   }
 }

@@ -335,6 +335,61 @@ const workspace = z.object({
   revision: z.number(),
   publishedVersion: z.number(),
   createdAt: z.number(),
+  supporterSettings: z
+    .object({
+      agentModelId: short,
+      testModelId: short,
+      testCreativity: z.number().int().min(0).max(4),
+    })
+    .optional(),
+  assistantHistory: arr(
+    z.object({
+      id: identifier,
+      role: z.enum(['user', 'assistant']),
+      text: str,
+      applied: z.boolean().optional(),
+      proposal: z
+        .object({
+          sections: arr(
+            z.object({
+              id: z.enum([
+                'overview',
+                'characters',
+                'openings',
+                'media',
+                'relations',
+                'statuses',
+                'items',
+                'scenarios',
+                'shortcuts',
+                'effects',
+                'personas',
+                'guide',
+              ]),
+              name: short,
+              reason: str,
+              replacement: z.record(short, z.unknown()),
+            }),
+          ),
+          changes: arr(
+            z
+              .object({
+                field: workSchema
+                  .omit({ id: true, version: true, author: true, authorImage: true })
+                  .keyof(),
+                before: z.unknown(),
+                after: z.unknown(),
+              })
+              .transform((change) => ({
+                field: change.field,
+                before: change.before,
+                after: change.after,
+              })),
+          ),
+        })
+        .optional(),
+    }),
+  ).optional(),
 });
 const backup = z.object({
   kind: z.literal('xenotale.backup'),

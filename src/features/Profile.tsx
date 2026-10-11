@@ -172,6 +172,9 @@ export function ProfilePage({
           <ChevronRight size={17} />
         </button>
       </Field>
+      <p className="muted">
+        새 대화방과 처음 여는 제작 서포터의 기본 모델입니다. 기존 선택은 유지됩니다.
+      </p>
     </section>
   );
   return (

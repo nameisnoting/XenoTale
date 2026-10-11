@@ -1,3 +1,5 @@
+import type { CreatorMessage } from './creatorAssistant';
+
 export type Viewpoint = '1인칭 주인공' | '1인칭 관찰자' | '3인칭 관찰자' | '전지적 작가';
 export const VIEWPOINTS: Viewpoint[] = [
   '1인칭 주인공',
@@ -157,6 +159,12 @@ export type Workspace = {
   revision: number;
   publishedVersion: number;
   createdAt: number;
+  supporterSettings?: {
+    agentModelId: string;
+    testModelId: string;
+    testCreativity: number;
+  };
+  assistantHistory?: CreatorMessage[];
 };
 export type PublishedWork = {
   id: string;

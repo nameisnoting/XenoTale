@@ -84,6 +84,14 @@ function EditorContent({
     />
   );
   const [work, setWork] = useState(initial.work);
+  const [supporterSettings, setSupporterSettings] = useState(
+    initial.supporterSettings ?? {
+      agentModelId: profile.defaultModel,
+      testModelId: profile.defaultModel,
+      testCreativity: 2,
+    },
+  );
+  const [assistantHistory, setAssistantHistory] = useState(initial.assistantHistory ?? []);
   const [relationView, setRelationView] = useGraphView(
     `xenotale.relation-view.editor.${initial.id}`,
   );
@@ -187,9 +195,14 @@ function EditorContent({
     window.addEventListener('beforeunload', fn);
     return () => window.removeEventListener('beforeunload', fn);
   }, []);
-  const save = (value: Work) => {
+  const save = (
+    value: Work,
+    updates: Pick<Workspace, 'supporterSettings' | 'assistantHistory'> = {},
+  ) => {
     setWork(value);
-    latest.current = { ...latest.current, work: clone(value) };
+    if (updates.supporterSettings) setSupporterSettings(updates.supporterSettings);
+    if (updates.assistantHistory) setAssistantHistory(updates.assistantHistory);
+    latest.current = { ...latest.current, ...clone(updates), work: clone(value) };
     pending.current++;
     setStatus('saving');
     const snapshot = clone(value);
@@ -201,7 +214,12 @@ function EditorContent({
           { ...latest.current, work: snapshot },
           latest.current.revision,
         );
-        latest.current = { ...saved, work: latest.current.work };
+        latest.current = {
+          ...saved,
+          work: latest.current.work,
+          supporterSettings: latest.current.supporterSettings,
+          assistantHistory: latest.current.assistantHistory,
+        };
       })
       .catch((e) => {
         failed.current = true;
@@ -212,6 +230,13 @@ function EditorContent({
         setStatus(failed.current ? 'error' : pending.current ? 'saving' : 'saved');
       });
   };
+  useEffect(() => {
+    // Capture defaults once for older/imported workspaces; later profile changes
+    // only affect a workspace that has not been opened yet.
+    if (!latest.current.supporterSettings) save(latest.current.work, { supporterSettings });
+  }, []);
+  const changeSupporterSettings = (patch: Partial<NonNullable<Workspace['supporterSettings']>>) =>
+    save(latest.current.work, { supporterSettings: { ...supporterSettings, ...patch } });
   const change = (value: Work) => {
     if (Date.now() - lastEdit.current.time > 700 || lastEdit.current.section !== section) {
       undo.current.push(clone(work));
@@ -672,6 +697,12 @@ function EditorContent({
           <div className="editor-support-pane" hidden={supportTab !== 'agent'}>
             <Assistant
               work={work}
+              history={assistantHistory}
+              onHistoryChange={(assistantHistory) =>
+                save(latest.current.work, { assistantHistory })
+              }
+              modelId={supporterSettings.agentModelId}
+              onModelChange={(agentModelId) => changeSupporterSettings({ agentModelId })}
               onRequestComplete={balance.refresh}
               onChange={(next) => {
                 // A multi-section AI application is one separate undo transaction.
@@ -679,15 +710,18 @@ function EditorContent({
                 change(next);
                 lastEdit.current.time = 0;
               }}
-              profile={profile}
               {...props}
             />
           </div>
           <div className="editor-support-pane" hidden={supportTab !== 'test'}>
             <CreatorTest
               work={work}
+              modelId={supporterSettings.testModelId}
+              creativity={supporterSettings.testCreativity}
+              onModelChange={(testModelId, testCreativity) =>
+                changeSupporterSettings({ testModelId, testCreativity })
+              }
               onRequestComplete={balance.refresh}
-              profile={profile}
               openingId={selectedOpeningId}
               onOpeningChange={setOpeningSelection}
               {...props}

@@ -2,7 +2,12 @@ import 'fake-indexeddb/auto';
 import { describe, it, expect } from 'vitest';
 import { readImport } from './files';
 import { createRoom, addResponse, emptyDelta } from '../domain/engine';
-import { workspace } from '../domain/defaults';
+import { workspace, defaultProfile } from '../domain/defaults';
+import {
+  creatorRequest,
+  parseCreatorAnswer,
+  applyCreatorProposal,
+} from '../domain/creatorAssistant';
 import { exampleWork } from '../test/exampleWork';
 const file = (kind: string, key: string, value: unknown) =>
   new File(
@@ -64,6 +69,78 @@ describe('portable files', () => {
     const imported = await readImport(file('workspace', 'workspace', w));
     expect(imported.kind).toBe('workspace');
     await expect(readImport(file('work', 'work', w.work))).rejects.toThrow();
+  });
+  it('preserves supporter models, conversation and proposals in workspace files and backups', async () => {
+    const w = workspace('작가');
+    const snapshot = creatorRequest(w.work);
+    const { proposal } = parseCreatorAnswer(
+      {
+        reply: '제목을 제안합니다.',
+        questions: [],
+        proposals: [
+          {
+            section: 'overview',
+            reason: '요청 반영',
+            replacement: { ...snapshot.draft.overview, title: '새 제목' },
+          },
+        ],
+      },
+      w.work,
+      snapshot,
+    );
+    w.supporterSettings = {
+      agentModelId: 'test/agent',
+      testModelId: 'test/play',
+      testCreativity: 3,
+    };
+    w.assistantHistory = [
+      { id: 'request', role: 'user', text: '제목을 바꿔줘' },
+      { id: 'reply', role: 'assistant', text: '제목을 제안합니다.', proposal },
+    ];
+    const imported = await readImport(file('workspace', 'workspace', w));
+    if (imported.kind !== 'workspace') throw new Error();
+    expect(imported.workspace.supporterSettings).toEqual(w.supporterSettings);
+    expect(imported.workspace.assistantHistory).toEqual(w.assistantHistory);
+    expect(
+      applyCreatorProposal(
+        imported.workspace.work,
+        imported.workspace.assistantHistory![1].proposal!,
+      ).title,
+    ).toBe('새 제목');
+    w.work = applyCreatorProposal(w.work, proposal);
+    w.assistantHistory[1].applied = true;
+    const backup = await readImport(
+      new File(
+        [
+          JSON.stringify({
+            kind: 'xenotale.backup',
+            schemaVersion: 2,
+            profile: defaultProfile(),
+            works: [],
+            rooms: [],
+            workspaces: [w],
+          }),
+        ],
+        'backup.json',
+      ),
+    );
+    if (backup.kind !== 'backup') throw new Error();
+    expect(backup.data.workspaces[0]).toEqual(w);
+  });
+  it('rejects imported proposals that would change managed work identity', async () => {
+    const w = workspace('작가');
+    const invalid = {
+      ...w,
+      assistantHistory: [
+        {
+          id: 'reply',
+          role: 'assistant',
+          text: '제안',
+          proposal: { sections: [], changes: [{ field: 'id', before: w.work.id, after: 'other' }] },
+        },
+      ],
+    };
+    await expect(readImport(file('workspace', 'workspace', invalid))).rejects.toThrow('형식');
   });
   it('rejects prototype keys in imported identifiers', async () => {
     const w = exampleWork();

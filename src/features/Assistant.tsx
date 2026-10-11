@@ -1,7 +1,8 @@
 import { MessageInput } from '../components/MessageInput';
 import { SendButton } from '../components/SendButton';
-import { useEffect, useRef, useState } from 'react';
-import type { Profile, Work } from '../domain/types';
+import { Fragment, useEffect, useRef, useState } from 'react';
+import type { Work } from '../domain/types';
+import { id } from '../domain/types';
 import type { ModelProps, ApiProps } from './Profile';
 import { requestJson } from '../engine/auxiliary';
 import { ActionButton, Button, Markdown, useNotify } from '../components/UI';
@@ -11,7 +12,7 @@ import {
   parseCreatorAnswer,
   applyCreatorProposal,
   creatorPreview,
-  type CreatorProposal,
+  type CreatorMessage,
 } from '../domain/creatorAssistant';
 import assistantPrompt from '../engine/prompts/creator_assistant_v2.txt?raw';
 import './Assistant.css';
@@ -19,7 +20,10 @@ import './Assistant.css';
 export function Assistant({
   work,
   onChange,
-  profile,
+  modelId,
+  onModelChange,
+  history,
+  onHistoryChange,
   models,
   loadingModels,
   refreshModels,
@@ -29,52 +33,65 @@ export function Assistant({
 }: {
   work: Work;
   onChange: (w: Work) => void;
-  profile: Profile;
+  modelId: string;
+  onModelChange: (modelId: string) => void;
+  history: CreatorMessage[];
+  onHistoryChange: (history: CreatorMessage[]) => void;
   onRequestComplete: () => void;
 } & ModelProps &
   ApiProps) {
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
-  const [history, setHistory] = useState<{ role: 'user' | 'assistant'; text: string }[]>([]);
-  const [proposal, setProposal] = useState<CreatorProposal | null>(null);
-  const [modelId, setModel] = useState(profile.defaultModel);
+  const [progress, setProgress] = useState({ reply: '', receivedChars: 0, thinking: false });
   const [picker, setPicker] = useState(false);
   const controller = useRef<AbortController | null>(null);
   const workRef = useRef(work);
   workRef.current = work;
+  const historyRef = useRef(history);
+  historyRef.current = history;
+  const setHistory = (next: CreatorMessage[]) => {
+    historyRef.current = next;
+    onHistoryChange(next);
+  };
+  const append = (message: Omit<CreatorMessage, 'id'>) =>
+    setHistory([...historyRef.current, { id: id(), ...message }]);
   const transcript = useRef<HTMLDivElement>(null);
   const notify = useNotify();
   useEffect(() => () => controller.current?.abort(), []);
   useEffect(() => {
     transcript.current?.scrollTo({ top: transcript.current.scrollHeight });
-  }, [history, proposal]);
+  }, [history, progress.reply]);
   const send = async () => {
     if (!input.trim() || controller.current) return;
     const active = new AbortController();
     controller.current = active;
     setBusy(true);
+    setProgress({ reply: '', receivedChars: 0, thinking: false });
     const request = input.trim();
     const original = structuredClone(workRef.current);
     try {
       const model = await resolveModel(modelId, active.signal);
-      setProposal(null);
       setInput('');
-      setHistory((h) => [...h, { role: 'user', text: request }]);
+      const conversation = historyRef.current.slice(-10).map(({ role, text }) => ({ role, text }));
+      const previous = [...historyRef.current]
+        .reverse()
+        .find((message) => message.proposal && !message.applied);
+      append({ role: 'user', text: request });
       if (model.id === 'demo') {
-        setHistory((h) => [
-          ...h,
-          {
-            role: 'assistant',
-            text: '현재는 예시 모드입니다. API 키와 모델을 선택하면 작품 설정을 함께 작성할 수 있습니다.',
-          },
-        ]);
+        append({
+          role: 'assistant',
+          text: '현재는 예시 모드입니다. API 키와 모델을 선택하면 작품 설정을 함께 작성할 수 있습니다.',
+        });
         return;
       }
       const snapshot = creatorRequest(original);
       // A follow-up can refine a proposal that has not been applied yet.
-      const pending = proposal
+      const pending = previous?.proposal
         ? creatorRequest(
-            { ...original, ...Object.fromEntries(proposal.changes.map((c) => [c.field, c.after])) },
+            {
+              ...original,
+              ...Object.fromEntries(previous.proposal.changes.map((c) => [c.field, c.after])),
+            },
             snapshot.assets,
           ).draft
         : null;
@@ -88,31 +105,25 @@ export function Assistant({
           localAssets: Object.keys(snapshot.assets),
           pendingDraft: pending,
           request,
-          conversation: history.slice(-10),
+          conversation,
         },
         model,
         apiKey,
         active.signal,
-        { maxTokens: 16384 },
+        { maxTokens: 16384, onProgress: setProgress },
       );
       if (active.signal.aborted) return;
       const answer = parseCreatorAnswer(result, original, snapshot);
-      setHistory((h) => [
-        ...h,
-        {
-          role: 'assistant',
-          text: [answer.reply, ...answer.questions].filter(Boolean).join('\n\n'),
-        },
-      ]);
-      setProposal(answer.proposal.changes.length ? answer.proposal : null);
+      append({
+        role: 'assistant',
+        text: [answer.reply, ...answer.questions].filter(Boolean).join('\n\n'),
+        proposal: answer.proposal.changes.length ? answer.proposal : undefined,
+      });
     } catch (e) {
       if ((e as Error).name !== 'AbortError') {
         const message = (e as Error).message;
         notify(message);
-        setHistory((h) => [
-          ...h,
-          { role: 'assistant', text: `제안을 준비하지 못했습니다. ${message}` },
-        ]);
+        append({ role: 'assistant', text: `제안을 준비하지 못했습니다. ${message}` });
       }
     } finally {
       controller.current = null;
@@ -120,18 +131,15 @@ export function Assistant({
       onRequestComplete();
     }
   };
-  const apply = () => {
-    if (!proposal) return;
+  const apply = (message: CreatorMessage) => {
+    if (!message.proposal || message.applied || busy) return;
     try {
-      onChange(applyCreatorProposal(workRef.current, proposal));
-      setProposal(null);
-      setHistory((h) => [
-        ...h,
-        {
-          role: 'assistant',
-          text: `${proposal.sections.map((s) => s.name).join(', ')}에 제안을 적용했습니다.`,
-        },
-      ]);
+      onChange(applyCreatorProposal(workRef.current, message.proposal));
+      setHistory(
+        historyRef.current.map((entry) =>
+          entry.id === message.id ? { ...entry, applied: true } : entry,
+        ),
+      );
       notify('제안을 적용했습니다. 실행 취소로 되돌릴 수 있습니다.');
     } catch (e) {
       notify((e as Error).message);
@@ -145,35 +153,51 @@ export function Assistant({
           <br />
           원하는 설정이나 수정할 내용을 말씀해 주세요.
         </p>
-        {history.map((m, i) =>
-          m.role === 'user' ? (
-            <p className="support-user" key={i}>
-              {m.text}
+        {history.map((message) => (
+          <Fragment key={message.id}>
+            {message.role === 'user' ? (
+              <p className="support-user">{message.text}</p>
+            ) : (
+              <Markdown>{message.text}</Markdown>
+            )}
+            {message.proposal && (
+              <section className="support-proposal" aria-label="변경 제안">
+                <h4>변경 제안</h4>
+                {message.proposal.sections.map((section) => (
+                  <details key={section.id}>
+                    <summary>{section.name}</summary>
+                    <p>{section.reason}</p>
+                    <pre>{creatorPreview(section.replacement)}</pre>
+                  </details>
+                ))}
+                <p className="muted">
+                  {message.applied
+                    ? '작품에 적용한 제안입니다.'
+                    : '적용하면 위 항목이 함께 변경됩니다.'}
+                </p>
+                <Button
+                  className="primary full"
+                  disabled={busy || message.applied}
+                  onClick={() => apply(message)}
+                >
+                  {message.applied ? '적용 완료' : '적용하기'}
+                </Button>
+              </section>
+            )}
+          </Fragment>
+        ))}
+        {busy && (
+          <div aria-label="작성 중인 답변">
+            {progress.reply && <Markdown>{progress.reply}</Markdown>}
+            <p role="status">
+              {progress.receivedChars
+                ? `제안을 작성하고 있습니다… ${progress.receivedChars.toLocaleString()}자 수신`
+                : progress.thinking
+                  ? '모델이 생각하고 있습니다…'
+                  : '모델의 응답을 기다리고 있습니다…'}
             </p>
-          ) : (
-            <Markdown key={i}>{m.text}</Markdown>
-          ),
+          </div>
         )}
-        {proposal && (
-          <section className="support-proposal" aria-label="변경 제안">
-            <h4>변경 제안</h4>
-            {proposal.sections.map((s) => (
-              <details key={s.id}>
-                <summary>{s.name}</summary>
-                <p>{s.reason}</p>
-                <pre>{creatorPreview(s.replacement)}</pre>
-              </details>
-            ))}
-            <p className="muted">적용하면 위 항목이 함께 변경됩니다.</p>
-            <Button className="primary full" onClick={apply}>
-              적용하기
-            </Button>
-            <Button className="full" onClick={() => setProposal(null)}>
-              제안 닫기
-            </Button>
-          </section>
-        )}
-        {busy && <p role="status">변경 제안을 작성하고 있습니다…</p>}
       </div>
       <div className="support-composer">
         <MessageInput
@@ -216,7 +240,7 @@ export function Assistant({
           models={models}
           modelId={modelId}
           creativity={2}
-          onSelect={setModel}
+          onSelect={onModelChange}
           onClose={() => setPicker(false)}
           loading={loadingModels}
           onRefresh={refreshModels}

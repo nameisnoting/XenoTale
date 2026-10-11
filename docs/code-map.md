@@ -81,6 +81,29 @@ ItemsSection.tsx의 TextInput
 각 섹션의 `Pick<CreatorPanelState, ...>`는 그 화면이 필요한 값의 목록을 뜻합니다.
 새 저장소나 복잡한 기능이 아니라 TypeScript의 타입 표기이며, 배포되는 JavaScript에는 포함되지 않습니다.
 
+### 제작 서포터의 모델·대화·제안 저장
+
+[`src/features/Editor.tsx`](../src/features/Editor.tsx)는 작업공간의 `supporterSettings`와
+`assistantHistory`를 불러와 AI 에이전트와 대화 테스트에 전달합니다.
+`supporterSettings`에는 에이전트 모델, 테스트 모델, 테스트 창의 창의성을 따로 저장합니다.
+`assistantHistory`에는 메시지와 제안 전체, 적용 여부가 들어갑니다.
+이 값들은 작품 입력값과 같은 자동저장 순서를 사용하며, 작업공간 파일과 전체 백업에도 포함됩니다.
+작품 파일에는 포함되지 않습니다.
+
+[`src/features/Assistant.tsx`](../src/features/Assistant.tsx)는 대화와 제안을 표시하고,
+[`domain/creatorAssistant.ts`](../src/domain/creatorAssistant.ts)가 응답 검증과 제안 적용을 담당합니다.
+적용된 제안도 기록에 남습니다. 새 요청에는 최근 대화 10개와 마지막 미적용 제안을 참고자료로 전달합니다.
+저장된 전체 기록을 매번 AI에 보내지는 않습니다.
+
+응답은 [`engine/auxiliary.ts`](../src/engine/auxiliary.ts)의 `requestJson`으로 요청하고,
+[`engine/jsonStream.ts`](../src/engine/jsonStream.ts)가 스트림을 읽어 설명과 수신 상태를 먼저 보여줍니다.
+제안 데이터는 응답이 완료되고 검증까지 끝나야 적용할 수 있습니다.
+모델의 내부 추론 내용은 화면에 표시하거나 저장하지 않습니다.
+
+API 키 관리의 모델 설정은 새 대화방과 처음 여는 제작 서포터의 기본값입니다.
+이미 고른 모델은 덮어쓰지 않습니다. 대화방의 채팅·요약 모델은
+`room.current.context.settings`에, 제작 서포터의 모델은 각 작업공간에 저장됩니다.
+
 ## 대화가 전송되는 순서
 
 [`src/features/Chat.tsx`](../src/features/Chat.tsx)는 대화 화면 배치와 메뉴·입력창·모달을 담당합니다.

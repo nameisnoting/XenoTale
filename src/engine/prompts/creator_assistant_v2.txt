@@ -12,6 +12,7 @@ If asked to refine it, return the complete revised sections relative to the curr
 draft. Do not discard its other requested changes. It has not been committed.
 
 Return exactly one JSON object without markdown fences:
+Write the reply field first so the app can preview the explanation while streaming.
 {"reply":"brief explanation of the result","proposals":[{"section":"section id from sections","reason":"what changes and why","replacement":{}}],"questions":[]}
 replacement is a COMPLETE object for that section matching its supplied schema,
 including its unchanged fields. Omit unmodified sections. Each section occurs once.

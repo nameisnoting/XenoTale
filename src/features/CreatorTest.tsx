@@ -2,7 +2,7 @@ import { MessageInput } from '../components/MessageInput';
 import { SendButton } from '../components/SendButton';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronRight, RefreshCw } from 'lucide-react';
-import type { Profile, Room, Work } from '../domain/types';
+import type { Room, Work } from '../domain/types';
 import { selected } from '../domain/types';
 import { addResponse, createPreviewRoom, createRoom } from '../domain/engine';
 import { generate } from '../engine/openrouter';
@@ -17,7 +17,9 @@ import type { ApiProps, ModelProps } from './Profile';
 // Test conversations stay in this workspace panel; published works and saved rooms are untouched.
 export function CreatorTest({
   work,
-  profile,
+  modelId,
+  creativity,
+  onModelChange,
   models,
   loadingModels,
   refreshModels,
@@ -28,7 +30,9 @@ export function CreatorTest({
   onRequestComplete,
 }: {
   work: Work;
-  profile: Profile;
+  modelId: string;
+  creativity: number;
+  onModelChange: (modelId: string, creativity: number) => void;
   openingId: string;
   onOpeningChange: (id: string) => void;
   onRequestComplete: () => void;
@@ -37,8 +41,6 @@ export function CreatorTest({
   const [room, setRoom] = useState<Room | null>(null);
   const [effect, setEffect] = useState<EffectRequest | null>(null);
   const [input, setInput] = useState('');
-  const [modelId, setModel] = useState(profile.defaultModel);
-  const [creativity, setCreativity] = useState(2);
   const [picker, setPicker] = useState(false);
   const [openingPicker, setOpeningPicker] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -177,10 +179,7 @@ export function CreatorTest({
           loading={loadingModels}
           onRefresh={refreshModels}
           onClose={() => setPicker(false)}
-          onSelect={(model, effort) => {
-            setModel(model);
-            setCreativity(effort);
-          }}
+          onSelect={onModelChange}
         />
       )}
       {openingPicker && (

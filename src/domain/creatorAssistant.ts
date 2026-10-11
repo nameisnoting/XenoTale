@@ -73,6 +73,13 @@ export type CreatorProposal = {
   sections: { id: SectionId; name: string; reason: string; replacement: Record<string, unknown> }[];
   changes: { field: EditableField; before: unknown; after: unknown }[];
 };
+export type CreatorMessage = {
+  id: string;
+  role: 'user' | 'assistant';
+  text: string;
+  proposal?: CreatorProposal;
+  applied?: boolean;
+};
 
 function same(a: unknown, b: unknown): boolean {
   if (a === b) return true;
