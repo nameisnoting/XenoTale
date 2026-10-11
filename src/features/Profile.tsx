@@ -148,31 +148,34 @@ export function ProfilePage({
           )}
         </div>
       </div>
-      <Field label="채팅용 LLM">
-        <button
-          className="select-button"
-          onClick={() => {
-            refreshModels();
-            setModelTarget('chat');
-          }}
-        >
-          {label(profile.defaultModel)}
-          <ChevronRight size={17} />
-        </button>
-      </Field>
-      <Field label="요약용 LLM">
-        <button
-          className="select-button"
-          onClick={() => {
-            refreshModels();
-            setModelTarget('summary');
-          }}
-        >
-          {label(profile.summaryModel)}
-          <ChevronRight size={17} />
-        </button>
-      </Field>
-      <p className="muted">새 대화방과 새 작업 페이지의 기본 모델입니다.</p>
+      {onboarding && (
+        <>
+          <Field label="채팅용 LLM">
+            <button
+              className="select-button"
+              onClick={() => {
+                refreshModels();
+                setModelTarget('chat');
+              }}
+            >
+              {label(profile.defaultModel)}
+              <ChevronRight size={17} />
+            </button>
+          </Field>
+          <Field label="요약용 LLM">
+            <button
+              className="select-button"
+              onClick={() => {
+                refreshModels();
+                setModelTarget('summary');
+              }}
+            >
+              {label(profile.summaryModel)}
+              <ChevronRight size={17} />
+            </button>
+          </Field>
+        </>
+      )}
     </section>
   );
   return (
@@ -208,6 +211,8 @@ export function ProfilePage({
                     p.onboarded = true;
                     p.defaultModel = 'demo';
                     p.summaryModel = 'demo';
+                    p.creatorTestModel = 'demo';
+                    p.creatorAgentModel = 'demo';
                     p.nickname = nickname.trim() || profile.nickname;
                   }),
                 )
@@ -283,8 +288,11 @@ export function ProfilePage({
           onSelect={(modelId) =>
             run(
               changeProfile((p) => {
-                if (modelTarget === 'chat') p.defaultModel = modelId;
-                else p.summaryModel = modelId;
+                if (modelTarget === 'chat') {
+                  p.defaultModel = modelId;
+                  p.creatorTestModel = modelId;
+                  p.creatorAgentModel = modelId;
+                } else p.summaryModel = modelId;
               }),
             )
           }

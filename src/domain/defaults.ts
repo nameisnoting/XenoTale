@@ -48,6 +48,8 @@ export const defaultProfile = (): Profile => ({
   onboarded: false,
   defaultModel: 'demo',
   summaryModel: 'demo',
+  creatorTestModel: 'demo',
+  creatorAgentModel: 'demo',
   carousels: [],
   folders: [],
   personas: [],

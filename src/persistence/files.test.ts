@@ -70,7 +70,7 @@ describe('portable files', () => {
     expect(imported.kind).toBe('workspace');
     await expect(readImport(file('work', 'work', w.work))).rejects.toThrow();
   });
-  it('preserves supporter models, conversation and proposals in workspace files and backups', async () => {
+  it('preserves legacy supporter settings, conversation and proposals alongside shared backup models', async () => {
     const w = workspace('작가');
     const snapshot = creatorRequest(w.work);
     const { proposal } = parseCreatorAnswer(
@@ -93,6 +93,7 @@ describe('portable files', () => {
       testModelId: 'test/play',
       testCreativity: 3,
     };
+    w.testCreativity = 4;
     w.assistantHistory = [
       { id: 'request', role: 'user', text: '제목을 바꿔줘' },
       { id: 'reply', role: 'assistant', text: '제목을 제안합니다.', proposal },
@@ -114,6 +115,7 @@ describe('portable files', () => {
     const imported = await readImport(file('workspace', 'workspace', w));
     if (imported.kind !== 'workspace') throw new Error();
     expect(imported.workspace.supporterSettings).toEqual(w.supporterSettings);
+    expect(imported.workspace.testCreativity).toBe(4);
     expect(imported.workspace.assistantHistory).toEqual(w.assistantHistory);
     expect(imported.workspace.testRoom).toEqual(w.testRoom);
     expect(imported.workspace.selectedPersonaId).toBe('chosen-persona');
@@ -132,7 +134,13 @@ describe('portable files', () => {
           JSON.stringify({
             kind: 'xenotale.backup',
             schemaVersion: 2,
-            profile: defaultProfile(),
+            profile: {
+              ...defaultProfile(),
+              defaultModel: 'test/chat',
+              summaryModel: 'test/summary',
+              creatorAgentModel: 'test/agent',
+              creatorTestModel: 'test/play',
+            },
             works: [],
             rooms: [],
             workspaces: [w],
@@ -143,6 +151,12 @@ describe('portable files', () => {
     );
     if (backup.kind !== 'backup') throw new Error();
     expect(backup.data.workspaces[0]).toEqual(w);
+    expect(backup.data.profile).toMatchObject({
+      defaultModel: 'test/chat',
+      summaryModel: 'test/summary',
+      creatorAgentModel: 'test/agent',
+      creatorTestModel: 'test/play',
+    });
   });
   it('imports unfinished creator previews while still rejecting broken test state references', async () => {
     const w = workspace('작가');

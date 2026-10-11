@@ -38,7 +38,7 @@ import {
   availableChapters,
   switchCandidate,
 } from '../domain/engine';
-import { db, useLive } from '../persistence/db';
+import { db, useLive, changeProfile } from '../persistence/db';
 import { demoModel } from '../engine/openrouter';
 
 import { navigate, navigateBack } from '../app/navigation';
@@ -106,7 +106,7 @@ function ChatContent({
     summarize,
     makeBranch,
     cancel,
-  } = useChatSession({ persistedRoom, resolveModel, apiKey });
+  } = useChatSession({ persistedRoom, profile, resolveModel, apiKey });
 
   const [panel, setPanel] = useState('info');
   const [panelSelection, setPanelSelection] = useState(() => {
@@ -778,13 +778,17 @@ function ChatContent({
           onClose={() => setPicker(null)}
           onSelect={(modelId, creativity) =>
             run(
-              mutate((r) => {
-                r.current.context.settings = {
-                  ...r.current.context.settings,
-                  ...(picker === 'chat' ? { modelId, creativity } : { summaryModelId: modelId }),
-                };
-                return r;
-              }),
+              (async () => {
+                await changeProfile((p) => {
+                  if (picker === 'chat') p.defaultModel = modelId;
+                  else p.summaryModel = modelId;
+                });
+                if (picker === 'chat')
+                  await mutate((r) => {
+                    r.current.context.settings.creativity = creativity;
+                    return r;
+                  });
+              })(),
             )
           }
         />

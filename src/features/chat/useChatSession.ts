@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import type { Room, Turn, Checkpoint } from '../../domain/types';
+import type { Room, Turn, Checkpoint, Profile } from '../../domain/types';
+import { withChatModels } from '../../domain/modelSettings';
 import { clone } from '../../domain/types';
 import { addResponse, branchRoom } from '../../domain/engine';
 import { db, commitRoom } from '../../persistence/db';
@@ -18,9 +19,11 @@ export const CONTINUE = '[이어서 내용 전개]';
 // View components call these actions without managing persistence themselves.
 export function useChatSession({
   persistedRoom,
+  profile,
   resolveModel,
   apiKey,
-}: { persistedRoom: Room } & Pick<ApiProps, 'apiKey'> & Pick<ModelProps, 'resolveModel'>) {
+}: { persistedRoom: Room; profile: Profile } & Pick<ApiProps, 'apiKey'> &
+  Pick<ModelProps, 'resolveModel'>) {
   const notify = useNotify();
   const [room, setRoom] = useState(persistedRoom);
   const balance = useCreditBalance(apiKey);
@@ -48,7 +51,7 @@ export function useChatSession({
     const expectedRevision = current.current.revision;
     let next: Room;
     try {
-      next = fn(clone(current.current));
+      next = fn(clone(withChatModels(current.current, profile)));
     } catch (e) {
       return Promise.reject(e);
     }
@@ -92,8 +95,9 @@ export function useChatSession({
     controller.current = new AbortController();
     try {
       await queue.current;
-      const snapshot = await db.rooms.get(room.id);
-      if (!snapshot) throw new Error('대화방이 없습니다.');
+      const stored = await db.rooms.get(room.id);
+      if (!stored) throw new Error('대화방이 없습니다.');
+      const snapshot = withChatModels(stored, (await db.profiles.get('profile')) ?? profile);
       const settings = snapshot.current.context.settings;
       const model = await resolveModel(settings.modelId, controller.current.signal);
       if (snapshot.current.runtime.ending && !snapshot.current.runtime.ending.allowAfterstory)
@@ -190,7 +194,10 @@ export function useChatSession({
     controller.current = new AbortController();
     try {
       await queue.current;
-      const latest = (await db.rooms.get(room.id))!;
+      const latest = withChatModels(
+        (await db.rooms.get(room.id))!,
+        (await db.profiles.get('profile')) ?? profile,
+      );
       const model = await resolveModel(
         latest.current.context.settings.summaryModelId,
         controller.current.signal,
@@ -225,7 +232,7 @@ export function useChatSession({
     navigate(`/chat/${next.id}`);
   };
   return {
-    room,
+    room: withChatModels(room, profile),
     input,
     setInput,
     busy,

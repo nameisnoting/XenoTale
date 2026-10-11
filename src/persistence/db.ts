@@ -38,6 +38,7 @@ export function initialize() {
       await migrateDefaultNickname(db);
       await migrateSharedPersonas(db);
       await migrateProvidedSystemPrompts(db);
+      await migrateSharedModels(db);
     },
   ));
 }
@@ -79,6 +80,34 @@ export async function changeProfile(update: (profile: Profile) => void) {
     update(p);
     await db.profiles.put(p);
   });
+}
+export async function migrateSharedModels(database = db) {
+  await database.transaction(
+    'rw',
+    database.profiles,
+    database.rooms,
+    database.workspaces,
+    async () => {
+      const profile = await database.profiles.get('profile');
+      if (
+        !profile ||
+        (profile.creatorTestModel !== undefined && profile.creatorAgentModel !== undefined)
+      )
+        return;
+      const lastRoom = await database.rooms.orderBy('updatedAt').last();
+      const lastWorkspace = await database.workspaces.orderBy('updatedAt').last();
+      if (profile.creatorTestModel === undefined && profile.creatorAgentModel === undefined) {
+        profile.defaultModel = lastRoom?.current.context.settings.modelId ?? profile.defaultModel;
+        profile.summaryModel =
+          lastRoom?.current.context.settings.summaryModelId ?? profile.summaryModel;
+      }
+      profile.creatorTestModel ??=
+        lastWorkspace?.supporterSettings?.testModelId ?? profile.defaultModel;
+      profile.creatorAgentModel ??=
+        lastWorkspace?.supporterSettings?.agentModelId ?? profile.defaultModel;
+      await database.profiles.put(profile);
+    },
+  );
 }
 export async function saveWorkspace(entry: Workspace, expectedRevision: number) {
   return db.transaction('rw', db.workspaces, async () => {

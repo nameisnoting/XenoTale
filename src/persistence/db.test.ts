@@ -9,6 +9,8 @@ import {
   rememberWorkspace,
   lastWorkspace,
   migrateProvidedSystemPrompts,
+  migrateSharedModels,
+  changeProfile,
 } from './db';
 import { workspace, defaultProfile } from '../domain/defaults';
 import { exampleWork } from '../test/exampleWork';
@@ -26,6 +28,73 @@ beforeEach(async () => {
 });
 afterAll(() => db.close());
 describe('revision transactions', () => {
+  it('migrates the most recent legacy choices once, keeping room and workspace history unchanged', async () => {
+    const profile = defaultProfile();
+    delete profile.creatorTestModel;
+    delete profile.creatorAgentModel;
+    const first = createRoom(exampleWork(), 'old/chat');
+    first.updatedAt = 100;
+    const latest = createRoom(exampleWork(), 'recent/chat');
+    latest.current.context.settings.summaryModelId = 'recent/summary';
+    latest.updatedAt = 200;
+    const firstWorkspace = workspace('작가');
+    firstWorkspace.updatedAt = 100;
+    firstWorkspace.supporterSettings = {
+      agentModelId: 'old/agent',
+      testModelId: 'old/test',
+      testCreativity: 2,
+    };
+    const latestWorkspace = workspace('작가');
+    latestWorkspace.updatedAt = 200;
+    latestWorkspace.supporterSettings = {
+      agentModelId: 'recent/agent',
+      testModelId: 'recent/test',
+      testCreativity: 3,
+    };
+    await db.profiles.add(profile);
+    await db.rooms.bulkAdd([first, latest]);
+    await db.workspaces.bulkAdd([firstWorkspace, latestWorkspace]);
+    await migrateSharedModels();
+    expect(await db.profiles.get('profile')).toMatchObject({
+      defaultModel: 'recent/chat',
+      summaryModel: 'recent/summary',
+      creatorAgentModel: 'recent/agent',
+      creatorTestModel: 'recent/test',
+    });
+    await changeProfile((p) => {
+      p.defaultModel = 'chosen/chat';
+      p.summaryModel = 'chosen/summary';
+      p.creatorAgentModel = 'chosen/agent';
+      p.creatorTestModel = 'chosen/test';
+    });
+    await migrateSharedModels();
+    expect(await db.profiles.get('profile')).toMatchObject({
+      defaultModel: 'chosen/chat',
+      summaryModel: 'chosen/summary',
+      creatorAgentModel: 'chosen/agent',
+      creatorTestModel: 'chosen/test',
+    });
+    expect(await db.rooms.get(first.id)).toEqual(first);
+    expect(await db.rooms.get(latest.id)).toEqual(latest);
+    expect(await db.workspaces.get(firstWorkspace.id)).toEqual(firstWorkspace);
+    expect(await db.workspaces.get(latestWorkspace.id)).toEqual(latestWorkspace);
+  });
+  it('seeds missing creator selections from chat without replacing existing global choices', async () => {
+    const profile = {
+      ...defaultProfile(),
+      defaultModel: 'selected/chat',
+      creatorAgentModel: 'selected/agent',
+    };
+    delete profile.creatorTestModel;
+    await db.profiles.add(profile);
+    await db.rooms.add(createRoom(exampleWork(), 'stale/chat'));
+    await migrateSharedModels();
+    expect(await db.profiles.get('profile')).toMatchObject({
+      defaultModel: 'selected/chat',
+      creatorAgentModel: 'selected/agent',
+      creatorTestModel: 'selected/chat',
+    });
+  });
   it.each([legacyPrompt, plainPrompt])(
     'refreshes unchanged default prompts in drafts/library while preserving edited prompts and room snapshots',
     async (previousPrompt) => {

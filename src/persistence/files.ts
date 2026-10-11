@@ -306,6 +306,8 @@ const profileSchema = z.object({
   onboarded: z.boolean(),
   defaultModel: short,
   summaryModel: short,
+  creatorTestModel: short.optional(),
+  creatorAgentModel: short.optional(),
   carousels: arr(
     z.object({
       id: identifier,
@@ -338,6 +340,7 @@ const workspace = z.object({
   testRoom: roomSchema.nullable().optional(),
   selectedPersonaId: identifier.optional(),
   selectedOpeningId: identifier.optional(),
+  testCreativity: z.number().int().min(0).max(4).optional(),
   supporterSettings: z
     .object({
       agentModelId: short,

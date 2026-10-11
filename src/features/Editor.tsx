@@ -26,6 +26,7 @@ import {
   publishWorkspace,
   removeWorkspaces,
   rememberWorkspace,
+  changeProfile,
   useLive,
 } from '../persistence/db';
 import { exportWorkspace, exportBackup } from '../persistence/files';
@@ -84,12 +85,8 @@ function EditorContent({
     />
   );
   const [work, setWork] = useState(initial.work);
-  const [supporterSettings, setSupporterSettings] = useState(
-    initial.supporterSettings ?? {
-      agentModelId: profile.defaultModel,
-      testModelId: profile.defaultModel,
-      testCreativity: 2,
-    },
+  const [testCreativity, setTestCreativity] = useState(
+    initial.testCreativity ?? initial.supporterSettings?.testCreativity ?? 2,
   );
   const [assistantHistory, setAssistantHistory] = useState(initial.assistantHistory ?? []);
   const [testRoom, setTestRoom] = useState(initial.testRoom ?? null);
@@ -204,15 +201,11 @@ function EditorContent({
     value: Work,
     updates: Pick<
       Workspace,
-      | 'supporterSettings'
-      | 'assistantHistory'
-      | 'testRoom'
-      | 'selectedPersonaId'
-      | 'selectedOpeningId'
+      'testCreativity' | 'assistantHistory' | 'testRoom' | 'selectedPersonaId' | 'selectedOpeningId'
     > = {},
   ) => {
     setWork(value);
-    if (updates.supporterSettings) setSupporterSettings(updates.supporterSettings);
+    if (updates.testCreativity !== undefined) setTestCreativity(updates.testCreativity);
     if (updates.assistantHistory) setAssistantHistory(updates.assistantHistory);
     if (Object.hasOwn(updates, 'testRoom')) setTestRoom(updates.testRoom ?? null);
     if (updates.selectedPersonaId !== undefined) setPersonaSelection(updates.selectedPersonaId);
@@ -232,7 +225,7 @@ function EditorContent({
         latest.current = {
           ...saved,
           work: latest.current.work,
-          supporterSettings: latest.current.supporterSettings,
+          testCreativity: latest.current.testCreativity,
           assistantHistory: latest.current.assistantHistory,
           testRoom: latest.current.testRoom,
           selectedPersonaId: latest.current.selectedPersonaId,
@@ -248,13 +241,6 @@ function EditorContent({
         setStatus(failed.current ? 'error' : pending.current ? 'saving' : 'saved');
       });
   };
-  useEffect(() => {
-    // Capture defaults once for older/imported workspaces; later profile changes
-    // only affect a workspace that has not been opened yet.
-    if (!latest.current.supporterSettings) save(latest.current.work, { supporterSettings });
-  }, []);
-  const changeSupporterSettings = (patch: Partial<NonNullable<Workspace['supporterSettings']>>) =>
-    save(latest.current.work, { supporterSettings: { ...supporterSettings, ...patch } });
   const selectPersona = (selectedPersonaId: string) =>
     save(latest.current.work, { selectedPersonaId });
   const selectOpening = (selectedOpeningId: string) =>
@@ -726,8 +712,12 @@ function EditorContent({
               onHistoryChange={(assistantHistory) =>
                 save(latest.current.work, { assistantHistory })
               }
-              modelId={supporterSettings.agentModelId}
-              onModelChange={(agentModelId) => changeSupporterSettings({ agentModelId })}
+              modelId={profile.creatorAgentModel ?? profile.defaultModel}
+              onModelChange={(creatorAgentModel) => {
+                void changeProfile((p) => {
+                  p.creatorAgentModel = creatorAgentModel;
+                }).catch((e) => notify(e.message));
+              }}
               onRequestComplete={balance.refresh}
               onChange={(next) => {
                 // A multi-section AI application is one separate undo transaction.
@@ -745,11 +735,14 @@ function EditorContent({
               room={testRoom}
               onRoomChange={(testRoom) => save(latest.current.work, { testRoom })}
               persona={selectedPersona}
-              modelId={supporterSettings.testModelId}
-              creativity={supporterSettings.testCreativity}
-              onModelChange={(testModelId, testCreativity) =>
-                changeSupporterSettings({ testModelId, testCreativity })
-              }
+              modelId={profile.creatorTestModel ?? profile.defaultModel}
+              creativity={testCreativity}
+              onModelChange={(testModelId, testCreativity) => {
+                save(latest.current.work, { testCreativity });
+                void changeProfile((p) => {
+                  p.creatorTestModel = testModelId;
+                }).catch((e) => notify(e.message));
+              }}
               onRequestComplete={balance.refresh}
               openingId={selectedOpeningId}
               onOpeningChange={selectOpening}

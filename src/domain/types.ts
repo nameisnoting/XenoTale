@@ -168,6 +168,7 @@ export type Workspace = {
   testRoom?: Room | null;
   selectedPersonaId?: string;
   selectedOpeningId?: string;
+  testCreativity?: number;
 };
 export type PublishedWork = {
   id: string;
@@ -319,6 +320,8 @@ export type Profile = {
   onboarded: boolean;
   defaultModel: string;
   summaryModel: string;
+  creatorTestModel?: string;
+  creatorAgentModel?: string;
   carousels: Carousel[];
   carouselOrder?: string[];
   folders: Folder[];
