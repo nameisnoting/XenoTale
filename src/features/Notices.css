@@ -44,7 +44,7 @@
 }
 .notices-page .notice-row {
   display: grid;
-  grid-template-columns: 64px minmax(0, 1fr) 90px;
+  grid-template-columns: max-content minmax(0, 1fr) max-content;
   align-items: center;
   gap: 12px;
   width: 100%;
@@ -69,7 +69,23 @@
 .notice-row .notice-category,
 .notice-row time {
   color: #cccccc;
-  text-align: center;
+  white-space: nowrap;
+}
+.notice-row .notice-category {
+  display: grid;
+  place-items: center;
+}
+/* Keep every category as wide as the longest label, including filtered lists. */
+.notice-row .notice-category::before {
+  content: '패치노트';
+  visibility: hidden;
+  grid-area: 1 / 1;
+}
+.notice-row .notice-category > span {
+  grid-area: 1 / 1;
+}
+.notice-row time {
+  text-align: right;
 }
 .notice-row .notice-title {
   min-width: 0;
@@ -128,6 +144,5 @@
 @media (max-width: 480px) {
   .notices-page .notice-row {
     gap: 8px;
-    grid-template-columns: 64px minmax(0, 1fr) 90px;
   }
 }

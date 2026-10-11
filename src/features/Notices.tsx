@@ -63,7 +63,9 @@ export function NoticesPage({ noticeId, tab }: { noticeId?: string; tab: string 
                   )
                 }
               >
-                <span className="notice-category">{noticeCategories[item.category]}</span>
+                <span className="notice-category">
+                  <span>{noticeCategories[item.category]}</span>
+                </span>
                 <span className="notice-title">{item.title}</span>
                 <time dateTime={item.publishedAt}>{noticeDate(item.publishedAt)}</time>
               </button>

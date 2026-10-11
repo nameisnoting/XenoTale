@@ -1267,7 +1267,7 @@ svg {
   padding: 7px 10px;
 }
 .edit-card {
-  background: #262626;
+  background: var(--surface-deep);
   border: 1px solid #3e3e3e;
   border-radius: 8px;
   padding: 18px;

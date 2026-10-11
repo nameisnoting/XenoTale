@@ -53,7 +53,7 @@
   border-top: 1px solid #4e4e4e;
 }
 .note-library .note-card {
-  background: #000;
+  background: var(--surface-deep);
   border-radius: 4px;
   margin: 0 0 16px;
   padding: 16px;

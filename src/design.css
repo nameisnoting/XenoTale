@@ -36,7 +36,7 @@
   color: #ccc;
 }
 .design-ui .edit-card {
-  background: #000;
+  background: var(--surface-deep);
   border: 0;
   border-radius: 4px;
   padding: 24px;

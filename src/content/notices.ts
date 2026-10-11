@@ -49,5 +49,5 @@ export function noticeDate(publishedAt: string, detail = false, now = new Date()
   if (detail) return `${date} ${time}`;
   return value.year === today.year && value.month === today.month && value.day === today.day
     ? time
-    : date;
+    : `${value.year.slice(-2)}.${value.month}.${value.day}`;
 }
