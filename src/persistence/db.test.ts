@@ -10,7 +10,8 @@ import {
   lastWorkspace,
   migrateProvidedSystemPrompts,
 } from './db';
-import { workspace, exampleWork, defaultProfile } from '../domain/defaults';
+import { workspace, defaultProfile } from '../domain/defaults';
+import { exampleWork } from '../test/exampleWork';
 import { createRoom } from '../domain/engine';
 import { SYSTEM_PROMPT } from '../domain/systemPrompt';
 import legacyPrompt from '../engine/prompts/narrator_legacy_v2.txt?raw';

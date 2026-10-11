@@ -1,7 +1,8 @@
 import 'fake-indexeddb/auto';
 import { beforeEach, afterAll, expect, it } from 'vitest';
 import { db, commitRoom, removeFolder } from './db';
-import { defaultProfile, exampleWork } from '../domain/defaults';
+import { defaultProfile } from '../domain/defaults';
+import { exampleWork } from '../test/exampleWork';
 import { createRoom } from '../domain/engine';
 import { deleteCarousel, moveCarouselWork, saveRoomFolder, setCarouselWorks } from './collections';
 beforeEach(async () => {

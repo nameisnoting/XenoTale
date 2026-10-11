@@ -5,11 +5,13 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   timeout: 30000,
+  globalSetup: './e2e/global-setup.ts',
   use: {
     baseURL,
     channel: 'msedge',
     headless: true,
     trace: 'retain-on-failure',
+    storageState: '.test-tmp/e2e-state.json',
   },
   webServer: {
     command: 'node scripts/serve.mjs',

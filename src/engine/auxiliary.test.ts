@@ -7,7 +7,7 @@ import {
   branchRoom,
   editTurnText,
 } from '../domain/engine';
-import { exampleWork } from '../domain/defaults';
+import { exampleWork } from '../test/exampleWork';
 import { fingerprint } from '../domain/types';
 import { summaryCountdown, summarySources, summarize, parseSummary } from './auxiliary';
 import {

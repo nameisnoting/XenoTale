@@ -68,7 +68,7 @@ export function ProfilePage({
   refreshModels,
   onboarding = false,
 }: { profile: Profile; onboarding?: boolean } & ModelProps & ApiProps) {
-  const [panel, setPanel] = useState<'keys' | 'updates' | null>(null);
+  const [panel, setPanel] = useState<'keys' | null>(null);
   const [nickname, setNickname] = useState(profile.nickname);
   useEffect(() => setNickname(profile.nickname), [profile.nickname]);
   const [checking, setChecking] = useState(false);
@@ -252,9 +252,9 @@ export function ProfilePage({
               )}
             </div>
             <div className="settings-list secondary">
-              <button onClick={() => setPanel('updates')}>
+              <button onClick={() => navigate('/profile/notices')}>
                 <Megaphone />
-                <span>업데이트 내역</span>
+                <span>공지사항</span>
                 <ChevronRight />
               </button>
               <a href="https://github.com/nameisnoting" target="_blank" rel="noopener noreferrer">
@@ -268,16 +268,6 @@ export function ProfilePage({
             </p>
           </div>
         </>
-      )}
-      {panel === 'updates' && (
-        <Modal title="업데이트 내역" onClose={() => setPanel(null)}>
-          <p>v0.2 · 시안 기준 화면 재작성</p>
-          <ul>
-            <li>대화방 작업 패널과 대화 로그</li>
-            <li>페르소나 이미지·성별과 제작 입력 항목 보완</li>
-            <li>제작 화면, 마이페이지, 대화방 관리 화면 조정</li>
-          </ul>
-        </Modal>
       )}
       {!onboarding && panel === 'keys' && (
         <Modal title="API 키 관리" onClose={() => setPanel(null)}>

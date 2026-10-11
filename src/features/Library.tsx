@@ -26,6 +26,7 @@ import { RoomFolders } from '../components/RoomFolders';
 import { deleteCarousel, moveCarouselWork, setCarouselWorks } from '../persistence/collections';
 import './Library.css';
 import { WorkCard } from '../components/WorkCard';
+import { developerCatalog, isRetiredSample } from '../content/developerCatalog';
 import type { ImportData } from '../persistence/files';
 import { navigate } from '../app/navigation';
 import {
@@ -184,7 +185,8 @@ export function RoomSidebar({
   );
 }
 export function Library({ profile }: { profile: Profile }) {
-  const works = useLive(() => db.works.toArray(), [] as PublishedWork[]);
+  const storedWorks = useLive(() => db.works.toArray(), [] as PublishedWork[]);
+  const works = storedWorks.filter((work) => !isRetiredSample(work));
   const [carousel, setCarousel] = useState<Carousel | null>(null);
   const [deletingCarousel, setDeletingCarousel] = useState<Carousel | null>(null);
   const [savingCollection, setSavingCollection] = useState(false);
@@ -245,14 +247,25 @@ export function Library({ profile }: { profile: Profile }) {
     );
   };
   const uncategorized = works.filter(
-    (w) => !profile.carousels.some((c) => c.workIds.includes(w.id)) && w.id !== 'example-garden',
+    (w) =>
+      !profile.carousels.some((c) => c.workIds.includes(w.id)) &&
+      !(developerCatalog.enabled && developerCatalog.workIds.includes(w.id)),
   );
   const collections: Carousel[] = [
     ...profile.carousels,
     ...(uncategorized.length
       ? [{ id: 'library-uncategorized', name: '내 작품', mode: 'slide' as const, workIds: [] }]
       : []),
-    { id: 'library-examples', name: '개발자가 만든 작품들', mode: 'slide', workIds: [] },
+    ...(developerCatalog.enabled
+      ? [
+          {
+            id: 'library-examples',
+            name: '개발자가 만든 작품들',
+            mode: 'slide' as const,
+            workIds: [],
+          },
+        ]
+      : []),
   ];
   const collectionIds = [
     ...new Set([
@@ -342,7 +355,7 @@ export function Library({ profile }: { profile: Profile }) {
                       {works
                         .filter(
                           (work) =>
-                            work.id === 'example-garden' &&
+                            developerCatalog.workIds.includes(work.id) &&
                             !profile.carousels.some((collection) =>
                               collection.workIds.includes(work.id),
                             ),

@@ -1,6 +1,6 @@
 import 'fake-indexeddb/auto';
 import { expect, it } from 'vitest';
-import { exampleWork } from './defaults';
+import { exampleWork } from '../test/exampleWork';
 import { addResponse, branchRoom, createRoom, emptyDelta, switchCandidate } from './engine';
 import { clone } from './types';
 import { readImport, workSchema } from '../persistence/files';

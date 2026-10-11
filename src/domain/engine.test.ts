@@ -1,6 +1,7 @@
 import type { Turn } from './types';
 import { describe, it, expect } from 'vitest';
-import { emptyWork, exampleWork } from './defaults';
+import { emptyWork } from './defaults';
+import { exampleWork } from '../test/exampleWork';
 import {
   createRoom,
   createPreviewRoom,

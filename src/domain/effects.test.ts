@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { exampleWork } from './defaults';
+import { exampleWork } from '../test/exampleWork';
 import {
   addResponse,
   branchRoom,

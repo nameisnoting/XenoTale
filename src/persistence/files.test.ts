@@ -2,7 +2,8 @@ import 'fake-indexeddb/auto';
 import { describe, it, expect } from 'vitest';
 import { readImport } from './files';
 import { createRoom, addResponse, emptyDelta } from '../domain/engine';
-import { exampleWork, workspace } from '../domain/defaults';
+import { workspace } from '../domain/defaults';
+import { exampleWork } from '../test/exampleWork';
 const file = (kind: string, key: string, value: unknown) =>
   new File(
     [JSON.stringify({ kind: `xenotale.${kind}`, schemaVersion: 2, [key]: value })],

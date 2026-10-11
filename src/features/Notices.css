@@ -1,0 +1,110 @@
+.notices-page .notices-list .work-info-tabs {
+  display: flex;
+  justify-content: flex-start;
+  gap: 24px;
+  margin: 0;
+  padding: 0 16px;
+  border-bottom: 1px solid #4e4e4e;
+}
+.notices-page .work-info-tabs > button {
+  flex: 0 0 auto;
+  padding: 12pt 0;
+  font-size: 14pt;
+  line-height: 1.5;
+  font-weight: 400;
+  color: #cccccc;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+}
+.notices-page .work-info-tabs > button[aria-selected='true'] {
+  font-weight: 700;
+  color: #ffffff;
+  border-bottom-color: #ffffff;
+}
+.notices-page .notice-row {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) 90px;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12pt 16px;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid #4e4e4e;
+  border-radius: 0;
+  color: #ffffff;
+  font-size: 12pt;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+}
+.notices-page .notice-row:hover {
+  background: #1c1c1c;
+}
+.notices-page .notice-row:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: -2px;
+}
+.notice-row .notice-category,
+.notice-row time {
+  color: #cccccc;
+  text-align: center;
+}
+.notice-row .notice-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.notices-page .notice-detail h2 {
+  margin: 0;
+  padding: 16px 16pt;
+  border: 1px solid #333333;
+  color: #ffffff;
+  font-size: 20pt;
+  font-weight: 700;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.notice-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16pt;
+  border-bottom: 1px solid #333333;
+  color: #cccccc;
+  font-size: 12pt;
+  font-weight: 400;
+  line-height: 1.5;
+}
+.notice-meta time {
+  white-space: nowrap;
+}
+.notice-body {
+  padding: 16px 16pt 0;
+  color: #ffffff;
+  font-size: 14pt;
+  font-weight: 400;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+.notice-body .markdown {
+  font-size: inherit;
+  color: inherit;
+}
+.notice-body .markdown > :first-child {
+  margin-top: 0;
+}
+.notices-page .notices-empty {
+  padding: 16px;
+  color: #cccccc;
+  font-size: 14pt;
+}
+@media (max-width: 480px) {
+  .notices-page .notice-row {
+    gap: 8px;
+    grid-template-columns: 64px minmax(0, 1fr) 90px;
+  }
+}

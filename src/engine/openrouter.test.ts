@@ -1,5 +1,5 @@
 import { afterEach, describe, it, expect, vi } from 'vitest';
-import { exampleWork } from '../domain/defaults';
+import { exampleWork } from '../test/exampleWork';
 import { addResponse, createRoom, emptyDelta } from '../domain/engine';
 import { buildMessages, demoModel, generate, reasoningFor, reasoningSupported } from './openrouter';
 import type { Model } from '../domain/types';

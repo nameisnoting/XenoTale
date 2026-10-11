@@ -138,9 +138,7 @@ test('로어북 그립으로 이동 · 클릭은 접기 아님 · 취소 · 키�
   );
   await expect(characterRows.first().locator('summary')).toHaveText('로어북 2');
 });
-test('사용자·기본 캐러셀 그립 이동 · 위치와 내용 저장 · 전체 백업에 순서 포함', async ({
-  page,
-}) => {
+test('사용자 캐러셀 그립 이동 · 위치와 내용 저장 · 전체 백업에 순서 포함', async ({ page }) => {
   await start(page);
   for (const name of ['첫 번째', '두 번째', '세 번째']) {
     await page.getByRole('button', { name: '캐러셀 만들기', exact: true }).click();
@@ -157,23 +155,24 @@ test('사용자·기본 캐러셀 그립 이동 · 위치와 내용 저장 · �
   await expect(rows.first()).toContainText('세 번째');
   await drag(
     page,
-    page.getByRole('button', { name: '개발자가 만든 작품들 위치 이동', exact: true }),
+    page.getByRole('button', { name: '두 번째 위치 이동', exact: true }),
     rows.first(),
   );
-  await expect(rows.first()).toContainText('개발자가 만든 작품들');
+  await expect(rows.first()).toContainText('두 번째');
+  await expect(page.getByText('개발자가 만든 작품들', { exact: true })).toHaveCount(0);
   await page.reload();
-  await expect(rows.first()).toContainText('개발자가 만든 작품들');
+  await expect(rows.first()).toContainText('두 번째');
   await expect(rows.nth(1)).toContainText('세 번째');
   await page.screenshot({ path: `${out}/carousel-order.png` });
   await page.getByRole('button', { name: '백업 및 동기화', exact: true }).click();
   const pending = page.waitForEvent('download');
   await page.getByRole('button', { name: '전체 백업 다운로드', exact: false }).click();
   const backup = JSON.parse(await fs.readFile((await (await pending).path())!, 'utf8'));
-  expect(backup.profile.carouselOrder[0]).toBe('library-examples');
+  expect(backup.profile.carouselOrder[0]).toBe(backup.profile.carousels[0].id);
   expect(backup.profile.carousels.map((carousel: any) => carousel.name)).toEqual([
+    '두 번째',
     '세 번째',
     '첫 번째',
-    '두 번째',
   ]);
 });
 test('393px 실제 터치 포인터로 캐러셀 위치 이동', async ({ page }) => {

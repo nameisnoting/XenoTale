@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { emptyWork, exampleWork } from './defaults';
+import { emptyWork } from './defaults';
+import { exampleWork } from '../test/exampleWork';
 import { SYSTEM_PROMPT, effectiveSystemPrompt, upgradeProvidedSystemPrompt } from './systemPrompt';
 import legacyPrompt from '../engine/prompts/narrator_legacy_v2.txt?raw';
 import plainPrompt from '../engine/prompts/narrator_plain_v2.txt?raw';

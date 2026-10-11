@@ -7,6 +7,7 @@ import { useRoute, navigate } from './navigation';
 import { Library, RoomManager, enterWorkspace } from '../features/Library';
 import { BottomNavigation } from '../components/BottomNavigation';
 import { ProfilePage, ProfileLibraryPage, PROFILE_LIBRARIES } from '../features/Profile';
+import { NoticesPage } from '../features/Notices';
 import { Editor } from '../features/Editor';
 import { Chat } from '../features/Chat';
 import { Button, Spinner, useNotify } from '../components/UI';
@@ -109,7 +110,10 @@ function Routes() {
       />
     );
   const profileLibrary = PROFILE_LIBRARIES.find((item) => route === `/profile/${item.id}`);
-  const content = profileLibrary ? (
+  const noticeRoute = route.match(/^\/profile\/notices(?:\/([^/?]+))?(?:\?(.*))?$/);
+  const content = noticeRoute ? (
+    <NoticesPage noticeId={noticeRoute[1]} tab={new URLSearchParams(noticeRoute[2]).get('tab')} />
+  ) : profileLibrary ? (
     <ProfileLibraryPage key={profileLibrary.id} library={profileLibrary.id} profile={profile} />
   ) : route === '/profile' ? (
     <ProfilePage {...props} profile={profile} />

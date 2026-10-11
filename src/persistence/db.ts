@@ -2,7 +2,7 @@ import Dexie, { liveQuery, type Table } from 'dexie';
 import { useEffect, useState } from 'react';
 import type { Workspace, PublishedWork, Room, Profile } from '../domain/types';
 import { clone, id } from '../domain/types';
-import { defaultProfile, exampleWork } from '../domain/defaults';
+import { defaultProfile } from '../domain/defaults';
 import { validateWork } from '../domain/engine';
 import { upgradeProvidedSystemPrompt } from '../domain/systemPrompt';
 import { migrateSharedPersonas } from './personas';
@@ -34,13 +34,6 @@ export function initialize() {
     async () => {
       if (!(await db.profiles.get('profile'))) {
         await db.profiles.add(defaultProfile());
-        await db.works.add({
-          id: 'example-garden',
-          work: exampleWork(),
-          owned: false,
-          hidden: false,
-          createdAt: Date.now(),
-        });
       }
       await migrateDefaultNickname(db);
       await migrateSharedPersonas(db);

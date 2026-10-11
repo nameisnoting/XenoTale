@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { emptyWork, exampleWork } from './defaults';
+import { emptyWork } from './defaults';
+import { exampleWork } from '../test/exampleWork';
 import {
   creatorRequest,
   parseCreatorAnswer,

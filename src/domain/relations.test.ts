@@ -1,6 +1,7 @@
 import 'fake-indexeddb/auto';
 import { afterEach, expect, it, vi } from 'vitest';
-import { defaultProfile, exampleWork } from './defaults';
+import { defaultProfile } from './defaults';
+import { exampleWork } from '../test/exampleWork';
 import {
   addResponse,
   applyDelta,

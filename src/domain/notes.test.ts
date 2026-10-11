@@ -2,7 +2,7 @@ import 'fake-indexeddb/auto';
 import { describe, it, expect } from 'vitest';
 import { mergeNotes, normalizeNotes } from './notes';
 import { createRoom } from './engine';
-import { exampleWork } from './defaults';
+import { exampleWork } from '../test/exampleWork';
 import { readImport } from '../persistence/files';
 const note = (id: string, group = '') => ({
   id,

@@ -10,6 +10,7 @@ React · TypeScript · Vite · IndexedDB로 구성되어 있으며, 별도 백�
 - 대화: 페르소나와 유저노트, 상태와 소지품 갱신, 관계 변화, 기억 요약, 응답 후보와 대화 분기
 - 개인 라이브러리와 작품 파일 공유, 전체 백업과 복원
 - PC와 모바일 화면, PC 패널 크기 조절
+- 공지사항 목록·분류 탭·상세 페이지 ([공지 관리 방법](docs/notices.md))
 
 ## 로컬 실행
 
@@ -59,9 +60,11 @@ src/domain/       작품·대화 타입과 상태 처리
 src/persistence/  IndexedDB, 파일 검증, 백업과 복원
 src/engine/       OpenRouter 요청, 프롬프트, 기억 요약
 src/features/     작품 라이브러리, 제작기, 대화방, 마이페이지
+src/content/      공지사항, 개발자 캐러셀 표시 설정
 src/components/   공통 UI
 public/           정적 이미지와 아이콘
 e2e/              브라우저 테스트
+tests/fixtures/   배포에 포함되지 않는 테스트용 작품
 ```
 
 ## 라이선스

@@ -7,7 +7,8 @@ import {
   deleteSharedPersona,
   migrateSharedPersonas,
 } from './personas';
-import { defaultProfile, exampleWork } from '../domain/defaults';
+import { defaultProfile } from '../domain/defaults';
+import { exampleWork } from '../test/exampleWork';
 import { createRoom } from '../domain/engine';
 import { clone } from '../domain/types';
 const database = new XenoDatabase('persona-unit-tests');
