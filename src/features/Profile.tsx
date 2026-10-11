@@ -69,6 +69,7 @@ export function ProfilePage({
   const [checking, setChecking] = useState(false);
   const [verifiedKey, setVerifiedKey] = useState<string | null>(null);
   const verified = !!apiKey.trim() && verifiedKey === apiKey;
+  const canStart = !!nickname.trim() && verified && !checking;
   const [modelTarget, setModelTarget] = useState<'chat' | 'summary' | null>(null);
   const run = useAction();
   const notify = useNotify();
@@ -181,8 +182,8 @@ export function ProfilePage({
             </Field>
             {keyContents}
             <Button
-              className="primary full"
-              disabled={!nickname.trim() || !verified || checking}
+              className={canStart ? 'primary full' : 'full'}
+              disabled={!canStart}
               onClick={() =>
                 run(
                   changeProfile((p) => {

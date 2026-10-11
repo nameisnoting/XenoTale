@@ -21,6 +21,10 @@ test('시작은 현재 키 검증 성공 후에만 허용하며 실패·입력 �
   const input = page.getByRole('textbox', { name: 'API key', exact: true });
   const check = () => page.getByRole('button', { name: '키 확인', exact: true });
   await expect(start).toBeDisabled();
+  await expect(start).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+  await expect(start).toHaveCSS('border-width', '1px');
+  await expect(start).toHaveCSS('color', 'rgb(238, 238, 238)');
+  await expect(start).toHaveCSS('opacity', '0.35');
   await expect(
     page.getByRole('button', { name: '키 없이 먼저 둘러보기', exact: true }),
   ).toBeEnabled();
@@ -39,8 +43,11 @@ test('시작은 현재 키 검증 성공 후에만 허용하며 실패·입력 �
   await expect(start).toBeDisabled();
   await check().click();
   await expect(start).toBeEnabled();
+  await expect(start).toHaveCSS('background-color', 'rgb(95, 221, 206)');
+  await expect(start).toHaveCSS('opacity', '1');
   await input.fill('changed-key');
   await expect(start).toBeDisabled();
+  await expect(start).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
   await check().click();
   await expect(start).toBeEnabled();
   const nickname = page.getByRole('textbox', { name: '닉네임 *', exact: true });
