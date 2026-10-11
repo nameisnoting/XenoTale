@@ -1,0 +1,156 @@
+.editor-shell .editor-header {
+  height: auto;
+  min-height: 56px;
+  flex-wrap: nowrap;
+}
+.editor-shell .editor-title {
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.editor-title strong {
+  flex-shrink: 0;
+}
+.editor-title .saved {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.saved > svg,
+.saved-text {
+  flex-shrink: 0;
+}
+.saved-text.is-hidden {
+  visibility: hidden;
+}
+.editor-header .inline-actions {
+  flex-shrink: 0;
+}
+.editor-support-slot,
+.editor-support-content,
+.editor-sidebar-support {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+.editor-support-pane {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+.editor-support-pane[hidden] {
+  display: none;
+}
+.editor-sidebar-support[hidden],
+.editor-nav.show-support > :not(.editor-sidebar-support) {
+  display: none;
+}
+.editor-shell .editor-nav.show-support {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 16px 0 0;
+}
+.editor-sidebar-support > .nav-heading {
+  padding: 0 16px;
+}
+.editor-support-content > .work-info-tabs {
+  padding: 16px 16px 0;
+  margin: 0;
+  flex-shrink: 0;
+}
+.editor-sidebar-support .editor-support-content > .work-info-tabs {
+  padding-top: 0;
+}
+.editor-mobile-stages {
+  display: none;
+}
+@media (max-width: 800px) {
+  .editor-shell .editor-main {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-height: 0;
+  }
+  .editor-shell .editor-header {
+    flex-shrink: 0;
+    gap: 12px;
+  }
+  .editor-shell .editor-header .inline-actions {
+    gap: 8px;
+  }
+  .editor-shell .editor-header .editor-export {
+    margin-right: 8px;
+  }
+  .editor-shell .editor-mobile-stages {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    flex-shrink: 0;
+    padding: 0 12px;
+    border-bottom: 1px solid #4e4e4e;
+  }
+  .editor-mobile-stages .scrollable-tabs {
+    flex: 1;
+  }
+  .editor-mobile-stages > .icon-button {
+    flex-shrink: 0;
+    margin-left: 8px;
+  }
+  .editor-shell .editor-fieldset {
+    flex: 1;
+    min-height: 0;
+    min-width: 0;
+    overflow: auto;
+  }
+}
+@media (max-width: 800px) {
+  .editor-shell .editor-header {
+    height: auto;
+    min-height: 56px;
+    flex-wrap: nowrap;
+    padding: 8px 12px;
+  }
+  .editor-shell .editor-title {
+    flex: 1;
+    gap: 12px;
+  }
+  .editor-shell .editor-title .saved {
+    font-size: 10px;
+  }
+  .editor-shell .editor-header .inline-actions {
+    margin-left: auto;
+  }
+  .editor-shell .editor-header .inline-actions > .icon-button {
+    display: inline-flex;
+  }
+  .editor-shell .editor-header .inline-actions > .icon-button.supporter-reopen {
+    display: none;
+  }
+}
+@media (max-width: 400px) {
+  .editor-shell .editor-header,
+  .editor-shell .editor-title {
+    gap: 8px;
+  }
+  .editor-shell .editor-header .inline-actions {
+    gap: 4px;
+  }
+  .editor-shell .editor-header .inline-actions > .icon-button:not(.editor-export) {
+    width: 24px;
+    height: 28px;
+    padding: 3px;
+  }
+  .editor-shell .editor-header .editor-export {
+    margin-right: 12px;
+  }
+  .editor-shell .editor-header .button {
+    padding: 4px 12px;
+    font-size: 11px;
+  }
+}

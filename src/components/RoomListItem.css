@@ -1,0 +1,102 @@
+.room-list-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.room-list-open {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  padding: 0;
+}
+.room-list-text {
+  flex: 1;
+  min-width: 0;
+}
+.room-list-name {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 16px;
+}
+.room-list-text small {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 12px;
+  margin-top: 8px;
+  color: #838383;
+}
+.room-list-item--compact {
+  gap: 2px;
+}
+.room-list-item--compact .room-list-open {
+  gap: 10px;
+}
+.room-list-item--compact .room-list-name {
+  font-size: 14px;
+}
+.room-list-item--compact.list-row {
+  padding: 14px 6px;
+}
+.room-list-item--compact .room-list-text small {
+  margin-top: 6px;
+}
+.room-list-item .room-menu-trigger {
+  flex-shrink: 0;
+  width: 24px;
+  height: 32px;
+  padding: 2px;
+}
+.room-action-menu {
+  position: fixed;
+  z-index: 60;
+  width: 180px;
+  max-width: calc(100vw - 16px);
+  padding: 8px;
+  background: #000;
+  border: 1px solid #525252;
+  border-radius: 4px;
+  box-shadow: 0 8px 20px #0005;
+}
+.room-action-menu button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px;
+  font-size: 14px;
+  white-space: nowrap;
+  text-align: left;
+}
+.room-action-menu button:focus-visible {
+  outline: 1px solid #5fddce;
+  outline-offset: -1px;
+}
+.room-action-dialog {
+  background: #000;
+  border-radius: 4px;
+}
+.room-list-item--selectable.manage-row {
+  border: 1px solid #525252;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin: 0;
+}
+.room-list-item--selectable.is-selected {
+  border-color: #fff;
+  background: #2b2b2b;
+}
+.room-list-item--selectable .room-list-open {
+  min-height: 40px;
+}
+.room-selection-mark {
+  color: #fff;
+  flex: none;
+}

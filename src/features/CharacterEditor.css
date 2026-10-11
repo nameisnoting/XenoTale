@@ -1,0 +1,45 @@
+.character-identity {
+  display: grid;
+  grid-template-columns: clamp(110px, 28%, 180px) minmax(0, 1fr);
+  gap: 24px;
+  margin: 28px 0;
+}
+.character-identity .field {
+  margin: 0;
+}
+.character-portrait {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.character-portrait .image-upload > button:first-child {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+}
+.character-identity-fields {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 20px;
+  min-width: 0;
+}
+.character-identity-fields .radio-options {
+  gap: 8px 12px;
+}
+.character-prompt .field {
+  margin-bottom: 0;
+}
+.editor-shell .editor-form > .character-lore-title {
+  margin: 0 0 16px;
+}
+@media (max-width: 800px) {
+  .character-identity {
+    gap: 16px;
+  }
+  .character-identity-fields .radio-options label {
+    font-size: 12px;
+    gap: 4px;
+  }
+}

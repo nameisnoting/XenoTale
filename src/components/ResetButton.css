@@ -1,0 +1,10 @@
+.prompt-reset.prompt-reset {
+  align-self: flex-end;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  color: #838383;
+  font-size: var(--body-5-size);
+  line-height: var(--body-5-line-height);
+}

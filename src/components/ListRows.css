@@ -1,0 +1,7 @@
+.list-row {
+  padding: 12px 6px;
+  border-radius: 5px;
+}
+.list-row:hover {
+  background-color: #ffffff09;
+}

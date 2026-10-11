@@ -1,0 +1,26 @@
+/* Profile libraries share larger reading sizes without changing chat or creator forms. */
+.profile-library-content {
+  --body-5-size: 14px;
+  --body-5-line-height: 22px;
+  font-size: 14px;
+}
+.profile-library-content .note-library .note-group-heading h3 {
+  font-size: 20px;
+}
+.profile-library-content .note-groups-empty {
+  color: #838383;
+}
+.profile-library-content .note-library .note-card > .card-header,
+.profile-library-content .persona-library .persona-card > .card-header,
+.profile-library-content .note-library .note-card .note-title input,
+.profile-library-content .note-group-open strong,
+.profile-library-content .manage-row > span {
+  font-size: 16px;
+}
+.profile-library-content .note-group-open small,
+.profile-library-content .note-library .note-group .toggle-row > span,
+.profile-library-content .manage-row small,
+.profile-library-content .empty {
+  font-size: 14px;
+  line-height: 22px;
+}

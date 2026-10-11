@@ -1,0 +1,16 @@
+.play-guide {
+  background: #222222;
+  border-radius: 5px;
+  padding: 16px;
+  line-height: 24px;
+}
+.play-guide.guide-preview {
+  background: var(--surface-deep);
+  margin: 20px 0;
+}
+.play-guide > .markdown > :first-child {
+  margin-top: 0;
+}
+.play-guide > .markdown > :last-child {
+  margin-bottom: 0;
+}

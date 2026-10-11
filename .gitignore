@@ -1,0 +1,14 @@
+node_modules/
+dist/
+test-results/
+playwright-report/
+*.tsbuildinfo
+.env*
+.npm-cache/
+server*.log
+.server.pid
+
+.test-tmp/
+.audit-server.pid
+.vercel/
+backups/

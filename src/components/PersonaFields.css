@@ -1,0 +1,57 @@
+.persona-fields.persona-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+.persona-fields > .field.field {
+  margin: 0;
+  gap: 8px;
+}
+.persona-fields > .field > .field-label {
+  font-size: var(--body-5-size);
+  line-height: var(--body-5-line-height);
+}
+.persona-fields .radio-options {
+  gap: 12px;
+  font-size: var(--body-5-size);
+  line-height: var(--body-5-line-height);
+  flex-wrap: wrap;
+}
+.persona-fields .radio-options label {
+  gap: 8px;
+}
+.persona-fields .radio-options input:disabled {
+  opacity: 1;
+}
+.persona-fields .text-control.text-control--small {
+  font-size: var(--body-5-size);
+  line-height: var(--body-5-line-height);
+}
+.persona-image {
+  display: flex;
+  justify-content: center;
+  min-width: 0;
+}
+.persona-fields .persona-image .image-upload {
+  margin: 0;
+  max-width: 100%;
+  align-items: center;
+}
+.persona-fields .persona-image .image-upload > button:first-child,
+.persona-image-preview {
+  width: 180px;
+  height: 180px;
+  max-width: 100%;
+  border-radius: 8px;
+  background: #4e4e4e;
+  color: #fff;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+}
+.persona-image-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}

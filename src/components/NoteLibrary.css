@@ -1,0 +1,167 @@
+.note-library .note-group-heading {
+  margin: 0 0 16px;
+}
+.note-library .note-group-heading h3 {
+  font-size: var(--body-3-size);
+}
+.note-library {
+  min-width: 0;
+}
+.note-groups-empty {
+  text-align: center;
+  font-size: var(--body-5-size);
+  line-height: var(--body-5-line-height);
+  margin: 20px 0;
+}
+.note-library .note-group {
+  margin: 16px 0;
+  gap: 16px;
+}
+.note-library .note-group-open {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 0;
+  text-align: left;
+}
+.note-group-open strong {
+  display: block;
+  font-size: var(--body-4-size);
+  line-height: var(--body-4-line-height);
+  font-weight: var(--body-4-bold-weight);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.note-group-open small {
+  display: block;
+  font-size: 12px;
+  margin-top: 8px;
+  color: #ccc;
+}
+.note-library .note-group .toggle-row > span {
+  display: inline;
+  color: #ccc;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.note-library .note-group .toggle-row {
+  gap: 8px;
+}
+.note-library .note-list {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid #4e4e4e;
+}
+.note-library .note-card {
+  background: #000;
+  border-radius: 4px;
+  margin: 0 0 16px;
+  padding: 16px;
+}
+.note-library .note-card.note-card > summary {
+  font-size: var(--body-4-size);
+  line-height: var(--body-4-line-height);
+  font-weight: var(--body-4-bold-weight);
+  gap: 8px;
+  min-width: 0;
+  margin: 0;
+}
+.note-library .note-card.note-card > summary::before,
+.note-library .note-card.note-card > summary::after {
+  display: none;
+}
+.note-library .note-card .note-title {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: calc(100% - 88px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.note-library .note-card .note-title input {
+  width: 100%;
+  min-width: 0;
+  font-size: var(--body-4-size);
+  line-height: var(--body-4-line-height);
+  font-weight: var(--body-4-bold-weight);
+  padding: 0;
+}
+.note-library .note-card .icon-button,
+.note-library .note-group-heading .icon-button {
+  width: 24px;
+  height: 24px;
+  padding: 4px;
+  flex: none;
+}
+.note-library .note-card .note-delete {
+  margin-left: auto;
+}
+.note-chevron {
+  flex: none;
+}
+.note-card[open] .note-chevron {
+  transform: rotate(180deg);
+}
+.note-library .note-card > .note-body {
+  margin: 16px 0;
+}
+.note-library .note-card > .note-body > textarea {
+  display: block;
+}
+.note-library .note-card > .toggle-row {
+  margin: 0;
+  padding: 0;
+  justify-content: flex-end;
+}
+.note-group-modal {
+  background: #000;
+  border-radius: 4px;
+}
+.note-group-options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 36dvh;
+  overflow: auto;
+}
+.note-group-modal .group-note-option {
+  position: relative;
+  padding: 16px;
+  border: 1px solid #838383;
+  border-radius: 4px;
+  min-height: 48px;
+  margin: 0;
+  cursor: pointer;
+}
+.note-group-modal .group-note-option:has(input:checked) {
+  border-color: var(--pneuma-emerald);
+}
+.note-group-modal .group-note-option:has(input:focus-visible) {
+  outline: 2px solid var(--pneuma-emerald);
+  outline-offset: 2px;
+}
+.note-group-modal .group-note-option input[type='checkbox'] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}
+.note-group-modal .group-note-option small {
+  margin-left: auto;
+  font-size: 12px;
+  color: #838383;
+}
+.group-note-option > span {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.note-group-modal .modal-header h2 {
+  margin-left: auto;
+  margin-right: auto;
+}

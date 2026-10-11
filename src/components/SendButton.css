@@ -1,0 +1,24 @@
+.send-button.send-button {
+  width: 26px;
+  height: 26px;
+  border: 0;
+  padding: 2px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #fff;
+  background: var(--pneuma-emerald);
+  opacity: 1;
+}
+.send-button.send-button:not(:disabled):hover {
+  color: #fff;
+  background: var(--pneuma-emerald);
+}
+.send-button.send-button:disabled,
+.send-button.send-button[data-state='stop'],
+.send-button.send-button[data-state='stop']:hover {
+  color: #fff;
+  background: #4e4e4e;
+}

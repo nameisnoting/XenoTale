@@ -1,0 +1,22 @@
+.stepper button {
+  background: transparent;
+  border-color: var(--pneuma-emerald);
+  color: var(--pneuma-emerald);
+  opacity: 1;
+}
+.stepper button:disabled {
+  opacity: 1;
+  border-color: #838383;
+  color: #838383;
+  cursor: default;
+}
+.stepper button:enabled:hover {
+  background: #5fddce14;
+}
+.stepper button + button {
+  border-left: 1px solid currentColor;
+  margin-left: -1px;
+}
+.stepper button:disabled:has(+ button:enabled) {
+  border-right-color: var(--pneuma-emerald);
+}

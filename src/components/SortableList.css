@@ -1,0 +1,57 @@
+.sortable-list {
+  position: relative;
+}
+.sortable-item {
+  position: relative;
+}
+.sortable-item.is-dragging {
+  opacity: 0.55;
+}
+.sortable-item.drop-before::before,
+.sortable-item.drop-after::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #5fddce;
+  z-index: 2;
+  pointer-events: none;
+}
+.sortable-item.drop-before::before {
+  top: -4px;
+}
+.sortable-item.drop-after::after {
+  bottom: -4px;
+}
+.drag-handle.drag-handle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 24px;
+  width: 24px;
+  height: 28px;
+  padding: 0;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+.drag-handle:active {
+  cursor: grabbing;
+}
+.drag-handle:focus-visible {
+  outline: 1px solid #fff;
+  outline-offset: 0;
+}
+.sort-announcement {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}

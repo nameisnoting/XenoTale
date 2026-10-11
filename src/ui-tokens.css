@@ -1,0 +1,44 @@
+/* Change these numbers to adjust the requested UI sizes in one place. */
+.button.button--small {
+  font-size: var(--body-5-size);
+  line-height: var(--body-5-line-height);
+}
+.button.button--danger,
+.button.button--danger:not(:disabled):hover {
+  color: var(--homura-red);
+  border-color: var(--homura-red);
+}
+.field.field--small {
+  gap: 8px;
+}
+.field.field--small .field-label {
+  font-size: var(--body-5-size);
+}
+.field.field--small > small {
+  font-size: var(--body-5-size);
+  line-height: var(--body-5-line-height);
+  color: var(--muted);
+}
+:root {
+  --body-3-size: 16px;
+  --body-4-size: 14px;
+  --body-4-line-height: 24px;
+  --body-4-bold-weight: 700;
+  --body-5-size: 12px;
+  --body-5-line-height: 18px;
+  --modal-title-size: 16px;
+  --pneuma-emerald: #5fddce;
+  --homura-red: #c64850;
+  --hikari-yellow: #e9d597;
+  --surface-deep: #1c1c1c;
+  --work-card-width: 169px;
+  --work-slide-card-width: 124px;
+  --page-title-size: 24px;
+  --section-title-size: 16px;
+  --room-section-title-size: 20px;
+  --workspace-title-size: 16px;
+  --workspace-nav-size: 14px;
+  --rail-label-size: 11px;
+  --rail-icon-size: 28px;
+  --rail-item-height: 74px;
+}

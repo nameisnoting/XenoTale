@@ -1,0 +1,70 @@
+.mobile-navigation-shell {
+  display: contents;
+}
+.bottom-navigation,
+.mobile-brand {
+  display: none;
+}
+@media (max-width: 800px) {
+  .mobile-navigation-shell {
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+  }
+  .app-route-content {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .app-route-content .library-layout,
+  .app-route-content .standalone-page {
+    height: 100%;
+  }
+  .app-route-content .standalone-page {
+    overflow-y: auto;
+  }
+  .app-route-content .library-layout > .room-sidebar {
+    display: none;
+  }
+  .bottom-navigation {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    flex-shrink: 0;
+    background: #2b2b2b;
+    border-top: 1px solid #4e4e4e;
+    padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
+  }
+  .bottom-navigation button {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    min-height: 56px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: #838383;
+    font-size: 12px;
+  }
+  .bottom-navigation button[aria-current='page'] {
+    color: #fff;
+  }
+  .bottom-navigation .avatar {
+    border: 1px solid currentColor;
+  }
+  .main-toolbar .mobile-only,
+  .main-toolbar .toolbar-right {
+    display: none;
+  }
+  .main-toolbar .mobile-brand {
+    display: block;
+    font-size: 20px;
+    color: #fff;
+    white-space: nowrap;
+  }
+  .main-toolbar .toolbar-left {
+    margin-left: auto;
+    margin-right: 0;
+  }
+}

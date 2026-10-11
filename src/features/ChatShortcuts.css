@@ -1,0 +1,66 @@
+.chat-shortcuts-control {
+  position: relative;
+}
+.chat-shortcuts-groups {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 16px 20px;
+}
+.chat-shortcuts-groups section + section {
+  margin-top: 16px;
+}
+.chat-shortcuts-groups h3 {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 8px;
+}
+.chat-shortcuts-menu button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  width: 100%;
+  height: auto;
+  min-height: 36px;
+  border-radius: 0;
+  background: transparent;
+  padding: 8px 16px;
+  text-align: left;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+.chat-shortcuts-menu button:hover,
+.chat-shortcuts-menu button:focus-visible {
+  background: #222;
+}
+.chat-shortcuts-menu small {
+  margin-top: 4px;
+  color: #838383;
+  font-size: 12px;
+}
+.chat-shortcuts-menu .shortcut-add-link {
+  color: var(--pneuma-emerald);
+  border-top: 1px solid #4e4e4e;
+  flex-shrink: 0;
+  align-items: flex-end;
+  padding: 12px 20px;
+}
+.shortcut-modal {
+  width: 620px;
+}
+.shortcut-name-input {
+  display: flex;
+  align-items: center;
+  background: #2b2b2b;
+  border-radius: 4px;
+  padding-left: 16px;
+  gap: 8px;
+}
+.shortcut-name-input input {
+  flex: 1;
+  min-width: 0;
+}
+.shortcut-modal .inline-actions {
+  justify-content: flex-end;
+}

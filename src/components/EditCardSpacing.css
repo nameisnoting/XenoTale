@@ -1,0 +1,73 @@
+/* One spacing policy for black editing cards across creator, profile and chat. */
+.edit-card-typography {
+  --edit-card-padding: 16px;
+  --edit-card-heading-gap: 16px;
+  --edit-card-content-gap: 16px;
+  --edit-card-section-gap: 24px;
+  --edit-card-field-gap: 8px;
+  --edit-card-column-gap: 12px;
+}
+
+.edit-card-typography.edit-card-typography {
+  padding: var(--edit-card-padding);
+}
+
+.edit-card-typography > :is(.disclosure-body, .persona-card-body) {
+  margin-top: var(--edit-card-heading-gap);
+  gap: var(--edit-card-content-gap);
+}
+
+.edit-card-typography .persona-fields {
+  gap: var(--edit-card-content-gap);
+}
+
+.edit-card-typography .note-body {
+  margin: var(--edit-card-heading-gap) 0 var(--edit-card-content-gap);
+}
+
+/* Rows supply their own gap; field margins must not add extra vertical space. */
+.edit-card-typography .field.field,
+.edit-card-typography .form-row > .field.field {
+  margin: 0;
+  gap: var(--edit-card-field-gap);
+}
+
+.edit-card-typography .form-row {
+  column-gap: var(--edit-card-column-gap);
+  row-gap: var(--edit-card-content-gap);
+}
+
+.edit-card-typography .basic-info > div:not(.field) {
+  display: flex;
+  flex-direction: column;
+  gap: var(--edit-card-content-gap);
+}
+
+.edit-card-typography .edit-card-section,
+.edit-card-typography .edit-card-section-body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.edit-card-typography .edit-card-section {
+  gap: var(--edit-card-heading-gap);
+}
+
+.edit-card-section > h3 {
+  margin: 0;
+}
+
+.edit-card-typography .edit-card-section-body {
+  gap: var(--edit-card-content-gap);
+}
+
+.edit-card-typography .enhancement-editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--edit-card-section-gap);
+}
+
+.edit-card-section-body > .enhancement-failure-hint {
+  margin: 0;
+}

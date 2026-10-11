@@ -1,0 +1,15 @@
+.status-level {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.status-level > .form-row > .field {
+  margin: 0;
+}
+.status-level > .text-control {
+  display: block;
+}
+.status-level > .button {
+  align-self: flex-end;
+}

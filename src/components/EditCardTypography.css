@@ -1,0 +1,57 @@
+/* Shared black editing cards in the creator, profile libraries and chat panels. */
+.edit-card-typography {
+  --edit-card-title-size: 16px;
+  --edit-card-body-size: 14px;
+  --edit-card-detail-size: 12px;
+  --body-5-size: var(--edit-card-body-size);
+  --body-5-line-height: 22px;
+  font-size: var(--edit-card-body-size);
+  line-height: 22px;
+}
+
+.edit-card-typography.edit-card-typography > .card-header,
+.edit-card-typography .card-header .disclosure-title,
+.edit-card-typography .card-header .disclosure-title input,
+.edit-card-typography h3,
+.edit-card-typography h4 {
+  font-size: var(--edit-card-title-size);
+  line-height: 24px;
+  font-weight: 700;
+}
+
+.edit-card-typography .field .field-label,
+.edit-card-typography.edit-card-typography
+  input:where(:not([type='radio'], [type='checkbox'], [type='range'], [type='file'])),
+.edit-card-typography.edit-card-typography textarea,
+.edit-card-typography select,
+.edit-card-typography .design-select-trigger,
+.edit-card-typography .design-select-list,
+.edit-card-typography .radio-options,
+.edit-card-typography .keyword-pills > span,
+.edit-card-typography .segmented button,
+.edit-card-typography .button,
+.edit-card-typography.edit-card-typography .toggle-row > span,
+.edit-card-typography .image-upload > span {
+  font-size: var(--edit-card-body-size);
+  line-height: 22px;
+}
+
+.edit-card-typography.edit-card-typography :is(input, textarea)::placeholder {
+  font-size: var(--edit-card-body-size);
+  line-height: 22px;
+}
+
+.edit-card-typography .field > small,
+.edit-card-typography .enhancement-failure-hint,
+.edit-card-typography .enhancement-percent,
+.edit-card-typography .memory-inactive,
+.edit-card-typography .memory-prompt-reset {
+  font-size: var(--edit-card-detail-size);
+  line-height: 18px;
+}
+
+/* Renaming a card edits its heading, so it keeps the heading size. */
+.edit-card-typography.edit-card-typography .card-header .disclosure-title input {
+  font-size: var(--edit-card-title-size);
+  line-height: 24px;
+}

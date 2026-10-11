@@ -1,0 +1,28 @@
+/* Keep focus on the control's exact boundary without changing its size. */
+.text-control.text-control--small {
+  font-size: var(--body-5-size);
+  line-height: var(--body-5-line-height);
+  padding: 12px;
+}
+
+.composer,
+.support-composer {
+  --text-focus-outline: none;
+}
+
+input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']):not(
+    :disabled
+  ):focus,
+textarea:not(:disabled):focus {
+  outline: var(--text-focus-outline, 1px solid #fff);
+  outline-offset: -1px;
+}
+
+/* A last-child field must not shift one half of a paired input row. */
+.form-row.form-row {
+  align-items: flex-start;
+  gap: 12px;
+}
+.form-row.form-row > .field.field {
+  margin: 12px 0 20px;
+}

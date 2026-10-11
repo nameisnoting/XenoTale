@@ -1,0 +1,152 @@
+.modal.common-modal.backup-modal .modal-body {
+  gap: 16px;
+}
+.backup-modal .settings-list {
+  margin: 0;
+}
+.backup-modal .backup-download-row {
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid #3b3b3b;
+  border-radius: 5px;
+}
+.backup-modal .backup-download-row:hover {
+  background-color: #ffffff09;
+}
+.backup-modal .backup-download-action:not(:disabled):hover {
+  background-color: transparent;
+}
+.backup-modal .backup-download-action {
+  flex: 1;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 4px;
+  min-width: 0;
+  text-align: left;
+}
+.backup-modal .backup-download-action > span {
+  flex: 1;
+}
+.backup-modal .backup-download-action > svg {
+  flex-shrink: 0;
+}
+.backup-modal .backup-download-row > .toggle-row {
+  justify-content: flex-end;
+  gap: 8px;
+  align-self: stretch;
+  padding: 16px 4px 16px 12px;
+  white-space: nowrap;
+}
+
+.modal.common-modal.work-picker-modal {
+  width: 654px;
+}
+.work-picker-modal .search {
+  --text-focus-outline: none;
+}
+.work-picker-modal .search:focus-within {
+  border-color: #fff;
+}
+.work-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+  border: 0;
+  padding: 2px;
+  margin: 0;
+  min-width: 0;
+  max-height: 52dvh;
+  overflow: auto;
+  align-content: start;
+}
+.work-picker-grid .work-card {
+  width: 100%;
+  max-width: none;
+}
+.work-card--selectable .work-art {
+  border: 1px solid transparent;
+}
+.work-card--selectable.is-selected .work-art {
+  border-color: #fff;
+  box-shadow: 0 0 0 1px #fff;
+}
+.work-card--selectable .work-art:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: -3px;
+}
+.work-selection-mark {
+  color: #838383;
+  min-width: 20px;
+  text-align: center;
+}
+.work-card--selectable.is-selected .work-selection-mark {
+  color: #fff;
+}
+.work-picker-grid .empty {
+  grid-column: 1 / -1;
+}
+.modal.common-modal .work-picker-hint {
+  margin: -8px 0;
+  font-size: 12px;
+}
+.collection-heading {
+  flex-wrap: wrap;
+}
+.collection-heading > div {
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.library-content .work-caption > button:first-child {
+  font-size: 17px;
+}
+.library-content .work-author {
+  font-size: 14px;
+  gap: 8px;
+}
+.library-content .work-author .avatar {
+  width: 18px !important;
+  height: 18px !important;
+}
+.library-content .work-author .avatar > svg {
+  width: 11px;
+  height: 11px;
+}
+.library-content .work-caption .icon-button {
+  width: 28px;
+  flex-shrink: 0;
+}
+.library-content .work-caption .icon-button > svg {
+  width: 20px;
+  height: 20px;
+}
+.library-content .cover-placeholder {
+  font-size: 72px;
+}
+
+@media (min-width: 801px) {
+  .library-layout .toolbar-left > button,
+  .library-layout .collection-heading > div > button {
+    font-size: 14px;
+    gap: 8px;
+  }
+  .library-layout .toolbar-left > button > svg,
+  .library-layout .collection-heading > div > button > svg {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .library-layout {
+    --work-card-width: min(169px, calc((100vw - 51px) / 2));
+  }
+}
+@media (max-width: 540px) {
+  .work-picker-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px 16px;
+  }
+}

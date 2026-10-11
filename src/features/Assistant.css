@@ -1,0 +1,35 @@
+.support-proposal {
+  border: 1px solid #4e4e4e;
+  padding: 16px;
+  border-radius: 4px;
+}
+.support-proposal h4 {
+  margin: 0 0 16px;
+}
+.support-proposal details {
+  border-bottom: 1px solid #4e4e4e;
+  padding: 12px 0;
+}
+.support-proposal summary {
+  cursor: pointer;
+  color: #fff;
+}
+.support-proposal pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 360px;
+  overflow: auto;
+  font-size: 12px;
+  line-height: 1.7;
+  padding: 12px;
+  background: #000;
+}
+.support-proposal .button {
+  margin-top: 8px;
+}
+.support-composer .model-trigger {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

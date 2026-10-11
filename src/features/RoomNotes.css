@@ -1,0 +1,55 @@
+.note-transfer-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+.note-transfer-actions > .button.button {
+  flex: 1;
+  color: var(--gold);
+  border-color: var(--gold);
+  padding: 8px 12px;
+}
+.note-import-options {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-height: 50dvh;
+  overflow: auto;
+  min-width: 0;
+}
+.note-import-group {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.note-import-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  font-size: var(--body-5-size);
+  line-height: var(--body-5-line-height);
+  cursor: pointer;
+  min-width: 0;
+}
+.note-import-option input {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+}
+.note-import-option > span,
+.note-import-option > strong {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.note-import-option small {
+  color: #aaa;
+  white-space: nowrap;
+}

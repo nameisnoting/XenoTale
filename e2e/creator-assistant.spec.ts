@@ -1,0 +1,324 @@
+import { test, expect, type Page } from '@playwright/test';
+import fs from 'node:fs/promises';
+
+const model = {
+  id: 'test/creator',
+  name: '제작 테스트 모델',
+  context_length: 200000,
+  supported_parameters: ['response_format'],
+  top_provider: { max_completion_tokens: 16000 },
+};
+async function start(page: Page, mobile = false) {
+  await page.setViewportSize({ width: mobile ? 393 : 1440, height: 852 });
+  await page.route('https://openrouter.ai/api/v1/models', (r) =>
+    r.fulfill({ json: { data: [model] } }),
+  );
+  await page.route('https://openrouter.ai/api/v1/key', (r) =>
+    r.fulfill({ json: { data: { label: 'test' } } }),
+  );
+  await page.route('https://openrouter.ai/api/v1/credits', (r) =>
+    r.fulfill({ json: { data: { total_credits: 10, total_usage: 0 } } }),
+  );
+  await page.goto('/');
+  await page.getByRole('textbox', { name: 'API key', exact: true }).fill('fake-creator-key');
+  await page.getByRole('button', { name: '키 확인', exact: true }).click();
+  await expect(page.getByRole('button', { name: '연결 확인됨' })).toBeVisible();
+  await page.getByRole('group', { name: '채팅용 LLM', exact: true }).getByRole('button').click();
+  await page.getByRole('button', { name: '제작 테스트 모델', exact: false }).click();
+  await page.getByRole('button', { name: '선택 완료' }).click();
+  await page.getByRole('button', { name: 'XenoTale 시작', exact: true }).click();
+  if (mobile) await page.getByRole('button', { name: '만들기', exact: true }).click();
+  else await page.getByRole('button', { name: '작품 만들기', exact: true }).click();
+  await expect(page.getByRole('textbox', { name: '제목', exact: false })).toBeVisible();
+  if (mobile) {
+    await page.getByRole('button', { name: '제작 도구', exact: true }).click();
+    await page
+      .locator('.editor-workspace')
+      .getByRole('button', { name: '제작 서포터', exact: true })
+      .click();
+  }
+}
+async function ask(
+  page: Page,
+  message = '정원을 배경으로 전체 작품을 만들어줘. 상태와 챕터, 연출까지 넣어줘.',
+) {
+  await page.getByRole('textbox', { name: '서포터 메시지' }).fill(message);
+  await page.getByRole('button', { name: '서포터 전송', exact: true }).click();
+}
+function result(draft: any) {
+  const d = structuredClone(draft);
+  const c = d.characters.characters[0].id;
+  const o = d.openings.openings[0].id;
+  d.overview.title = '약속의 정원';
+  d.overview.description = '정원에 숨은 약속을 찾는 이야기';
+  d.overview.prompt = '조용한 정원에서 단서를 찾아간다.';
+  d.overview.lore = [
+    { id: 'garden-lore', name: '정원', keywords: ['정원'], prompt: '오래된 열쇠가 숨겨져 있다.' },
+  ];
+  d.characters.characters[0].name = '아리아';
+  d.characters.characters[0].prompt = '정원 안내인. 친절한 존댓말을 쓴다.';
+  d.openings.openings[0].body = '@아리아: 정원에 오신 걸 환영합니다. {{레일건}}';
+  d.openings.openings[0].suggestions = ['여기는 어디죠?', '열쇠를 찾아볼게요.', '함께 가요.'];
+  d.media.media = {
+    template: '',
+    characters: [{ characterId: c, code: '1' }],
+    situations: [{ code: '1', name: '기본' }],
+  };
+  d.relations.relations = [{ id: 'first-relation', from: 'user', to: c, label: '초면' }];
+  d.relations.relationNodeIds = ['user', c];
+  d.statuses.statuses = [
+    {
+      id: 'trust',
+      name: '신뢰',
+      type: 'number',
+      initial: 0,
+      min: 0,
+      max: 100,
+      unit: '',
+      options: [],
+      prompt: '협력하면 증가한다.',
+    },
+  ];
+  d.statuses.statusTemplate = '신뢰';
+  d.items.items = [
+    {
+      id: 'key',
+      name: '정원의 열쇠',
+      image: '',
+      owned: false,
+      prompt: '문을 여는 열쇠.',
+      enhancement: null,
+    },
+  ];
+  d.scenarios.chapters = [
+    {
+      id: 'promise',
+      name: '다시 만날 약속',
+      type: 'chapter',
+      from: o,
+      mode: 'all',
+      conditions: [{ id: 'trust-check', kind: 'number', ref: 'trust', op: 'gte', value: 10 }],
+      prologue: '문이 천천히 열린다.',
+      prompt: '약속을 떠올린다.',
+      afterstory: false,
+    },
+  ];
+  d.shortcuts.shortcuts = [
+    {
+      id: 'look',
+      name: '주변 둘러보기',
+      description: '단서를 찾는다',
+      prompt: '주변 단서를 관찰한다.',
+    },
+  ];
+  d.effects.effects = [
+    {
+      id: 'railgun',
+      name: '레일건',
+      prompt: '빛이 나타나면 {{레일건}}을 출력한다.',
+      content:
+        '<div>섬광</div><script>XenoTale.ready.then(()=>XenoTale.screen("shake",800));</script>',
+    },
+  ];
+  d.personas.personas = [
+    { id: 'visitor', name: '여행자', image: '', prompt: '정원을 방문한 여행자.' },
+  ];
+  d.guide.guide = '신뢰를 쌓아 다음 챕터를 열어보세요.';
+  return {
+    reply: '전체 작품 초안을 준비했습니다.',
+    proposals: Object.entries(d).map(([section, replacement]) => ({
+      section,
+      reason: '요청한 정원 이야기에 맞게 작성했습니다.',
+      replacement,
+    })),
+    questions: [],
+  };
+}
+async function exported(page: Page) {
+  const wait = page.waitForEvent('download');
+  await page.getByRole('button', { name: '작품 파일 내보내기', exact: true }).click();
+  const download = await wait;
+  return JSON.parse(await fs.readFile((await download.path())!, 'utf8')).workspace.work;
+}
+
+test('전체 구조 전달 · 12개 섹션 제안 · 클릭 전 미적용 · 일괄 적용/취소 · 저장/재접속', async ({
+  page,
+}) => {
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  let payload: any;
+  await page.route('https://openrouter.ai/api/v1/chat/completions', async (r) => {
+    payload = r.request().postDataJSON();
+    const data = JSON.parse(payload.messages[1].content);
+    await r.fulfill({
+      json: {
+        choices: [
+          { finish_reason: 'stop', message: { content: JSON.stringify(result(data.draft)) } },
+        ],
+      },
+    });
+  });
+  await start(page);
+  await ask(page);
+  await expect(page.getByRole('button', { name: '적용하기', exact: true })).toBeVisible();
+  const data = JSON.parse(payload.messages[1].content);
+  expect(data.sections).toHaveLength(12);
+  expect(Object.keys(data.draftSchema)).toHaveLength(12);
+  expect(data.draftSchema.effects.properties.effects.items.properties.content.type).toBe('string');
+  expect(payload.messages[0].content).toContain('XenoTale.complete');
+  expect(payload.messages[0].content).toContain('{{ExactEffectName}}');
+  expect(payload.max_tokens).toBe(16000);
+  expect(JSON.stringify(payload)).not.toContain('fake-creator-key');
+  await expect(page.getByRole('button', { name: '도움받을 항목' })).toHaveCount(0);
+  await expect(page.getByRole('textbox', { name: '제목', exact: false })).toHaveValue('');
+  await expect(page.locator('.support-proposal details')).toHaveCount(12);
+  await page.screenshot({ path: 'test-results/creator-assistant-desktop.png' });
+  await page.getByRole('button', { name: '적용하기', exact: true }).click();
+  await expect(page.getByRole('textbox', { name: '제목', exact: false })).toHaveValue(
+    '약속의 정원',
+  );
+  const saved = await exported(page);
+  expect(saved.characters[0].name).toBe('아리아');
+  expect(saved.chapters[0].conditions[0].ref).toBe(saved.statuses[0].id);
+  expect(saved.chapters[0].from).toBe(saved.openings[0].id);
+  expect(saved.effects[0].content).toContain('XenoTale.screen');
+  expect(saved.personas[0].name).toBe('여행자');
+  expect(saved.media.characters[0].characterId).toBe(saved.characters[0].id);
+  await page.getByRole('button', { name: '실행 취소', exact: true }).click();
+  await expect(page.getByRole('textbox', { name: '제목', exact: false })).toHaveValue('');
+  const undone = await exported(page);
+  expect(undone.statuses).toHaveLength(0);
+  expect(undone.chapters).toHaveLength(0);
+  expect(undone.effects).toHaveLength(0);
+  await page.getByRole('button', { name: '다시 실행', exact: true }).click();
+  await expect(page.getByRole('textbox', { name: '제목', exact: false })).toHaveValue(
+    '약속의 정원',
+  );
+  await expect(page.getByText('저장완료')).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole('textbox', { name: '제목', exact: false })).toHaveValue(
+    '약속의 정원',
+  );
+  expect((await exported(page)).effects).toHaveLength(1);
+  expect(errors).toEqual([]);
+});
+
+test('모바일 제안 수정 요청 · 임시 제안 전달 · 사이드메뉴에서 적용', async ({ page }) => {
+  let calls = 0,
+    followUp: any;
+  await page.route('https://openrouter.ai/api/v1/chat/completions', async (r) => {
+    const data = JSON.parse(r.request().postDataJSON().messages[1].content);
+    const raw = result(data.draft);
+    calls++;
+    if (calls === 2) {
+      followUp = data;
+      raw.proposals.find((p) => p.section === 'overview')!.replacement.title = '수정한 정원';
+    }
+    await r.fulfill({
+      json: { choices: [{ finish_reason: 'stop', message: { content: JSON.stringify(raw) } }] },
+    });
+  });
+  await start(page, true);
+  await ask(page);
+  await expect(page.getByRole('button', { name: '적용하기', exact: true })).toBeVisible();
+  await ask(page, '아까 제안의 제목만 수정한 정원으로 바꿔줘');
+  await expect(page.getByRole('button', { name: '적용하기', exact: true })).toBeVisible();
+  expect(followUp.pendingDraft.overview.title).toBe('약속의 정원');
+  expect(followUp.draft.overview.title).toBe('');
+  expect(followUp.conversation.length).toBe(2);
+  await page.screenshot({ path: 'test-results/creator-assistant-mobile.png' });
+  await page.getByRole('button', { name: '적용하기', exact: true }).click();
+  await page.getByRole('button', { name: '제작 메뉴 닫기', exact: true }).click();
+  await expect(page.getByRole('textbox', { name: '제목', exact: false })).toHaveValue(
+    '수정한 정원',
+  );
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.reload();
+  await expect(page.getByRole('textbox', { name: '제목', exact: false })).toHaveValue(
+    '수정한 정원',
+  );
+});
+
+test('제안 후 직접 수정한 대상은 덮어쓰기 거부 · 다른 필드는 보존', async ({ page }) => {
+  await page.route('https://openrouter.ai/api/v1/chat/completions', async (r) => {
+    const data = JSON.parse(r.request().postDataJSON().messages[1].content);
+    await r.fulfill({
+      json: {
+        choices: [
+          {
+            finish_reason: 'stop',
+            message: {
+              content: JSON.stringify({
+                reply: '제목 변경안',
+                proposals: [
+                  {
+                    section: 'overview',
+                    reason: '제목만 변경',
+                    replacement: { ...data.draft.overview, title: 'AI 제목' },
+                  },
+                ],
+                questions: [],
+              }),
+            },
+          },
+        ],
+      },
+    });
+  });
+  await start(page);
+  await ask(page, '제목만 써줘');
+  await expect(page.getByRole('button', { name: '적용하기', exact: true })).toBeVisible();
+  await page.getByRole('textbox', { name: '제목', exact: false }).fill('직접 수정');
+  await page.getByRole('button', { name: '적용하기', exact: true }).click();
+  await expect(page.getByRole('status').filter({ hasText: '수정하셨습니다' })).toBeVisible();
+  await expect(page.getByRole('textbox', { name: '제목', exact: false })).toHaveValue('직접 수정');
+  await ask(page, '제목만 다시 써줘');
+  await expect(page.getByRole('button', { name: '적용하기', exact: true })).toBeVisible();
+  await page.getByRole('textbox', { name: '작품 설명', exact: false }).fill('사용자가 작성한 설명');
+  await page.getByRole('button', { name: '적용하기', exact: true }).click();
+  await expect(page.getByRole('textbox', { name: '제목', exact: false })).toHaveValue('AI 제목');
+  await expect(page.getByRole('textbox', { name: '작품 설명', exact: false })).toHaveValue(
+    '사용자가 작성한 설명',
+  );
+  await page.getByRole('button', { name: '실행 취소', exact: true }).click();
+  await expect(page.getByRole('textbox', { name: '제목', exact: false })).toHaveValue('직접 수정');
+  await expect(page.getByRole('textbox', { name: '작품 설명', exact: false })).toHaveValue(
+    '사용자가 작성한 설명',
+  );
+});
+
+test('잘못된 연결 · 잘린 응답 · Q&A는 적용 버튼 없음 · 초안 유지', async ({ page }) => {
+  let calls = 0;
+  await page.route('https://openrouter.ai/api/v1/chat/completions', async (r) => {
+    const data = JSON.parse(r.request().postDataJSON().messages[1].content);
+    calls++;
+    const raw = result(data.draft);
+    raw.proposals.find((p) => p.section === 'scenarios')!.replacement.chapters[0].from = 'missing';
+    await r.fulfill({
+      json: {
+        choices: [
+          {
+            finish_reason: calls === 2 ? 'length' : 'stop',
+            message: {
+              content: JSON.stringify(
+                calls === 3
+                  ? { reply: '구조에 대한 답변입니다.', proposals: [], questions: [] }
+                  : raw,
+              ),
+            },
+          },
+        ],
+      },
+    });
+  });
+  await start(page);
+  await ask(page);
+  await expect(page.locator('.support-transcript')).toContainText('이전 노드');
+  await expect(page.getByRole('button', { name: '적용하기', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('textbox', { name: '제목', exact: false })).toHaveValue('');
+  await ask(page);
+  await expect(page.locator('.support-transcript')).toContainText('완성되지 않았습니다');
+  await ask(page, '구조가 어떻게 되니?');
+  await expect(page.locator('.support-transcript')).toContainText('구조에 대한 답변입니다');
+  await expect(page.getByRole('button', { name: '적용하기', exact: true })).toHaveCount(0);
+});

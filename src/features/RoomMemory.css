@@ -1,0 +1,98 @@
+.room-memory {
+  min-width: 0;
+}
+.room-memory .work-info-tabs {
+  margin: 0 0 16px;
+}
+.room-memory .memory-countdown {
+  margin: 0 auto 16px;
+}
+.room-memory .memory-countdown--long em {
+  color: var(--homura-red);
+}
+.room-memory .memory-summarize {
+  margin-top: 0;
+  font-size: var(--body-4-size);
+  min-height: 40px;
+}
+.memory-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 16px;
+}
+.memory-inactive {
+  color: #838383;
+  font-size: var(--body-5-size);
+  font-weight: 400;
+  white-space: nowrap;
+}
+.memory-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.memory-settings > .field.field {
+  margin: 0;
+  gap: 8px;
+}
+.memory-settings > .field > .field-label {
+  font-size: var(--body-5-size);
+}
+.memory-model {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 16px;
+  border: 1px solid #4e4e4e;
+  border-radius: 4px;
+  text-align: left;
+  font-size: var(--body-4-size);
+}
+.memory-model > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.memory-settings > hr {
+  width: 100%;
+  margin: 0;
+}
+.room-memory .memory-settings > .setting-card {
+  margin: 0;
+  padding: 16px;
+}
+.memory-settings > .setting-card > h4 {
+  font-size: var(--body-4-size);
+  line-height: var(--body-4-line-height);
+  margin: 0 0 16px;
+}
+.memory-auto .toggle-row {
+  justify-content: space-between;
+  padding: 0;
+}
+.memory-settings .stepper {
+  margin: 0;
+  gap: 8px;
+}
+.memory-settings .stepper > span {
+  display: none;
+}
+.memory-settings .stepper output {
+  font-size: var(--body-4-size);
+}
+.memory-settings .stepper button {
+  width: 32px;
+}
+.memory-prompt-reset {
+  align-self: flex-end;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  color: #838383;
+  font-size: var(--body-5-size);
+}

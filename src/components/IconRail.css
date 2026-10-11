@@ -1,0 +1,46 @@
+.icon-rail {
+  width: 74px;
+  flex-shrink: 0;
+  border-right: 1px solid #4e4e4e;
+  overflow: auto;
+  scrollbar-width: none;
+}
+.icon-rail > button {
+  width: 73px;
+  height: var(--rail-item-height);
+  padding: 10px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: #ccc;
+}
+.icon-rail .rail-label {
+  font-size: var(--rail-label-size);
+  color: inherit;
+  white-space: nowrap;
+}
+.icon-rail .rail-icon {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 4px;
+}
+.icon-rail .rail-icon img,
+.icon-rail .rail-icon svg {
+  width: var(--rail-icon-size);
+  height: var(--rail-icon-size);
+  object-fit: contain;
+}
+.icon-rail > button.active .rail-icon {
+  background: #fff;
+  color: #222;
+}
+.icon-rail > button.active img {
+  filter: invert(1);
+}
+.icon-rail > button.active {
+  color: #fff;
+}

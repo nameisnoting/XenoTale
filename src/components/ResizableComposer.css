@@ -1,0 +1,44 @@
+.chat-shell .resizable-composer {
+  display: flex;
+  flex-direction: column;
+  min-height: 144px;
+}
+.chat-shell .resizable-composer textarea {
+  flex: none;
+  min-height: 44px;
+  max-height: none;
+  field-sizing: fixed;
+}
+.chat-shell .resizable-composer .composer-controls {
+  flex-shrink: 0;
+}
+.composer-resize-handle {
+  height: 16px;
+  min-height: 16px;
+  margin: -8px 0 8px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: ns-resize;
+  touch-action: none;
+  user-select: none;
+}
+.composer-resize-handle span {
+  width: 48px;
+  height: 4px;
+  border-radius: 4px;
+  background: #838383;
+}
+.composer-resize-handle:focus-visible {
+  outline: 2px solid var(--pneuma-emerald);
+  border-radius: 4px;
+}
+.chat-footer:has(.resizable-composer[data-expanded='true'])
+  :is(.suggestions, .status-strip, .opening-actions) {
+  display: none;
+}
+
+.chat-shell .chat-footer:has(.resizable-composer[data-expanded='true']) {
+  max-height: none;
+  overflow: visible;
+}

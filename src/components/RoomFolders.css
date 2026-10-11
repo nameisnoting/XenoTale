@@ -1,0 +1,180 @@
+.folder-list--compact,
+.room-sidebar .recent-list {
+  background: #393939;
+  border-radius: 6px;
+  padding: 4px 10px;
+}
+.folder-list--compact:empty {
+  display: none;
+}
+.room-manager .sidebar-empty {
+  color: #838383;
+  font-size: 14px;
+}
+.folder-list-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.folder-list-open {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  padding: 0;
+}
+.folder-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #2b2b2b;
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+.folder-list-text {
+  flex: 1;
+  min-width: 0;
+}
+.folder-list-text > span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+}
+.folder-list-text small {
+  display: block;
+  margin-top: 6px;
+  color: #c0c0c0;
+  font-size: 11px;
+}
+.folder-list-row > .icon-button {
+  flex: none;
+  width: 24px;
+  padding: 2px;
+}
+.folder-list--compact .folder-list-text > span {
+  font-size: 12px;
+}
+.folder-list--compact .folder-list-text small {
+  font-size: 10px;
+}
+.modal.common-modal.folder-editor-modal {
+  width: 544px;
+}
+.modal.common-modal.folder-editor-modal .modal-header {
+  margin: 0;
+}
+.folder-editor-fields {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
+}
+.folder-editor-fields > .field,
+.folder-editor-fields h3 {
+  margin: 0;
+}
+.folder-editor-fields input[type='text'] {
+  min-height: 52px;
+}
+.folder-editor-modal .folder-room-picker .room-list-item--selectable.manage-row {
+  border: 1px solid #525252;
+  border-radius: 8px;
+  padding: 12px 16px;
+}
+.folder-editor-modal .folder-room-picker .room-list-item--selectable.is-selected {
+  border-color: #fff;
+}
+.folder-editor-modal .folder-room-picker .room-list-open {
+  background: transparent;
+}
+.folder-editor-modal .folder-room-picker .room-list-name {
+  font-size: 16px;
+}
+.folder-editor-modal .folder-room-picker .room-list-text small {
+  font-size: 12px;
+}
+.folder-room-picker {
+  max-height: 42dvh;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 1px;
+}
+.folder-editor-fields > .button {
+  flex-shrink: 0;
+}
+.room-sidebar .recent-list {
+  flex: 0 0 auto;
+}
+.room-sidebar .sidebar-label {
+  padding: 0;
+  color: #fff;
+  font-size: 16px;
+}
+.room-sidebar .sidebar-label .inline-actions {
+  gap: 8px;
+}
+.room-sidebar .sidebar-label .icon-button {
+  width: 24px;
+  padding: 0;
+  color: #fff;
+  justify-content: flex-end;
+}
+.room-sidebar > .sidebar-empty {
+  margin: 0;
+  padding: 8px 12px;
+  background: #4e4e4e;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 12px;
+  line-height: 16px;
+  text-align: center;
+}
+.modal.common-modal.auto-folder-modal {
+  width: 258px;
+}
+.modal.common-modal.auto-folder-modal .modal-header {
+  margin: 0;
+  padding: 24px 24px 16px;
+  grid-template-columns: minmax(0, 1fr);
+}
+.modal.common-modal.auto-folder-modal .modal-header h2 {
+  grid-column: 1;
+  font-size: 16px;
+}
+.auto-folder-modal .modal-header > .icon-button {
+  display: none;
+}
+.modal.common-modal.auto-folder-modal .modal-body {
+  padding: 16px 24px 24px;
+}
+.auto-folder-modal .modal-body > p {
+  font-size: 14px;
+  line-height: 24px;
+  color: #ccc;
+}
+.modal.common-modal.auto-folder-modal .modal-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.auto-folder-modal .modal-actions .button {
+  width: 100%;
+  min-height: 56px;
+  margin: 0;
+}
+.modal.common-modal.auto-folder-modal .modal-actions .button:not(.primary) {
+  background: #2b2b2b;
+  border-color: #4e4e4e;
+  color: #838383;
+  font-weight: 700;
+}

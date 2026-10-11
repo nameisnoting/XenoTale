@@ -1,0 +1,61 @@
+.disclosure-card {
+  background: #000;
+  padding: 16px;
+  border-radius: 4px;
+  min-width: 0;
+}
+.card-header.card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  list-style: none;
+  cursor: pointer;
+  font-size: var(--body-4-size);
+  line-height: var(--body-4-line-height);
+  font-weight: var(--body-4-bold-weight);
+}
+.card-header.card-header::-webkit-details-marker {
+  display: none;
+}
+.card-header.card-header-static {
+  cursor: default;
+}
+.disclosure-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.card-header.card-header > .icon-button {
+  width: 24px;
+  height: 24px;
+  padding: 4px;
+  flex: none;
+}
+.disclosure-chevron {
+  flex: none;
+}
+details[open] > .card-header > .disclosure-chevron {
+  transform: rotate(180deg);
+}
+.creator-card {
+  margin: 16px 0;
+}
+.disclosure-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 16px;
+}
+.disclosure-body > .field.field {
+  margin: 0;
+  gap: 8px;
+}
+.disclosure-body > .field > .field-label {
+  font-size: var(--body-5-size);
+  line-height: var(--body-5-line-height);
+}
+.disclosure-body > .text-control {
+  display: block;
+}

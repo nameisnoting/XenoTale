@@ -1,0 +1,20 @@
+.graph-toolbar {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  z-index: 1;
+  font-size: 12px;
+  color: #ccc;
+}
+.graph-toolbar .icon-button {
+  color: #ccc;
+  background: #0009;
+}
+.graph-toolbar output {
+  min-width: 40px;
+  text-align: center;
+}

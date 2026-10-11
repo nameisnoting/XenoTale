@@ -1,0 +1,44 @@
+.resizable-panel-layout {
+  position: relative;
+}
+
+.panel-resize-handle {
+  position: absolute;
+  z-index: 20;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  transform: translateX(-50%);
+  cursor: col-resize;
+  touch-action: none;
+  user-select: none;
+  outline: none;
+}
+
+.panel-resize-handle--right {
+  transform: translateX(50%);
+}
+
+.panel-resize-handle::after {
+  content: '';
+  position: absolute;
+  inset: 0 3px;
+  background: #4e4e4e;
+}
+
+.panel-resize-handle:hover::after,
+.panel-resize-handle:focus-visible::after,
+.panel-resize-handle.is-dragging::after {
+  background: var(--pneuma-emerald);
+}
+
+.resizable-panel-layout:has(.panel-resize-handle.is-dragging) {
+  cursor: col-resize;
+  user-select: none;
+}
+
+@media (max-width: 800px) {
+  .panel-resize-handle {
+    display: none;
+  }
+}

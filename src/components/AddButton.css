@@ -1,0 +1,19 @@
+.button.add-button {
+  width: 100%;
+  min-height: 48px;
+  margin: 16px 0 0;
+  padding: 8px 12px;
+  gap: 8px;
+  border: 1px solid #4e4e4e;
+  border-radius: 4px;
+  background: transparent;
+  color: #fff;
+  font-size: var(--body-4-size);
+  line-height: var(--body-4-line-height);
+  font-weight: 400;
+}
+.button.add-button > svg {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}

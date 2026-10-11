@@ -1,0 +1,67 @@
+.selection-pill {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  min-width: 0;
+  border: 1px solid #4e4e4e;
+  border-radius: 4px;
+  background: #2b2b2b;
+  color: #ccc;
+}
+.selection-pill.is-selected {
+  background: #fff;
+  border-color: #fff;
+  color: #222;
+}
+.selection-pill > .selection-pill-label {
+  min-width: 0;
+  min-height: 46px;
+  padding: 12px 20px;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+  color: inherit;
+  font-size: 12px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.selection-pill.is-selected > .selection-pill-label {
+  font-weight: 700;
+}
+.selection-pill.has-delete {
+  gap: 12px;
+}
+.selection-pill.has-delete > .selection-pill-label {
+  padding-right: 0;
+}
+.selection-pill > .selection-pill-delete {
+  flex-shrink: 0;
+  width: 16px;
+  height: 28px;
+  margin-right: 20px;
+  padding: 0;
+  border: 0;
+  color: inherit;
+  background: transparent;
+}
+.selection-pill > .selection-pill-delete:hover {
+  color: inherit;
+  background: transparent;
+}
+.selection-pill.is-selected > .selection-pill-delete:hover {
+  color: #222;
+}
+.selection-pill--round {
+  border-color: #838383;
+  border-radius: 24px;
+  background: transparent;
+}
+.selection-pill--round > .selection-pill-label {
+  min-height: 36px;
+  padding: 8px 16px;
+  font-size: 12px;
+}
+.selection-pill--round > .selection-pill-delete {
+  margin-right: 16px;
+}

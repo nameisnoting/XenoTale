@@ -1,0 +1,194 @@
+{
+  "type": "object",
+  "properties": {
+    "kind": {
+      "type": "string",
+      "enum": ["turn", "need_context"]
+    },
+    "requestedCharacterIds": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 128
+      },
+      "maxItems": 10
+    },
+    "body": {
+      "type": "string",
+      "maxLength": 20000
+    },
+    "choices": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 300
+      },
+      "maxItems": 3
+    },
+    "delta": {
+      "type": "object",
+      "properties": {
+        "numeric": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "fieldId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "amount": {
+                "type": "number"
+              }
+            },
+            "required": ["fieldId", "amount"],
+            "additionalProperties": false
+          },
+          "maxItems": 100
+        },
+        "text": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "fieldId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "value": {
+                "type": "string",
+                "maxLength": 2000
+              }
+            },
+            "required": ["fieldId", "value"],
+            "additionalProperties": false
+          },
+          "maxItems": 100
+        },
+        "choice": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "fieldId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "optionId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              }
+            },
+            "required": ["fieldId", "optionId"],
+            "additionalProperties": false
+          },
+          "maxItems": 100
+        },
+        "inventory": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "itemId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "owned": {
+                "type": "boolean"
+              }
+            },
+            "required": ["itemId", "owned"],
+            "additionalProperties": false
+          },
+          "maxItems": 100
+        },
+        "presence": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "characterId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "present": {
+                "type": "boolean"
+              }
+            },
+            "required": ["characterId", "present"],
+            "additionalProperties": false
+          },
+          "maxItems": 100
+        },
+        "relationships": {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "relationId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "label": {
+                    "type": "string",
+                    "maxLength": 200
+                  },
+                  "innerLabel": {
+                    "type": ["string", "null"],
+                    "maxLength": 200
+                  }
+                },
+                "required": ["relationId", "label", "innerLabel"],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "required": ["from", "to", "label", "innerLabel"],
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "maxLength": 200
+                  },
+                  "innerLabel": {
+                    "type": ["string", "null"],
+                    "maxLength": 200
+                  },
+                  "to": {
+                    "type": "string",
+                    "maxLength": 128,
+                    "minLength": 1
+                  },
+                  "from": {
+                    "type": "string",
+                    "maxLength": 128,
+                    "minLength": 1
+                  }
+                },
+                "additionalProperties": false
+              }
+            ]
+          },
+          "maxItems": 100
+        }
+      },
+      "required": ["numeric", "text", "choice", "inventory", "presence", "relationships"],
+      "additionalProperties": false
+    }
+  },
+  "required": ["kind", "requestedCharacterIds", "body", "choices", "delta"],
+  "additionalProperties": false,
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "XenoTale TurnEnvelope v2",
+  "description": "Structural validation only. Application must additionally validate kind constraints, references, duplicates, current state and semantic rules."
+}

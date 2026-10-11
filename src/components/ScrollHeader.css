@@ -1,0 +1,20 @@
+.chat-shell .chat-header {
+  flex-shrink: 0;
+  transition:
+    height 180ms ease,
+    transform 180ms ease,
+    opacity 180ms ease;
+}
+.chat-shell .chat-header.is-scroll-hidden {
+  height: 0;
+  min-height: 0;
+  opacity: 0;
+  transform: translateY(-100%);
+  overflow: hidden;
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .chat-shell .chat-header {
+    transition: none;
+  }
+}

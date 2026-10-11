@@ -1,0 +1,16 @@
+.design-ui textarea.message-input,
+textarea.message-input.message-input {
+  box-sizing: border-box;
+  flex: none;
+  field-sizing: fixed;
+  min-height: 0;
+  max-height: none;
+  line-height: 22px;
+  resize: none;
+}
+.chat-shell .resizable-composer[data-manual='true'] textarea.message-input {
+  flex: 1;
+  height: auto !important;
+  min-height: 44px;
+  overflow-y: auto !important;
+}

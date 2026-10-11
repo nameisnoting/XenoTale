@@ -1,0 +1,17 @@
+.work-info-prompt {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  width: 100%;
+  padding: 8px 12px;
+  margin-bottom: 16px;
+  border-radius: 5px;
+  background: var(--surface-deep);
+  color: #fff;
+  font-size: var(--body-4-size);
+  line-height: var(--body-4-line-height);
+  font-weight: 400;
+  letter-spacing: normal;
+  text-align: left;
+}
