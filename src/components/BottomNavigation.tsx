@@ -32,22 +32,28 @@ export function BottomNavigation({
   };
   return (
     <nav className="bottom-navigation" aria-label="하단 내비게이션">
-      <button aria-current={route === '/' ? 'page' : undefined} onClick={() => navigate('/')}>
+      <button
+        data-hover="none"
+        aria-current={route === '/' ? 'page' : undefined}
+        onClick={() => navigate('/')}
+      >
         <Home size={28} />
         <span>메인</span>
       </button>
       <button
+        data-hover="none"
         aria-current={route === '/rooms' ? 'page' : undefined}
         onClick={() => navigate('/rooms')}
       >
         <MessageSquare size={28} />
         <span>대화목록</span>
       </button>
-      <button disabled={creating} onClick={() => void create()}>
+      <button data-hover="none" disabled={creating} onClick={() => void create()}>
         <SquarePlus size={28} />
         <span>만들기</span>
       </button>
       <button
+        data-hover="none"
         aria-current={route === '/profile' || route.startsWith('/profile/') ? 'page' : undefined}
         onClick={() => navigate('/profile')}
       >

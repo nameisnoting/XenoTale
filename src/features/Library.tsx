@@ -626,7 +626,7 @@ export function Library({ profile }: { profile: Profile }) {
               >
                 <Download size={20} />
                 <span>
-                  전체 백업 다운로드<small>작품·작업 공간·대화·개인 라이브러리</small>
+                  전체 백업 다운로드<small>서비스 전체 백업본</small>
                 </span>
               </button>
               <Toggle label="API 키 포함" value={includeApiKey} onChange={setIncludeApiKey} />

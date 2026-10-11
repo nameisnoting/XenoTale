@@ -71,3 +71,11 @@
 .edit-card-section-body > .enhancement-failure-hint {
   margin: 0;
 }
+
+@media (max-width: 800px) {
+  /* An inset edge avoids changing card dimensions; selected personas keep
+     their existing selection border. */
+  .samsung-internet .edit-card-typography:not(.selected) {
+    box-shadow: inset 0 0 0 1px #4e4e4e;
+  }
+}

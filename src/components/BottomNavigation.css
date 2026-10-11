@@ -44,6 +44,7 @@
     padding: 0;
     border: 0;
     background: transparent;
+    -webkit-tap-highlight-color: transparent;
     color: #838383;
     font-size: 12px;
   }
