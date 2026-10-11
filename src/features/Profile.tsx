@@ -86,57 +86,59 @@ export function ProfilePage({
   };
   const keyContents = (
     <section className="api-key-settings">
-      <Field
-        label="API key"
-        size="small"
-        hint="API 키는 이 브라우저에 암호화되어 저장됩니다."
-        labelAction={
-          <a
-            className="external-button"
-            href="https://openrouter.ai/settings/keys"
-            target="_blank"
-            rel="noreferrer"
-          >
-            Openrouter 키 발급
-            <ExternalLink size={15} />
-          </a>
-        }
-      >
-        <TextInput
-          type="password"
-          maxLength={1000}
-          value={apiKey}
-          onChange={(v) => {
-            setApiKey(v);
-            setVerified(false);
-          }}
-          placeholder="Openrouter의 api 키만 이용 가능합니다."
-        />
-      </Field>
-      <div className="api-key-actions">
-        <Button disabled={!apiKey || checking} onClick={() => run(validate())}>
-          {checking ? (
-            <Loader2 className="spin" size={16} />
-          ) : verified ? (
-            <Check size={16} />
-          ) : (
-            <KeyRound size={16} />
-          )}{' '}
-          {checking ? '확인 중…' : verified ? '연결 확인됨' : '키 확인'}
-        </Button>
-        {!onboarding && (
-          <Button
-            size="small"
-            tone="danger"
-            disabled={!apiKey}
-            onClick={() => {
-              setApiKey('');
+      <div className="api-key-entry">
+        <Field
+          label="API key"
+          size="small"
+          hint="API 키는 이 브라우저에 암호화되어 저장됩니다."
+          labelAction={
+            <a
+              className="external-button"
+              href="https://openrouter.ai/settings/keys"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Openrouter 키 발급
+              <ExternalLink size={15} />
+            </a>
+          }
+        >
+          <TextInput
+            type="password"
+            maxLength={1000}
+            value={apiKey}
+            onChange={(v) => {
+              setApiKey(v);
               setVerified(false);
             }}
-          >
-            저장된 API 키 삭제
+            placeholder="Openrouter의 api 키만 이용 가능합니다."
+          />
+        </Field>
+        <div className="api-key-actions">
+          <Button disabled={!apiKey || checking} onClick={() => run(validate())}>
+            {checking ? (
+              <Loader2 className="spin" size={16} />
+            ) : verified ? (
+              <Check size={16} />
+            ) : (
+              <KeyRound size={16} />
+            )}{' '}
+            {checking ? '확인 중…' : verified ? '연결 확인됨' : '키 확인'}
           </Button>
-        )}
+          {!onboarding && (
+            <Button
+              size="small"
+              tone="danger"
+              disabled={!apiKey}
+              onClick={() => {
+                setApiKey('');
+                setVerified(false);
+              }}
+            >
+              저장된 API 키 삭제
+            </Button>
+          )}
+        </div>
       </div>
       <Field label="채팅용 LLM">
         <button

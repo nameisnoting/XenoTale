@@ -736,8 +736,20 @@ svg {
   flex-direction: column;
   gap: 16px;
 }
-.api-key-settings > .field {
+.api-key-settings > .field,
+.api-key-entry > .field {
   margin: 0;
+}
+.api-key-entry {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.onboarding-card .api-key-entry {
+  gap: 8px;
+}
+.onboarding-card .api-key-entry .field .field-label {
+  font-size: 13px;
 }
 .api-key-actions {
   display: flex;
