@@ -52,7 +52,12 @@ export const PROFILE_LIBRARIES = [
   { id: 'characters', name: '마이 캐릭터', icon: Users },
 ] as const;
 export type ProfileLibraryId = (typeof PROFILE_LIBRARIES)[number]['id'];
-export type ModelProps = { models: Model[]; loadingModels: boolean; refreshModels: () => void };
+export type ModelProps = {
+  models: Model[];
+  loadingModels: boolean;
+  refreshModels: () => void;
+  resolveModel: (modelId: string, signal?: AbortSignal) => Promise<Model>;
+};
 export type ApiProps = { apiKey: string; setApiKey: (s: string) => void };
 export function ProfilePage({
   profile,

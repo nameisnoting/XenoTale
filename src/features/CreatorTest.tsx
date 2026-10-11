@@ -5,7 +5,7 @@ import { ChevronRight, RefreshCw } from 'lucide-react';
 import type { Profile, Room, Work } from '../domain/types';
 import { selected } from '../domain/types';
 import { addResponse, createPreviewRoom, createRoom } from '../domain/engine';
-import { generate, demoModel } from '../engine/openrouter';
+import { generate } from '../engine/openrouter';
 import { ActionButton, Button, Modal, useNotify } from '../components/UI';
 import './CreatorTest.css';
 import { StoryBody, type EffectRequest } from './StoryBody';
@@ -21,6 +21,7 @@ export function CreatorTest({
   models,
   loadingModels,
   refreshModels,
+  resolveModel,
   apiKey,
   openingId,
   onOpeningChange,
@@ -65,8 +66,7 @@ export function CreatorTest({
       const next = room ? structuredClone(room) : createRoom(work, modelId, undefined, openingId);
       next.current.context.settings.modelId = modelId;
       next.current.context.settings.creativity = creativity;
-      const model = modelId === 'demo' ? demoModel : models.find((m) => m.id === modelId);
-      if (!model) throw new Error('모델을 선택해 주세요.');
+      const model = await resolveModel(modelId, abort.current.signal);
       // Freeze this opening and draft as soon as a test starts. Editing or
       // selecting another opening only affects the next explicit restart.
       setRoom(next);

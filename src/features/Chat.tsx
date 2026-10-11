@@ -95,6 +95,7 @@ function ChatContent({
   models,
   loadingModels,
   refreshModels,
+  resolveModel,
   apiKey,
   pagePanel,
 }: { room: Room; pagePanel?: string; profile: Profile } & ApiProps & ModelProps) {
@@ -237,11 +238,7 @@ function ChatContent({
       const snapshot = await db.rooms.get(room.id);
       if (!snapshot) throw new Error('대화방이 없습니다.');
       const settings = snapshot.current.context.settings;
-      const model = findModel(settings.modelId);
-      if (!model) {
-        refreshModels();
-        throw new Error('모델 목록을 불러온 뒤 전송해 주세요.');
-      }
+      const model = await resolveModel(settings.modelId, controller.current.signal);
       if (snapshot.current.runtime.ending && !snapshot.current.runtime.ending.allowAfterstory)
         throw new Error('이 이야기는 끝났습니다. 이전 대화에서 분기할 수 있습니다.');
       const last = snapshot.timeline.at(-1);
@@ -285,37 +282,38 @@ function ChatContent({
       setRoom(saved);
       if (!isReroll) setInput('');
       if (settings.autoSummary && summarySources(saved).length >= settings.summaryEvery) {
-        const summaryModel = findModel(settings.summaryModelId);
-        if (summaryModel) {
-          setPhase('대화를 기억에 정리하고 있습니다…');
-          try {
-            const memories = await summarizeRoom(
+        setPhase('대화를 기억에 정리하고 있습니다…');
+        try {
+          const summaryModel = await resolveModel(
+            settings.summaryModelId,
+            controller.current.signal,
+          );
+          const memories = await summarizeRoom(
+            saved,
+            summaryModel,
+            apiKey,
+            controller.current.signal,
+          );
+          const next = applyMemories(saved, memories);
+          saved = await commitRoom(next, saved.revision);
+          current.current = saved;
+          setRoom(saved);
+          if (activeShortMemories(saved).length >= settings.longEvery) {
+            const combined = await summarizeRoom(
               saved,
               summaryModel,
               apiKey,
               controller.current.signal,
+              true,
             );
-            const next = applyMemories(saved, memories);
-            saved = await commitRoom(next, saved.revision);
+            const consolidated = applyMemories(saved, combined);
+            saved = await commitRoom(consolidated, saved.revision);
             current.current = saved;
             setRoom(saved);
-            if (activeShortMemories(saved).length >= settings.longEvery) {
-              const combined = await summarizeRoom(
-                saved,
-                summaryModel,
-                apiKey,
-                controller.current.signal,
-                true,
-              );
-              const consolidated = applyMemories(saved, combined);
-              saved = await commitRoom(consolidated, saved.revision);
-              current.current = saved;
-              setRoom(saved);
-            }
-          } catch (e) {
-            if ((e as Error).name !== 'AbortError')
-              notify(`대화는 저장되었습니다. 자동 요약: ${(e as Error).message}`);
           }
+        } catch (e) {
+          if ((e as Error).name !== 'AbortError')
+            notify(`대화는 저장되었습니다. 자동 요약: ${(e as Error).message}`);
         }
       }
     } catch (e) {
@@ -336,11 +334,10 @@ function ChatContent({
     try {
       await queue.current;
       const latest = (await db.rooms.get(room.id))!;
-      const model = findModel(latest.current.context.settings.summaryModelId);
-      if (!model) {
-        refreshModels();
-        throw new Error('요약 모델을 선택해 주세요.');
-      }
+      const model = await resolveModel(
+        latest.current.context.settings.summaryModelId,
+        controller.current.signal,
+      );
       const memories = await summarizeRoom(latest, model, apiKey, controller.current.signal, long);
       let saved = await commitRoom(applyMemories(latest, memories), latest.revision);
       if (

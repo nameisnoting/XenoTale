@@ -313,12 +313,14 @@ test('잘못된 연결 · 잘린 응답 · Q&A는 적용 버튼 없음 · 초안
   });
   await start(page);
   await ask(page);
-  await expect(page.locator('.support-transcript')).toContainText('이전 노드');
+  await expect(page.locator('.assistant .support-transcript')).toContainText('이전 노드');
   await expect(page.getByRole('button', { name: '적용하기', exact: true })).toHaveCount(0);
   await expect(page.getByRole('textbox', { name: '제목', exact: false })).toHaveValue('');
   await ask(page);
-  await expect(page.locator('.support-transcript')).toContainText('완성되지 않았습니다');
+  await expect(page.locator('.assistant .support-transcript')).toContainText('완성되지 않았습니다');
   await ask(page, '구조가 어떻게 되니?');
-  await expect(page.locator('.support-transcript')).toContainText('구조에 대한 답변입니다');
+  await expect(page.locator('.assistant .support-transcript')).toContainText(
+    '구조에 대한 답변입니다',
+  );
   await expect(page.getByRole('button', { name: '적용하기', exact: true })).toHaveCount(0);
 });

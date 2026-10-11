@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from 'react';
 import type { Profile, Work } from '../domain/types';
 import type { ModelProps, ApiProps } from './Profile';
 import { requestJson } from '../engine/auxiliary';
-import { demoModel } from '../engine/openrouter';
 import { ActionButton, Button, Markdown, useNotify } from '../components/UI';
 import { ModelPicker } from '../components/ModelPicker';
 import {
@@ -24,6 +23,7 @@ export function Assistant({
   models,
   loadingModels,
   refreshModels,
+  resolveModel,
   apiKey,
 }: { work: Work; onChange: (w: Work) => void; profile: Profile } & ModelProps & ApiProps) {
   const [input, setInput] = useState('');
@@ -43,21 +43,16 @@ export function Assistant({
   }, [history, proposal]);
   const send = async () => {
     if (!input.trim() || controller.current) return;
-    const model = modelId === 'demo' ? demoModel : models.find((m) => m.id === modelId);
-    if (!model) {
-      refreshModels();
-      notify('모델 목록을 불러온 후 다시 시도해 주세요.');
-      return;
-    }
     const active = new AbortController();
     controller.current = active;
     setBusy(true);
-    setProposal(null);
     const request = input.trim();
     const original = structuredClone(workRef.current);
-    setInput('');
-    setHistory((h) => [...h, { role: 'user', text: request }]);
     try {
+      const model = await resolveModel(modelId, active.signal);
+      setProposal(null);
+      setInput('');
+      setHistory((h) => [...h, { role: 'user', text: request }]);
       if (model.id === 'demo') {
         setHistory((h) => [
           ...h,

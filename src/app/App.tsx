@@ -1,6 +1,7 @@
 import { Component, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { db, initialize, useLive } from '../persistence/db';
-import { listModels } from '../engine/openrouter';
+import { demoModel, listModels } from '../engine/openrouter';
+import { waitForCatalog } from '../engine/modelCatalog';
 import type { Model, Profile } from '../domain/types';
 import { useRoute, navigate } from './navigation';
 import { Library, RoomManager, enterWorkspace } from '../features/Library';
@@ -39,9 +40,11 @@ function Routes() {
   const [ready, setReady] = useState(false);
   const [error, setError] = useState('');
   const { apiKey, setApiKey, keyReady } = useApiKey();
+  const hasApiKey = !!apiKey.trim();
   const [models, setModels] = useState<Model[]>([]);
   const [loadingModels, setLoading] = useState(false);
-  const loading = useRef(false);
+  const catalog = useRef<Model[]>([]);
+  const loading = useRef<Promise<Model[]> | null>(null);
   const notify = useNotify();
   useEffect(() => {
     initialize()
@@ -53,19 +56,42 @@ function Routes() {
       );
   }, []);
   const profile = useLive(() => db.profiles.get('profile'), undefined as Profile | undefined);
-  const refreshModels = useCallback(() => {
-    if (loading.current) return;
-    loading.current = true;
+  const loadModels = useCallback(() => {
+    if (loading.current) return loading.current;
     setLoading(true);
-    listModels()
-      .then(setModels)
-      .catch((e) => notify(e.message))
+    const request = listModels()
+      .then((next) => {
+        catalog.current = next;
+        setModels(next);
+        return next;
+      })
       .finally(() => {
-        loading.current = false;
+        loading.current = null;
         setLoading(false);
       });
-  }, [notify]);
-  const props = { models, loadingModels, refreshModels, apiKey, setApiKey };
+    loading.current = request;
+    return request;
+  }, []);
+  const refreshModels = useCallback(() => {
+    void loadModels().catch((e) => notify(e.message));
+  }, [loadModels, notify]);
+  const resolveModel = useCallback(
+    async (modelId: string, signal?: AbortSignal) => {
+      signal?.throwIfAborted();
+      if (modelId === 'demo') return demoModel;
+      const known = catalog.current.find((model) => model.id === modelId);
+      if (known) return known;
+      const next = await waitForCatalog(loadModels(), signal);
+      const model = next.find((model) => model.id === modelId);
+      if (!model) throw new Error('선택한 모델을 사용할 수 없습니다. 다른 모델을 선택해 주세요.');
+      return model;
+    },
+    [loadModels],
+  );
+  useEffect(() => {
+    if (keyReady && profile?.onboarded && hasApiKey) refreshModels();
+  }, [keyReady, profile?.onboarded, hasApiKey, refreshModels]);
+  const props = { models, loadingModels, refreshModels, resolveModel, apiKey, setApiKey };
   if (error) return <div className="fatal">{error}</div>;
   if (!ready || !profile || !keyReady) return <Spinner />;
   if (!profile.onboarded) return <ProfilePage {...props} profile={profile} onboarding />;
