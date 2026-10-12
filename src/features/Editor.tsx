@@ -2,6 +2,7 @@ import { useMediaQuery } from '../components/useMediaQuery';
 import { CreditBalanceButton } from '../components/CreditBalanceButton';
 import { useCreditBalance } from '../components/useCreditBalance';
 import { validateWork } from '../domain/engine';
+import { publicationCodeProblems } from '../domain/chatUi';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
@@ -293,6 +294,7 @@ function EditorContent({
   let readyToPublish = true;
   try {
     validateWork(work, true);
+    readyToPublish = !publicationCodeProblems(work).length;
   } catch {
     readyToPublish = false;
   }

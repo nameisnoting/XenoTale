@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { Room, Turn, Checkpoint, Profile } from '../../domain/types';
 import { withChatModels } from '../../domain/modelSettings';
 import { clone } from '../../domain/types';
-import { addResponse, branchRoom } from '../../domain/engine';
+import { addResponse, branchRoom, rewindResponseEffects } from '../../domain/engine';
 import { db, commitRoom } from '../../persistence/db';
 import { generate } from '../../engine/openrouter';
 import { summarize as summarizeRoom, summarySources } from '../../engine/auxiliary';
@@ -22,7 +22,8 @@ export function useChatSession({
   profile,
   resolveModel,
   apiKey,
-}: { persistedRoom: Room; profile: Profile } & Pick<ApiProps, 'apiKey'> &
+  preview = false,
+}: { persistedRoom: Room; profile: Profile; preview?: boolean } & Pick<ApiProps, 'apiKey'> &
   Pick<ModelProps, 'resolveModel'>) {
   const notify = useNotify();
   const [room, setRoom] = useState(persistedRoom);
@@ -30,6 +31,7 @@ export function useChatSession({
   const pendingMutations = useRef(0);
   const [input, setInput, beginSend] = useMessageDraft(`room.${room.id}`, room.pendingInput);
   const [busy, setBusy] = useState(false);
+  const [submittedInput, setSubmittedInput] = useState('');
   const [phase, setPhase] = useState('');
   const controller = useRef<AbortController | null>(null);
   const queue = useRef(Promise.resolve());
@@ -58,6 +60,7 @@ export function useChatSession({
     next.revision = expectedRevision + 1;
     current.current = next;
     setRoom(next);
+    if (preview) return Promise.resolve(next);
     pendingMutations.current++;
     // Show edits immediately, then commit the same snapshot in order. A concurrent-tab edit
     // fails the revision check instead of silently replacing it with our optimistic snapshot.
@@ -88,17 +91,27 @@ export function useChatSession({
     return task;
   };
   const send = async (isReroll = false, extra = '') => {
+    if (preview) {
+      notify('실제 대화는 제작 페이지의 대화 테스트에서 진행해 주세요.');
+      return;
+    }
     if (lock.current) return;
     lock.current = true;
     setBusy(true);
     setPhase('답변을 준비하고 있습니다…');
     controller.current = new AbortController();
     const draft = isReroll ? undefined : beginSend();
+    setSubmittedInput(
+      isReroll
+        ? ((current.current.timeline.at(-1) as Turn)?.input ?? '')
+        : draft?.text.trim() || CONTINUE,
+    );
     try {
       await queue.current;
       const stored = await db.rooms.get(room.id);
       if (!stored) throw new Error('대화방이 없습니다.');
-      const snapshot = withChatModels(stored, (await db.profiles.get('profile')) ?? profile);
+      const latest = withChatModels(stored, (await db.profiles.get('profile')) ?? profile);
+      const snapshot = isReroll ? rewindResponseEffects(latest) : latest;
       const settings = snapshot.current.context.settings;
       const model = await resolveModel(settings.modelId, controller.current.signal);
       if (snapshot.current.runtime.ending && !snapshot.current.runtime.ending.allowAfterstory)
@@ -238,6 +251,7 @@ export function useChatSession({
     input,
     setInput,
     busy,
+    submittedInput,
     phase,
     balance,
     mutate,

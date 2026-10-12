@@ -43,6 +43,7 @@
 | 등장 캐릭터                             | [`creator/CharactersSection.tsx`](../src/features/creator/CharactersSection.tsx)     |
 | 도입부                                  | [`creator/OpeningsSection.tsx`](../src/features/creator/OpeningsSection.tsx)         |
 | 상태값과 상태창 템플릿                  | [`creator/StatusSection.tsx`](../src/features/creator/StatusSection.tsx)             |
+| 대화방 UI 코드·검사·실제 미리보기       | [`creator/ChatUiSection.tsx`](../src/features/creator/ChatUiSection.tsx)             |
 | 아이템과 강화 입력 화면                 | [`creator/ItemsSection.tsx`](../src/features/creator/ItemsSection.tsx)               |
 | 챕터·엔딩과 조건 입력 화면              | [`creator/ScenarioSection.tsx`](../src/features/creator/ScenarioSection.tsx)         |
 | 단축어·연출·추천 페르소나·플레이가이드  | [`creator/ExtraSections.tsx`](../src/features/creator/ExtraSections.tsx)             |

@@ -82,6 +82,7 @@ export function CreatorPanelDialogs({
       )}
       {effectPreview && (
         <EffectPlayer
+          work={work}
           effect={effectPreview}
           preview
           context={{

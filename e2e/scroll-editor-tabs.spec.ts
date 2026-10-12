@@ -75,7 +75,7 @@ test('제작 헤더 저장 상태 · 모바일 단계 탭 · 뒤로가기 저장
     await expect(page.getByRole('button', { name: '실행 취소' })).toBeVisible();
     await expect(page.locator('.bottom-navigation')).toHaveCount(0);
     const tabs = page.getByRole('tablist', { name: '제작 단계' });
-    await expect(tabs.getByRole('tab')).toHaveCount(12);
+    await expect(tabs.getByRole('tab')).toHaveCount(13);
     const first = tabs.getByRole('tab', { name: '작품 개요' });
     await first.click();
     await first.press('End');

@@ -411,7 +411,7 @@ export function addResponse(
   const result = envelopeSchema.parse(raw);
   if (result.kind !== 'turn' || result.requestedCharacterIds.length || !result.body.trim())
     fail('완성된 대화 응답이 아닙니다.');
-  const next = clone(room);
+  const next = options.reroll ? rewindResponseEffects(room) : clone(room);
   const last = next.timeline.at(-1);
   if (options.reroll && last?.kind !== 'turn') fail('가장 최근 대화에서만 리롤할 수 있습니다.');
   const before = options.reroll ? clone((last as Turn).before) : clone(next.current);
@@ -448,7 +448,7 @@ export function addResponse(
   return next;
 }
 export function switchCandidate(room: Room, eventId: string, candidateId: string): Room {
-  const next = clone(room);
+  const next = rewindResponseEffects(room);
   const last = next.timeline.at(-1);
   if (last?.kind !== 'turn' || last.id !== eventId)
     fail('응답 후보는 진행 중인 마지막 대화에서만 바꿀 수 있습니다.');
@@ -456,6 +456,7 @@ export function switchCandidate(room: Room, eventId: string, candidateId: string
   if (!c) fail('응답 후보를 찾을 수 없습니다.');
   last.selectedId = c.id;
   next.current = clone(c.checkpoint);
+  preserveUi(room, next);
   return next;
 }
 export function editTurnText(
@@ -509,6 +510,7 @@ export function branchRoom(room: Room, eventId: string, candidateId?: string): R
   next.id = id();
   next.name = `${room.name} · 분기`;
   next.current = clone(after(event));
+  preserveUi(room, next);
   next.revision = 0;
   next.pendingInput = '';
   next.createdAt = next.updatedAt = Date.now();
@@ -520,12 +522,44 @@ export function branchRoom(room: Room, eventId: string, candidateId?: string): R
   };
   return next;
 }
+// Effects tied to the latest response roll back with that response. Chapter and
+// inventory progress still requires an explicit branch instead of silent loss.
+export function editableLastTurn(room: Room): Turn | undefined {
+  const reversedIndex = [...room.timeline].reverse().findIndex((event) => event.kind === 'turn');
+  const index = reversedIndex < 0 ? -1 : room.timeline.length - 1 - reversedIndex;
+  if (index < 0) return;
+  const turn = room.timeline[index] as Turn;
+  return room.timeline
+    .slice(index + 1)
+    .every(
+      (event) =>
+        event.kind === 'effect' &&
+        event.effectResult?.source.eventId === turn.id &&
+        event.effectResult.source.candidateId === turn.selectedId,
+    )
+    ? turn
+    : undefined;
+}
+export function rewindResponseEffects(room: Room): Room {
+  const next = clone(room),
+    turn = editableLastTurn(next);
+  if (!turn) return next;
+  const index = next.timeline.findIndex((event) => event.id === turn.id);
+  next.timeline = next.timeline.slice(0, index + 1);
+  next.current = { runtime: clone(after(turn).runtime), context: clone(room.current.context) };
+  return next;
+}
+function preserveUi(room: Room, next: Room) {
+  next.current.context.settings.uiType = room.current.context.settings.uiType;
+  next.current.context.settings.uiSource = room.current.context.settings.uiSource;
+}
 export function deleteLast(room: Room, keepInput: boolean): Room {
-  const next = clone(room);
+  const next = rewindResponseEffects(room);
   const last = next.timeline.at(-1);
   if (last?.kind !== 'turn') fail('마지막 대화만 삭제할 수 있습니다.');
   next.timeline.pop();
   next.current = clone(last.before);
+  preserveUi(room, next);
   next.pendingInput = keepInput ? last.input : '';
   return next;
 }
@@ -537,6 +571,8 @@ export function enterChapter(room: Room, chapterId: string): Room {
   const next = clone(room);
   const before = clone(next.current);
   next.current.runtime.nodeId = chapter.id;
+  if (chapter.bgm !== undefined && next.current.runtime.presentation)
+    delete next.current.runtime.presentation.music;
   next.current.runtime.visited.push(chapter.id);
   if (chapter.type === 'ending')
     next.current.runtime.ending = { id: chapter.id, allowAfterstory: chapter.afterstory };

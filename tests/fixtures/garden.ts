@@ -2,6 +2,7 @@
 import type { Work } from '../../src/domain/types';
 
 export function populateGarden(w: Work): Work {
+  delete w.chatUi; // Exercise imported legacy works without an authored layout.
   w.id = 'example-garden';
   w.version = 1;
   w.title = '정원 앞에서';

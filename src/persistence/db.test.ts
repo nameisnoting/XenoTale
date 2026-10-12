@@ -14,6 +14,7 @@ import {
 } from './db';
 import { workspace, defaultProfile } from '../domain/defaults';
 import { exampleWork } from '../test/exampleWork';
+import { DEFAULT_CHAT_UI, codeApproval } from '../domain/chatUi';
 import { createRoom } from '../domain/engine';
 import { SYSTEM_PROMPT } from '../domain/systemPrompt';
 import legacyPrompt from '../engine/prompts/narrator_legacy_v2.txt?raw';
@@ -186,6 +187,7 @@ describe('revision transactions', () => {
   it('publishing creates a version and leaves existing room definitions immutable', async () => {
     const w = workspace('작가');
     w.work = exampleWork();
+    w.work.chatUi = { code: DEFAULT_CHAT_UI, validation: codeApproval(DEFAULT_CHAT_UI) };
     await db.workspaces.add(w);
     const r = createRoom(w.work);
     await db.rooms.add(r);

@@ -184,6 +184,10 @@ export function buildMessages(
         activeLorebook: lore,
       },
       turnDirectives: {
+        presentation:
+          (before.runtime.presentation?.uiType ?? ctx.settings.uiType) === 'visual-novel'
+            ? '비주얼노벨 화면입니다. 지문과 @캐릭터이름: 대사를 한 줄씩 분리하세요. 장면과 캐릭터 감정이 바뀌면 등록된 {{img:캐릭터코드/상황코드}} 이미지를 해당 줄 앞에 출력하세요. 존재하지 않는 이미지 코드를 만들지 마세요.'
+            : undefined,
         outputLanguage: 'Korean',
         quality: ctx.settings.quality,
         qualityInstructions: buildQualityDirectives(ctx.settings.quality),

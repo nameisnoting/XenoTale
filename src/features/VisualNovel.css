@@ -1,0 +1,229 @@
+.chat-shell .chat-scroll.visual-novel-scroll {
+  overflow: hidden;
+  padding: 0;
+  display: flex;
+  min-height: 180px;
+}
+.visual-novel {
+  position: relative;
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  margin: 0 32px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: #1c1c1c;
+}
+.visual-novel-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+}
+.visual-novel-dialogue {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: 80px;
+}
+.visual-novel-textbox {
+  position: relative;
+  background: var(--vn-box, rgba(28, 28, 28, 0.7));
+  color: var(--vn-text, #fff);
+  border: 1px solid #838383;
+  border-radius: 4px;
+  min-height: 148px;
+  padding: 16px 16px 48px;
+  cursor: pointer;
+}
+.visual-novel-copy {
+  font-size: var(--vn-font-size, 14px);
+  line-height: var(--vn-line-height, 28px);
+  letter-spacing: var(--vn-letter-spacing, 0px);
+  max-height: 180px;
+  overflow: auto;
+}
+.visual-novel-copy .markdown p {
+  margin: 0;
+}
+.visual-novel-copy .markdown em {
+  font-style: normal;
+}
+.visual-novel-name {
+  position: absolute;
+  left: 8px;
+  bottom: 100%;
+  padding: 10px 24px;
+  background: var(--vn-box, rgba(28, 28, 28, 0.7));
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  clip-path: polygon(8px 0, calc(100% - 8px) 0, 100% 100%, 0 100%);
+}
+.visual-novel-name.is-player {
+  color: var(--hikari-yellow);
+}
+.visual-novel-switches {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 8px);
+  display: flex;
+  gap: 8px;
+}
+.chat-shell .visual-novel-switches .icon-button {
+  background: rgba(28, 28, 28, 0.5);
+  border-radius: 50%;
+  color: #ccc;
+  width: 32px;
+  height: 32px;
+  padding: 7px;
+}
+.visual-novel-controls {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 28px;
+  color: #ccc;
+}
+.visual-novel-controls .icon-button,
+.visual-novel-controls .candidate-pager button {
+  color: #ccc;
+}
+.visual-novel-controls .candidate-pager img {
+  filter: brightness(0) invert(0.8);
+}
+.visual-novel-turn-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.visual-novel-waiting {
+  color: #ccc;
+  font-size: 12px;
+}
+.visual-novel-choices {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  top: 45%;
+  transform: translateY(-50%);
+  display: grid;
+  gap: 16px;
+}
+.visual-novel-choices button {
+  background: rgba(28, 28, 28, 0.7);
+  color: #fff;
+  padding: 12px 16px;
+  border-radius: 4px;
+  text-align: center;
+  font-size: 14px;
+}
+.visual-novel-status-overlay {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100dvh;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  border: 0;
+  z-index: 1001;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: auto;
+  padding: 48px 24px;
+}
+.visual-novel-status-overlay::backdrop {
+  background: transparent;
+}
+.visual-novel-status-overlay > .icon-button {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  color: #ccc;
+}
+.visual-novel-status-content {
+  width: min(100%, 640px);
+}
+.chat-shell.is-visual-novel .chat-footer {
+  padding-top: 12px;
+}
+.chat-shell.is-visual-novel .chat-footer .chat-column {
+  padding-left: 32px;
+  padding-right: 32px;
+}
+.chat-shell.is-visual-novel .opening-actions,
+.chat-shell.is-visual-novel .chat-footer .suggestions {
+  display: none;
+}
+.novel-mode-switch {
+  position: absolute;
+  right: 32px;
+  top: 72px;
+  z-index: 2;
+  color: #ccc;
+  transition: transform 0.2s;
+}
+.chat-shell .chat-main {
+  position: relative;
+}
+.author-chat .novel-mode-switch {
+  left: calc(var(--slot-conversation-x) + var(--slot-conversation-width) - 44px);
+  right: auto;
+  top: calc(var(--slot-conversation-y) + 8px);
+}
+.chat-scroll.novel-scroll {
+  position: relative;
+}
+.novel-mode-switch.is-scroll-hidden {
+  transform: translateY(-64px);
+}
+@media (max-width: 800px) {
+  .visual-novel {
+    margin: 0 16px;
+  }
+  .chat-shell.is-visual-novel .chat-footer .chat-column {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+  .visual-novel-dialogue {
+    left: 12px;
+    right: 12px;
+    bottom: 80px;
+  }
+  .visual-novel-textbox {
+    min-height: 144px;
+    padding: 12px 12px 44px;
+  }
+  .visual-novel-choices {
+    left: 12px;
+    right: 12px;
+    gap: 12px;
+    top: 30%;
+  }
+  .visual-novel-copy {
+    max-height: 132px;
+  }
+  .novel-mode-switch {
+    right: 20px;
+    top: 64px;
+  }
+  .novel-mode-switch.is-scroll-hidden {
+    transform: translateY(-56px);
+  }
+}
+@media (max-height: 650px) {
+  .visual-novel-textbox {
+    min-height: 108px;
+  }
+  .visual-novel-copy {
+    max-height: 80px;
+  }
+}

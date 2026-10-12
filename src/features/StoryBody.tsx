@@ -2,7 +2,12 @@ import type { Checkpoint, EffectSource, Room } from '../domain/types';
 import { resolveEffect, storyTokens } from '../domain/effects';
 import { Avatar, Button, Markdown, safeUrl } from '../components/UI';
 
-export type EffectRequest = { id: string; source: EffectSource };
+export type EffectRequest = {
+  id: string;
+  source: EffectSource;
+  autoPlay?: boolean;
+  onClose?: () => void;
+};
 export function StoryBody({
   body,
   room,

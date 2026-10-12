@@ -12,7 +12,14 @@ import { useScrollHeader } from '../components/useScrollHeader';
 
 import { CreditBalanceButton } from '../components/CreditBalanceButton';
 import { BottomSheet, SideDrawer, MobilePage } from '../components/MobileSurfaces';
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { AuthorLayout } from '../components/AuthorLayout';
+import { nativeStyles, type LayoutReport } from '../components/authoredDocument';
+import { codeChecked, codeProblems, registeredMedia } from '../domain/chatUi';
+import { VisualNovel } from './VisualNovel';
+import { chapterMusic, type NovelPage } from '../domain/visualNovel';
+import type { Presentation } from '../domain/types';
+import './AuthorChat.css';
 import {
   ArrowLeft,
   MoreVertical,
@@ -27,6 +34,7 @@ import {
   Pencil,
   Check,
   X,
+  PanelsTopLeft,
 } from 'lucide-react';
 import type { Profile, Room, Turn } from '../domain/types';
 import { clone, selected } from '../domain/types';
@@ -37,6 +45,7 @@ import {
   effectiveStatus,
   availableChapters,
   switchCandidate,
+  editableLastTurn,
 } from '../domain/engine';
 import { db, useLive, changeProfile } from '../persistence/db';
 import { demoModel } from '../engine/openrouter';
@@ -84,7 +93,7 @@ export function Chat({
     </div>
   );
 }
-function ChatContent({
+export function ChatContent({
   room: persistedRoom,
   profile,
   models,
@@ -93,12 +102,15 @@ function ChatContent({
   resolveModel,
   apiKey,
   pagePanel,
-}: { room: Room; pagePanel?: string; profile: Profile } & ApiProps & ModelProps) {
+  preview = false,
+}: { room: Room; pagePanel?: string; profile: Profile; preview?: boolean } & ApiProps &
+  ModelProps) {
   const {
     room,
     input,
     setInput,
     busy,
+    submittedInput,
     phase,
     balance,
     mutate,
@@ -106,7 +118,7 @@ function ChatContent({
     summarize,
     makeBranch,
     cancel,
-  } = useChatSession({ persistedRoom, profile, resolveModel, apiKey });
+  } = useChatSession({ persistedRoom, profile, resolveModel, apiKey, preview });
 
   const [panel, setPanel] = useState('info');
   const [panelSelection, setPanelSelection] = useState(() => {
@@ -120,8 +132,9 @@ function ChatContent({
   const mobile = useMediaQuery('(max-width: 800px)');
   const wide = useMediaQuery('(min-width: 1200px)');
   const [collapsed, setCollapsed] = useState(false);
+  const [previewPanel, setPreviewPanel] = useState<string>();
   const pageMenu = chatMenus.find(
-    (menu) => menu.id === (pagePanel === 'guide' ? 'info' : pagePanel),
+    (menu) => menu.id === (preview ? previewPanel : pagePanel === 'guide' ? 'info' : pagePanel),
   );
   const activePanel = pageMenu?.id ?? panel;
   const [logHidden, setLogHidden] = useState(false);
@@ -134,6 +147,8 @@ function ChatContent({
   const [renaming, setRenaming] = useState(false);
   const [roomName, setRoomName] = useState(room.name);
   const composerRef = useRef<HTMLTextAreaElement>(null);
+  const footerRef = useRef<HTMLElement>(null);
+  const [composerHeight, setComposerHeight] = useState(174);
   const [sheet, setSheet] = useState(false);
   const [log, setLog] = useState(false);
   const [picker, setPicker] = useState<'chat' | 'summary' | null>(null);
@@ -152,6 +167,10 @@ function ChatContent({
     candidateId?: string;
   } | null>(null);
   const [effect, setEffect] = useState<EffectRequest | null>(null);
+  const [effectPresentation, setEffectPresentation] = useState<Presentation>({});
+  const [layoutReport, setLayoutReport] = useState<LayoutReport | null>(null);
+  const [novelPage, setNovelPage] = useState<NovelPage | undefined>();
+  const [novelJump, setNovelJump] = useState<{ eventId: string; nonce: number }>();
   const [opening, setOpening] = useState(false);
   const end = useRef<HTMLDivElement>(null);
   const scroll = useRef<HTMLDivElement>(null);
@@ -168,7 +187,81 @@ function ChatContent({
   const cfg = room.current.context.settings;
   const active = cfg.modelId === 'demo' ? demoModel : models.find((m) => m.id === cfg.modelId);
   const op = room.work.openings.find((o) => o.id === room.openingId)!;
-  const bgm = safeUrl(op.bgm.trim());
+  const presentation = { ...room.current.runtime.presentation, ...effectPresentation };
+  const uiType = presentation.uiType ?? cfg.uiType ?? 'novel';
+  const bgm = safeUrl(
+    (presentation.music !== undefined
+      ? (presentation.music ?? '')
+      : chapterMusic(
+          room.work,
+          uiType === 'visual-novel'
+            ? (novelPage?.checkpoint.runtime.nodeId ?? room.current.runtime.nodeId)
+            : room.current.runtime.nodeId,
+        )
+    ).trim(),
+  );
+  const creatorUi = room.work.chatUi;
+  const scope = `chat-author-${room.id.replace(/[^a-zA-Z0-9-]/g, '')}`;
+  const authorStyles = useMemo(() => {
+    try {
+      return { css: creatorUi ? nativeStyles(creatorUi.code, `#${scope}`) : '', error: '' };
+    } catch (error) {
+      return {
+        css: '',
+        error: error instanceof Error ? error.message : '제작자 스타일을 표시하지 못했습니다.',
+      };
+    }
+  }, [creatorUi?.code, scope]);
+  const eligibleAuthor =
+    !!creatorUi &&
+    !authorStyles.error &&
+    (preview || codeChecked(creatorUi.code, creatorUi.validation, creatorUi.resources)) &&
+    !codeProblems(creatorUi.code, 'ui', room.work, creatorUi.resources).length;
+  const wantsAuthor = eligibleAuthor && cfg.uiSource !== 'default';
+  const authorActive =
+    wantsAuthor && !!layoutReport && !layoutReport.errors.length && !(mobile && pageMenu);
+  const authorResources = useMemo(
+    () => [...registeredMedia(room.work), ...(creatorUi?.resources ?? [])],
+    [room.work, creatorUi?.resources],
+  );
+  const authorStyle: CSSProperties = { ...panels.style };
+  if (authorActive)
+    for (const [name, rect] of Object.entries(layoutReport.slots)) {
+      for (const [key, value] of Object.entries(rect))
+        (authorStyle as Record<string, string>)[`--slot-${name}-${key}`] = `${value}px`;
+    }
+  const switchUi = (mode: 'novel' | 'visual-novel') =>
+    run(
+      mutate((r) => {
+        r.current.context.settings.uiType = mode;
+        if (r.current.runtime.presentation) delete r.current.runtime.presentation.uiType;
+        return r;
+      }),
+    );
+  const closeEffect = () => {
+    const next = effect?.onClose;
+    setEffect(null);
+    setEffectPresentation({});
+    next?.();
+  };
+  useEffect(() => {
+    const footer = footerRef.current,
+      content = footer?.firstElementChild;
+    if (!footer || !content) return;
+    const measure = () => {
+      const style = getComputedStyle(footer);
+      const height = Math.ceil(
+        content.getBoundingClientRect().height +
+          parseFloat(style.paddingTop) +
+          parseFloat(style.paddingBottom),
+      );
+      setComposerHeight((previous) => (previous === height ? previous : height));
+    };
+    const observer = new ResizeObserver(measure);
+    observer.observe(content);
+    measure();
+    return () => observer.disconnect();
+  }, [uiType]);
 
   useEffect(() => {
     // Open at the latest conversation once; new responses never move the reader.
@@ -182,7 +275,7 @@ function ChatContent({
   const choose = (turn: Turn, index: number) => {
     const candidate = turn.candidates[index];
     if (!candidate || !canBrowseLatest || latestTurn?.id !== turn.id) return;
-    if (room.timeline.at(-1)?.id === turn.id) {
+    if (editableLastTurn(room)?.id === turn.id) {
       setViewedCandidate(null);
       run(mutate((r) => switchCandidate(r, turn.id, candidate.id)));
     } else {
@@ -195,17 +288,21 @@ function ChatContent({
     .find((event): event is Turn => event.kind === 'turn');
   const canBrowseLatest =
     !!latestTurn &&
-    !room.timeline
-      .slice(room.timeline.findIndex((event) => event.id === latestTurn.id) + 1)
-      .some((event) => event.kind === 'chapter' || event.kind === 'effect');
-  const displayed = (turn: Turn) =>
-    canBrowseLatest &&
-    latestTurn?.id === turn.id &&
-    room.timeline.at(-1)?.id !== turn.id &&
-    viewedCandidate?.turnId === turn.id
-      ? (turn.candidates.find((candidate) => candidate.id === viewedCandidate.candidateId) ??
-        selected(turn))
-      : selected(turn);
+    (!!editableLastTurn(room) ||
+      !room.timeline
+        .slice(room.timeline.findIndex((event) => event.id === latestTurn.id) + 1)
+        .some((event) => event.kind === 'chapter' || event.kind === 'effect'));
+  const displayed = useCallback(
+    (turn: Turn) =>
+      canBrowseLatest &&
+      latestTurn?.id === turn.id &&
+      editableLastTurn(room)?.id !== turn.id &&
+      viewedCandidate?.turnId === turn.id
+        ? (turn.candidates.find((candidate) => candidate.id === viewedCandidate.candidateId) ??
+          selected(turn))
+        : selected(turn),
+    [canBrowseLatest, latestTurn?.id, viewedCandidate, room.timeline],
+  );
   const edit = async () => {
     if (!editing || !editing.body.trim()) return;
     await mutate((r) =>
@@ -221,7 +318,8 @@ function ChatContent({
       setPanelSelection((previous) => ({ ...previous, infoTab: 'work' }));
     if (mobile && asPage) {
       setPanel(target);
-      navigate(`/chat/${room.id}/panel/${target}`);
+      if (preview) setPreviewPanel(target);
+      else navigate(`/chat/${room.id}/panel/${target}`);
       return;
     }
     if (target === 'usage') {
@@ -232,10 +330,13 @@ function ChatContent({
     }
     setPanel(target);
     setCollapsed(false);
-    if (mobile || pageMenu) navigate(`/chat/${room.id}/panel/${target}`, !mobile);
+    if (preview) {
+      if (mobile) setPreviewPanel(target);
+    } else if (mobile || pageMenu) navigate(`/chat/${room.id}/panel/${target}`, !mobile);
   };
   const balanceButton = <CreditBalanceButton balance={balance} onClick={() => showMenu('usage')} />;
   const newRoom = () =>
+    !preview &&
     run(
       (async () => {
         const next = createRoom(room.work, profile.defaultModel);
@@ -249,6 +350,7 @@ function ChatContent({
     <ConversationLog
       room={room}
       onJump={(eventId) => {
+        if (uiType === 'visual-novel') setNovelJump({ eventId, nonce: Date.now() });
         if (eventId.startsWith('opening:'))
           scroll.current?.scrollTo({ top: 0, behavior: 'smooth' });
         document
@@ -263,7 +365,14 @@ function ChatContent({
     />
   );
   const panelContent = (
-    <fieldset disabled={busy} className="panel-fieldset">
+    <fieldset
+      disabled={
+        busy ||
+        (preview &&
+          ['persona', 'notes', 'memory', 'quality', 'usage', 'inventory'].includes(activePanel))
+      }
+      className="panel-fieldset"
+    >
       {activePanel === 'usage' ? (
         <ChatUsage room={room} balance={balance} />
       ) : (
@@ -281,6 +390,7 @@ function ChatContent({
           mutate={mutate}
           summarize={(long) => void summarize(long)}
           chooseSummaryModel={() => {
+            if (preview) return;
             refreshModels();
             setPicker('summary');
           }}
@@ -298,25 +408,76 @@ function ChatContent({
       field?.setSelectionRange(start + 1, stop + 1);
     });
   };
-  const last = room.timeline.at(-1);
+  const editableTurn = editableLastTurn(room);
   const endingLocked =
     !!room.current.runtime.ending && !room.current.runtime.ending.allowAfterstory;
   const inputDisabled = busy || endingLocked;
-  const suggestions = last?.kind === 'turn' ? selected(last).choices : !last ? op.suggestions : [];
+  const latestPassage = [...room.timeline]
+    .reverse()
+    .find((event) => event.kind === 'turn' || event.kind === 'chapter');
+  const suggestions =
+    latestPassage?.kind === 'turn'
+      ? displayed(latestPassage).choices
+      : !latestPassage
+        ? op.suggestions
+        : [];
   return (
     <div
       ref={panels.root}
-      style={panels.style}
-      className={`chat-shell design-ui resizable-panel-layout ${collapsed ? 'left-collapsed' : ''} ${!wide || logHidden ? 'right-collapsed' : ''}`}
+      id={scope}
+      style={
+        {
+          ...authorStyle,
+          '--vn-box': presentation.theme?.textbox,
+          '--vn-text': presentation.theme?.text,
+        } as CSSProperties
+      }
+      className={`chat-shell design-ui resizable-panel-layout ${uiType === 'visual-novel' ? 'is-visual-novel' : ''} ${authorActive ? 'author-chat' : ''} ${collapsed ? 'left-collapsed' : ''} ${!wide || logHidden ? 'right-collapsed' : ''}`}
     >
-      <PanelResizeHandles panels={panels} />
+      {wantsAuthor && (
+        <AuthorLayout
+          code={creatorUi!.code}
+          uiType={uiType}
+          resources={authorResources}
+          onReport={setLayoutReport}
+          composerHeight={composerHeight}
+        />
+      )}
+      {authorActive && <style>{authorStyles.css}</style>}
+      {creatorUi && cfg.uiSource !== 'default' && !eligibleAuthor && (
+        <div className="author-ui-error" role="alert">
+          제작자 UI를 확인할 수 없어 기본 UI를 사용합니다.{' '}
+          {authorStyles.error || '제작 페이지에서 유효성 검사를 진행해 주세요.'}
+        </div>
+      )}
+      {wantsAuthor && layoutReport?.errors.length ? (
+        <div className="author-ui-error" role="alert">
+          제작자 UI를 표시하지 못해 기본 UI로 전환했습니다. {layoutReport.errors[0]}
+        </div>
+      ) : null}
+      {authorActive && (
+        <button
+          className="author-ui-escape"
+          onClick={() =>
+            run(
+              mutate((r) => {
+                r.current.context.settings.uiSource = 'default';
+                return r;
+              }),
+            )
+          }
+        >
+          기본 UI로 전환
+        </button>
+      )}
+      {!authorActive && <PanelResizeHandles panels={panels} />}
       {!mobile && (
         <ChatWorkspace
           panel={activePanel}
           collapsed={collapsed}
           onSelect={showMenu}
           onToggle={() => setCollapsed(!collapsed)}
-          onBackup={() => run(exportBackup())}
+          onBackup={() => !preview && run(exportBackup())}
           onNew={newRoom}
         >
           {panelContent}
@@ -328,7 +489,7 @@ function ChatContent({
           inert={headerHidden}
           aria-hidden={headerHidden}
         >
-          <IconButton title="메인으로" onClick={() => navigate('/')}>
+          <IconButton title="메인으로" disabled={preview} onClick={() => navigate('/')}>
             <ArrowLeft size={20} />
           </IconButton>
           <div className="chat-room-name">
@@ -373,7 +534,7 @@ function ChatContent({
               </>
             )}
           </div>
-          {bgm && <BackgroundMusic key={bgm} src={bgm} />}
+          {bgm && <BackgroundMusic src={bgm} />}
           {(mobile || !wide) && (
             <IconButton
               title="대화 로그"
@@ -386,6 +547,16 @@ function ChatContent({
             </IconButton>
           )}
         </header>
+        {uiType === 'novel' && (
+          <IconButton
+            className={`novel-mode-switch ${headerHidden ? 'is-scroll-hidden' : ''}`}
+            title="비주얼노벨 모드로 전환"
+            disabled={busy}
+            onClick={() => switchUi('visual-novel')}
+          >
+            <PanelsTopLeft size={20} />
+          </IconButton>
+        )}
         {availableChapters(room.work, room.current.runtime).length > 0 && (
           <button className="chapter-unlock" onClick={() => showMenu('chapters')}>
             챕터 해금 ·{' '}
@@ -395,166 +566,259 @@ function ChatContent({
             <ChevronRight size={16} />
           </button>
         )}
-        <div className="chat-scroll" ref={scroll}>
-          <div
-            className="chat-column"
-            style={
-              {
-                fontSize: cfg.fontSize,
-                lineHeight: `${cfg.lineHeight}px`,
-                letterSpacing: `${cfg.letterSpacing}px`,
-              } as CSSProperties
-            }
-          >
-            <section className="chat-message-section opening-scene">
-              {mobile && !room.timeline.length && (
-                <WorkInfoPrompt onOpen={() => showMenu('info', true)} />
-              )}
-              <StoryIntro title={op.name}>
-                <StoryBody
-                  body={op.body}
-                  room={room}
-                  disabled={busy}
-                  source={{ eventId: `opening:${room.openingId}` }}
-                  onEffect={setEffect}
-                />
-              </StoryIntro>
-            </section>
-            {room.timeline.map((event, index) =>
-              event.kind === 'turn' ? (
-                <article className="conversation-turn" id={`event-${event.id}`} key={event.id}>
-                  <section className="chat-message-section user-section">
-                    <div className="user-message">
-                      {cfg.profiles && (
-                        <Avatar src={event.before.context.persona.image} size={56} />
-                      )}
-                      <div>
-                        <strong>{event.before.context.persona.name}</strong>
-                        <Markdown>
-                          {event.input === CONTINUE ? '이어서 내용 전개' : event.input}
-                        </Markdown>
-                      </div>
-                      <IconButton
-                        title="입력 수정"
-                        disabled={busy}
-                        onClick={() => setEditing({ turn: event, kind: 'user', body: event.input })}
-                      >
-                        <Pencil size={13} />
-                      </IconButton>
-                    </div>
-                  </section>
-                  <section className="chat-message-section assistant-section">
-                    {event.dice && <div className="local-event">주사위 d20 · {event.dice}</div>}
-                    <StoryBody
-                      body={displayed(event).body}
-                      room={room}
-                      checkpoint={displayed(event).checkpoint}
-                      disabled={busy}
-                      source={{ eventId: event.id, candidateId: displayed(event).id }}
-                      onEffect={setEffect}
-                    />
-                    <StatusDisplay
-                      work={room.work}
-                      runtime={displayed(event).checkpoint.runtime}
-                      expanded={cfg.statusExpanded}
-                      demo={displayed(event).usage.model === 'demo'}
-                    />
-                    <div className="response-tools">
-                      {canBrowseLatest && event.id === latestTurn?.id && (
-                        <CandidatePager
-                          turn={event}
-                          candidateId={displayed(event).id}
-                          disabled={busy}
-                          onChoose={(index) => choose(event, index)}
-                        />
-                      )}
-                      <IconButton
-                        title="대사 수정"
-                        disabled={busy}
-                        onClick={() =>
-                          setEditing({
-                            turn: event,
-                            kind: 'assistant',
-                            body: displayed(event).body,
-                            candidateId: displayed(event).id,
-                          })
-                        }
-                      >
-                        <Pencil size={15} />
-                      </IconButton>
-                      <IconButton
-                        title="이 지점에서 분기"
-                        disabled={busy}
-                        onClick={() =>
-                          setBranch({ eventId: event.id, candidateId: displayed(event).id })
-                        }
-                      >
-                        <GitBranch size={15} />
-                      </IconButton>
-                      {index === room.timeline.length - 1 && (
-                        <>
-                          <IconButton
-                            title="리롤"
-                            disabled={busy}
-                            onClick={() => (cfg.rerollPrompt ? setReroll(true) : void send(true))}
-                          >
-                            <RefreshCw size={15} />
-                          </IconButton>
-                          <IconButton
-                            title="마지막 대화 삭제"
-                            disabled={busy}
-                            onClick={() => setDel(true)}
-                          >
-                            <Trash2 size={15} />
-                          </IconButton>
-                        </>
-                      )}
-                    </div>
-                  </section>
-                </article>
-              ) : event.kind === 'chapter' ? (
-                <article
-                  className="chapter-scene chat-message-section"
-                  id={`event-${event.id}`}
-                  key={event.id}
-                >
-                  <StoryIntro
-                    title={
-                      room.work.chapters.find((c) => c.id === event.after.runtime.nodeId)?.name ??
-                      '챕터'
-                    }
-                  >
-                    <StoryBody
-                      body={event.body}
-                      room={room}
-                      checkpoint={event.after}
-                      disabled={busy}
-                      source={{ eventId: event.id }}
-                      onEffect={setEffect}
-                    />
-                  </StoryIntro>
-                  <div className="response-tools">
+        <div
+          className={`chat-scroll ${uiType === 'visual-novel' ? 'visual-novel-scroll' : 'novel-scroll'}`}
+          ref={scroll}
+        >
+          {uiType === 'visual-novel' ? (
+            <VisualNovel
+              room={room}
+              busy={busy}
+              submittedInput={submittedInput}
+              phase={phase}
+              suggestions={suggestions}
+              onSuggestion={setInput}
+              onSwitch={() => switchUi('novel')}
+              onEffect={setEffect}
+              candidate={displayed}
+              onPage={setNovelPage}
+              jump={novelJump}
+              background={effectPresentation.background}
+              actions={(page) => {
+                const event = room.timeline.find((e) => e.id === page.source.eventId);
+                if (event?.kind === 'chapter')
+                  return (
                     <IconButton
                       title="이 지점에서 분기"
-                      disabled={busy}
+                      disabled={busy || preview}
                       onClick={() => setBranch({ eventId: event.id })}
                     >
                       <GitBranch size={15} />
                     </IconButton>
+                  );
+                if (event?.kind !== 'turn') return null;
+                return (
+                  <>
+                    {canBrowseLatest && event.id === latestTurn?.id && (
+                      <CandidatePager
+                        turn={event}
+                        candidateId={displayed(event).id}
+                        disabled={busy}
+                        onChoose={(index) => choose(event, index)}
+                      />
+                    )}
+                    {event.id === editableTurn?.id && (
+                      <IconButton
+                        title="리롤"
+                        disabled={busy || preview}
+                        onClick={() => (cfg.rerollPrompt ? setReroll(true) : void send(true))}
+                      >
+                        <RefreshCw size={15} />
+                      </IconButton>
+                    )}
+                    <IconButton
+                      title="대사 수정"
+                      disabled={busy}
+                      onClick={() =>
+                        setEditing({
+                          turn: event,
+                          kind: 'assistant',
+                          body: displayed(event).body,
+                          candidateId: displayed(event).id,
+                        })
+                      }
+                    >
+                      <Pencil size={15} />
+                    </IconButton>
+                    <IconButton
+                      title="이 지점에서 분기"
+                      disabled={busy || preview}
+                      onClick={() =>
+                        setBranch({ eventId: event.id, candidateId: displayed(event).id })
+                      }
+                    >
+                      <GitBranch size={15} />
+                    </IconButton>
+                    {event.id === editableTurn?.id && (
+                      <IconButton
+                        title="마지막 대화 삭제"
+                        disabled={busy}
+                        onClick={() => setDel(true)}
+                      >
+                        <Trash2 size={15} />
+                      </IconButton>
+                    )}
+                  </>
+                );
+              }}
+            />
+          ) : (
+            <>
+              <div
+                className="chat-column"
+                style={
+                  {
+                    fontSize: cfg.fontSize,
+                    lineHeight: `${cfg.lineHeight}px`,
+                    letterSpacing: `${cfg.letterSpacing}px`,
+                  } as CSSProperties
+                }
+              >
+                <section className="chat-message-section opening-scene">
+                  {mobile && !room.timeline.length && (
+                    <WorkInfoPrompt onOpen={() => showMenu('info', true)} />
+                  )}
+                  <StoryIntro title={op.name}>
+                    <StoryBody
+                      body={op.body}
+                      room={room}
+                      disabled={busy}
+                      source={{ eventId: `opening:${room.openingId}` }}
+                      onEffect={setEffect}
+                    />
+                  </StoryIntro>
+                </section>
+                {room.timeline.map((event, index) =>
+                  event.kind === 'turn' ? (
+                    <article className="conversation-turn" id={`event-${event.id}`} key={event.id}>
+                      <section className="chat-message-section user-section">
+                        <div className="user-message">
+                          {cfg.profiles && (
+                            <Avatar src={event.before.context.persona.image} size={56} />
+                          )}
+                          <div>
+                            <strong>{event.before.context.persona.name}</strong>
+                            <Markdown>
+                              {event.input === CONTINUE ? '이어서 내용 전개' : event.input}
+                            </Markdown>
+                          </div>
+                          <IconButton
+                            title="입력 수정"
+                            disabled={busy}
+                            onClick={() =>
+                              setEditing({ turn: event, kind: 'user', body: event.input })
+                            }
+                          >
+                            <Pencil size={13} />
+                          </IconButton>
+                        </div>
+                      </section>
+                      <section className="chat-message-section assistant-section">
+                        {event.dice && <div className="local-event">주사위 d20 · {event.dice}</div>}
+                        <StoryBody
+                          body={displayed(event).body}
+                          room={room}
+                          checkpoint={displayed(event).checkpoint}
+                          disabled={busy}
+                          source={{ eventId: event.id, candidateId: displayed(event).id }}
+                          onEffect={setEffect}
+                        />
+                        <StatusDisplay
+                          work={room.work}
+                          runtime={displayed(event).checkpoint.runtime}
+                          expanded={cfg.statusExpanded}
+                          demo={displayed(event).usage.model === 'demo'}
+                        />
+                        <div className="response-tools">
+                          {canBrowseLatest && event.id === latestTurn?.id && (
+                            <CandidatePager
+                              turn={event}
+                              candidateId={displayed(event).id}
+                              disabled={busy}
+                              onChoose={(index) => choose(event, index)}
+                            />
+                          )}
+                          <IconButton
+                            title="대사 수정"
+                            disabled={busy}
+                            onClick={() =>
+                              setEditing({
+                                turn: event,
+                                kind: 'assistant',
+                                body: displayed(event).body,
+                                candidateId: displayed(event).id,
+                              })
+                            }
+                          >
+                            <Pencil size={15} />
+                          </IconButton>
+                          <IconButton
+                            title="이 지점에서 분기"
+                            disabled={busy}
+                            onClick={() =>
+                              setBranch({ eventId: event.id, candidateId: displayed(event).id })
+                            }
+                          >
+                            <GitBranch size={15} />
+                          </IconButton>
+                          {event.id === editableTurn?.id && (
+                            <>
+                              <IconButton
+                                title="리롤"
+                                disabled={busy}
+                                onClick={() =>
+                                  cfg.rerollPrompt ? setReroll(true) : void send(true)
+                                }
+                              >
+                                <RefreshCw size={15} />
+                              </IconButton>
+                              <IconButton
+                                title="마지막 대화 삭제"
+                                disabled={busy}
+                                onClick={() => setDel(true)}
+                              >
+                                <Trash2 size={15} />
+                              </IconButton>
+                            </>
+                          )}
+                        </div>
+                      </section>
+                    </article>
+                  ) : event.kind === 'chapter' ? (
+                    <article
+                      className="chapter-scene chat-message-section"
+                      id={`event-${event.id}`}
+                      key={event.id}
+                    >
+                      <StoryIntro
+                        title={
+                          room.work.chapters.find((c) => c.id === event.after.runtime.nodeId)
+                            ?.name ?? '챕터'
+                        }
+                      >
+                        <StoryBody
+                          body={event.body}
+                          room={room}
+                          checkpoint={event.after}
+                          disabled={busy}
+                          source={{ eventId: event.id }}
+                          onEffect={setEffect}
+                        />
+                      </StoryIntro>
+                      <div className="response-tools">
+                        <IconButton
+                          title="이 지점에서 분기"
+                          disabled={busy}
+                          onClick={() => setBranch({ eventId: event.id })}
+                        >
+                          <GitBranch size={15} />
+                        </IconButton>
+                      </div>
+                    </article>
+                  ) : null,
+                )}
+                {busy && (
+                  <div className="generation-status" role="status">
+                    <span className="pulse" />
+                    {phase}
                   </div>
-                </article>
-              ) : null,
-            )}
-            {busy && (
-              <div className="generation-status" role="status">
-                <span className="pulse" />
-                {phase}
+                )}
+                <div ref={end} />
               </div>
-            )}
-            <div ref={end} />
-          </div>
+            </>
+          )}
         </div>
-        <footer className="chat-footer">
+        <footer className="chat-footer" ref={footerRef}>
           <div className="chat-column">
             <div className="status-strip" hidden>
               {room.work.statuses.map((s) => (
@@ -661,7 +925,7 @@ function ChatContent({
                 <div className="grow" />
                 <ActionButton
                   className="model-trigger"
-                  disabled={busy}
+                  disabled={busy || preview}
                   onClick={() => {
                     refreshModels();
                     setPicker('chat');
@@ -764,7 +1028,10 @@ function ChatContent({
         </SideDrawer>
       )}
       {mobile && pageMenu && (
-        <MobilePage title={pageMenu.name} onBack={() => navigateBack(`/chat/${room.id}`)}>
+        <MobilePage
+          title={pageMenu.name}
+          onBack={() => (preview ? setPreviewPanel(undefined) : navigateBack(`/chat/${room.id}`))}
+        >
           {panelContent}
         </MobilePage>
       )}
@@ -850,7 +1117,7 @@ function ChatContent({
           <Button
             className="full"
             onClick={() => {
-              run(mutate((r) => deleteLast(r, true)).then(() => setInput((last as Turn).input)));
+              run(mutate((r) => deleteLast(r, true)).then(() => setInput(editableTurn!.input)));
               setDel(false);
             }}
           >
@@ -891,6 +1158,8 @@ function ChatContent({
       )}
       {effect && room.work.effects.find((e) => e.id === effect.id) && (
         <EffectPlayer
+          preview={preview}
+          work={room.work}
           effect={room.work.effects.find((e) => e.id === effect.id)!}
           context={{
             personaName: room.current.context.persona.name,
@@ -899,8 +1168,12 @@ function ChatContent({
             nodeId: room.current.runtime.nodeId,
           }}
           readOnly={!canCompleteEffect(room, effect.id, effect.source)}
-          onResult={(result) => mutate((r) => completeEffect(r, effect.id, effect.source, result))}
-          onClose={() => setEffect(null)}
+          autoClose={effect.autoPlay}
+          onPresentation={setEffectPresentation}
+          onResult={(result, presentation) =>
+            mutate((r) => completeEffect(r, effect.id, effect.source, result, presentation))
+          }
+          onClose={closeEffect}
         />
       )}
       {opening && (

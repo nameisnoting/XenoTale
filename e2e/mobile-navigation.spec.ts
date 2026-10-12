@@ -71,7 +71,7 @@ test('대화 메뉴 묶음·작품정보 이름·새 대화방 열기와 기존 
     ['작품정보', '플레이 가이드', '사용량'],
     ['유저노트', '유저 페르소나'],
     ['갤러리', '소지품', '챕터', '관계도'],
-    ['기억 관리', '대화 품질 관리', '기타 설정 관리'],
+    ['기억 관리', '대화 품질 관리', '환경 설정'],
     ['새 대화방 열기'],
   ]);
   await page.screenshot({ path: `${out}/menu-groups.png` });
@@ -246,7 +246,7 @@ test('대화 기능은 주소가 있는 페이지 · 브라우저 뒤로 가기 
     ['유저 페르소나', 'persona'],
     ['사용량', 'usage'],
     ['기억 관리', 'memory'],
-    ['기타 설정 관리', 'settings'],
+    ['환경 설정', 'settings'],
   ]) {
     await page.getByRole('button', { name: '대화 메뉴', exact: true }).click();
     await page.getByRole('button', { name, exact: true }).click();

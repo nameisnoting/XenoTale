@@ -18,7 +18,7 @@ const destinations = [
   { id: 'relations', label: '관계도', icon: 'mdi_relation-one-or-many-to-zero-or-one' },
   { id: 'memory', label: '기억관리', icon: 'ic_outline-sd-storage' },
   { id: 'quality', label: '대화설정', icon: 'settings' },
-  { id: 'settings', label: '기타설정', icon: 'settings-2' },
+  { id: 'settings', label: '환경설정', icon: 'settings-2' },
 ];
 
 export function ChatWorkspace({

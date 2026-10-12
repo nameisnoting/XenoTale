@@ -216,6 +216,7 @@ export function CreatorTest({
       )}
       {effect && displayRoom.work.effects.find((e) => e.id === effect.id) && (
         <EffectPlayer
+          work={displayRoom.work}
           effect={displayRoom.work.effects.find((e) => e.id === effect.id)!}
           context={{
             personaName: displayRoom.current.context.persona.name,
@@ -224,10 +225,16 @@ export function CreatorTest({
             nodeId: displayRoom.current.runtime.nodeId,
           }}
           readOnly={!canCompleteEffect(displayRoom, effect.id, effect.source)}
-          onResult={async (result) => {
+          onResult={async (result, presentation) => {
             if (lock.current || !roomRef.current)
               throw new Error('답변 생성이 끝난 뒤 실행해 주세요.');
-            const next = completeEffect(roomRef.current, effect.id, effect.source, result);
+            const next = completeEffect(
+              roomRef.current,
+              effect.id,
+              effect.source,
+              result,
+              presentation,
+            );
             roomRef.current = next;
             setRoom(next);
           }}

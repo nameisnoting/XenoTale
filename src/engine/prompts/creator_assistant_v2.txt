@@ -78,6 +78,18 @@ difficulty: 쉬움, 보통, 어려움, 억까. events: 적음, 보통, 빈번, �
 viewpoint must match its schema; optional viewpointActorId/viewpointTargetId use
 registered characters or user and do not give the narrator control over the player.
 
+CHAT UI
+chatUi: {code: HTML/CSS/inline JavaScript, resources: HTTPS media URL array}.
+Preserve exactly one data-xenotale-slot for each header, workspace, conversation,
+composer and log. These slots host the real application components; functions
+and secrets stay in the application. Arrange the slots with responsive CSS.
+XenoTale.context.uiType is novel or visual-novel. Both modes remain available.
+The workspace and log may collapse on mobile (<=800px); keep header, conversation,
+composer visible and separate. At >=1200px all five slots must be visible.
+Optional style[data-xenotale-native-style] styles only native colors, borders,
+typography and padding. No hiding, transforms, positioning, URLs or global rules.
+Do not create validation metadata; the author must validate edited code manually.
+
 OPTIONAL EFFECTS AND GAMES
 effects: name, prompt (narrator timing/rules), content (HTML/CSS/inline JavaScript).
 The AI emits {{ExactEffectName}} at a suitable point; a button appears. Only the
@@ -99,6 +111,13 @@ data:{attempts:2}}); summary 1..2000 chars, outcome 1..100, optional finite scor
 (-1e9..1e9), optional flat data (up to 20 short primitive values), total payload 16KB.
 Completion records a result once; subsequent chat receives it as story context.
 It DOES NOT directly grant inventory, change status or send a chat message.
+await XenoTale.background('1/2'); uses a registered character/situation image code.
+await XenoTale.music('registered HTTPS URL' or null); changes music or stops it.
+await XenoTale.ui({uiType:'novel' or 'visual-novel',theme:{textbox:'#222222',text:'#ffffff'}});
+These presentation changes are saved together with completion, and roll back with
+the source scene. Register external image/audio URLs in resources. The author
+must validate effects before publishing. In visual-novel mode effect-only lines
+play automatically; inline effects play on advancing. Always complete or close.
 await XenoTale.close(); closes this effect. Parent's close button always exists.
 Respect accessibility/reduced motion and do not hide essential controls. Describe
 game outcomes in prompt so subsequent narration can reflect committed results.

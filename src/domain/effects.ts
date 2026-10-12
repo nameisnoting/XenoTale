@@ -1,6 +1,8 @@
 import { z } from 'zod';
 import type { EffectSource, Room, Work } from './types';
 import { clone, id, selected } from './types';
+import { presentationSchema, checkPresentation } from './presentation';
+import type { Presentation } from './types';
 
 const key = z
   .string()
@@ -41,6 +43,7 @@ export const effectRecordSchema = z
     effectName: z.string().max(1000),
     source: effectSourceSchema,
     result: effectResultSchema,
+    presentation: presentationSchema.optional(),
     createdAt: z.number().finite(),
   })
   .strict();
@@ -101,12 +104,16 @@ export function completeEffect(
   effectId: string,
   source: EffectSource,
   raw: unknown,
+  presentation?: Presentation,
 ): Room {
   const result = effectResultSchema.parse(raw);
   effectSourceSchema.parse(source);
   if (!canCompleteEffect(room, effectId, source))
     throw new Error('이미 결과를 반영했거나 이전 장면의 연출입니다. 다시 보기는 가능합니다.');
   const effect = room.work.effects.find((e) => e.id === effectId)!;
+  const checked = presentation
+    ? checkPresentation(presentation, room.work, effect.resources)
+    : undefined;
   const next = clone(room);
   const before = clone(next.current);
   const record = {
@@ -115,12 +122,15 @@ export function completeEffect(
     effectName: effect.name,
     source: clone(source),
     result,
+    ...(checked ? { presentation: checked } : {}),
     createdAt: Date.now(),
   };
   next.current.runtime.effectResults = [
     ...(next.current.runtime.effectResults ?? []),
     record,
   ].slice(-32);
+  if (checked)
+    next.current.runtime.presentation = { ...next.current.runtime.presentation, ...checked };
   const body = `${effect.name || '연출'} · ${result.summary}`;
   next.timeline.push({
     id: record.id,

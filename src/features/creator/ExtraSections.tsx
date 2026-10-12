@@ -13,6 +13,7 @@ import { Field, TextInput, Area, Button } from '../../components/UI';
 import { effectExamples } from '../effectExamples';
 import { PersonaLibrary } from '../Profile';
 import type { CreatorPanelState } from './useCreatorPanelState';
+import { CodeValidationButton } from '../../components/CodeValidationButton';
 
 export function ShortcutsSection({ work, update }: Pick<CreatorPanelState, 'work' | 'update'>) {
   return (
@@ -69,6 +70,11 @@ export function EffectsSection({
         AI가 {'{{이름}}'}을 출력하면 보기 버튼이 나타납니다. 사용자가 누르면 화면 전체에서 연출을
         실행합니다.
       </p>
+      <p className="muted">
+        비주얼노벨에서는 자동 재생됩니다. XenoTale.background('1/2'), XenoTale.music(주소 또는
+        null), XenoTale.ui({'{uiType, theme}'})로 화면·음악을 바꿀 수 있습니다. XenoTale.complete
+        결과와 함께 저장됩니다.
+      </p>
       {work.effects.map((s, i) => (
         <DisclosureCard
           className="creator-card"
@@ -110,11 +116,45 @@ export function EffectsSection({
               })
             }
           />
-          <div className="form-row">
+          <Field label="외부 리소스 (이미지·음악 주소, 한 줄에 하나)">
+            <Area
+              rows={2}
+              value={(s.resources ?? []).join('\n')}
+              onChange={(text) =>
+                update({
+                  effects: work.effects.map((x, j) =>
+                    j === i
+                      ? {
+                          ...x,
+                          resources: text
+                            .split('\n')
+                            .map((url) => url.trim())
+                            .filter(Boolean),
+                          validation: undefined,
+                        }
+                      : x,
+                  ),
+                })
+              }
+            />
+          </Field>
+          <div className="form-row code-actions">
             <Button onClick={() => setEffectPreview(s)}>
               <Eye size={15} />
               미리보기
             </Button>
+            <CodeValidationButton
+              code={s.content}
+              resources={s.resources}
+              validation={s.validation}
+              kind="effect"
+              work={work}
+              onValidated={(validation) =>
+                update({
+                  effects: work.effects.map((x, j) => (j === i ? { ...x, validation } : x)),
+                })
+              }
+            />
           </div>
         </DisclosureCard>
       ))}
@@ -142,6 +182,7 @@ function EffectCodeEditor({
   const changeContent = (content: string) =>
     onChange({
       content,
+      validation: undefined,
       ...(exampleName.current && !value.name ? { name: exampleName.current } : {}),
     });
   return (

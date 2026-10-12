@@ -2,6 +2,7 @@ import './CharacterEditor.css';
 import './StatusEditor.css';
 import './ChatShortcuts.css';
 import { MediaEditor } from './CreatorExtras';
+import { ChatUiSection } from './creator/ChatUiSection';
 import { RelationGraph } from './Graphs';
 import { OverviewSection } from './creator/OverviewSection';
 import { CharactersSection } from './creator/CharactersSection';
@@ -27,6 +28,7 @@ export function EditorPanels(props: CreatorPanelProps) {
       {section === 'characters' && <CharactersSection {...state} />}
       {section === 'openings' && <OpeningsSection {...state} />}
       {section === 'statuses' && <StatusSection {...state} />}
+      {section === 'chatUi' && <ChatUiSection {...state} />}
       {section === 'items' && <ItemsSection {...state} />}
       {section === 'scenarios' && <ScenarioSection {...state} />}
       {section === 'shortcuts' && <ShortcutsSection {...state} />}

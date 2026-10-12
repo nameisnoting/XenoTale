@@ -55,7 +55,7 @@ export const chatMenuGroups = [
   [
     { id: 'memory', name: '기억 관리', icon: Brain },
     { id: 'quality', name: '대화 품질 관리', icon: SlidersHorizontal },
-    { id: 'settings', name: '기타 설정 관리', icon: Settings },
+    { id: 'settings', name: '환경 설정', icon: Settings },
   ],
 ];
 export const chatMenus = chatMenuGroups.flat();
@@ -108,6 +108,8 @@ export function ChatPanel({
     run(
       mutate((r) => {
         r.current.context.settings = { ...r.current.context.settings, ...change };
+        if (change.uiType && r.current.runtime.presentation)
+          delete r.current.runtime.presentation.uiType;
         return r;
       }),
     );
@@ -496,6 +498,25 @@ export function ChatPanel({
               unit="pt"
               onChange={(lineHeight) => set({ lineHeight })}
             />
+          </section>
+          <section className="setting-card">
+            <h3>UI</h3>
+            <Field label="유형">
+              <RadioOptions
+                value={settings.uiType === 'visual-novel' ? '비주얼노벨' : '소설'}
+                values={['소설', '비주얼노벨']}
+                onChange={(v) => set({ uiType: v === '소설' ? 'novel' : 'visual-novel' })}
+              />
+            </Field>
+            {w.chatUi && (
+              <Field label="화면 디자인">
+                <RadioOptions
+                  value={settings.uiSource === 'default' ? '기본 UI' : '제작자 UI'}
+                  values={['제작자 UI', '기본 UI']}
+                  onChange={(v) => set({ uiSource: v === '기본 UI' ? 'default' : 'creator' })}
+                />
+              </Field>
+            )}
           </section>
           <Button className="full" onClick={() => exportRoom(room)}>
             <Download size={16} />

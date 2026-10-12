@@ -80,7 +80,9 @@ describe('interactive effects', () => {
     if (turn.kind !== 'turn') throw new Error();
     const source = { eventId: turn.id, candidateId: turn.selectedId, occurrence: 0 };
     const completed = completeEffect(first, 'railgun', source, result);
-    expect(() => switchCandidate(completed, turn.id, turn.selectedId)).toThrow();
+    expect(
+      switchCandidate(completed, turn.id, turn.selectedId).current.runtime.effectResults,
+    ).toBeUndefined();
     expect(branchRoom(completed, turn.id).current.runtime.effectResults).toBeUndefined();
     expect(
       branchRoom(completed, completed.timeline[1].id).current.runtime.effectResults,

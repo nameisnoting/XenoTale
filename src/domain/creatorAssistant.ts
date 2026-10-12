@@ -29,6 +29,7 @@ export const creatorSections = [
     fields: ['relations', 'relationPositions', 'relationSplit', 'relationNodeIds'],
   },
   { id: 'statuses', name: '상태창', fields: ['statuses', 'statusTemplate'] },
+  { id: 'chatUi', name: '대화방 UI', fields: ['chatUi'] },
   { id: 'items', name: '아이템', fields: ['items'] },
   { id: 'scenarios', name: '시나리오', fields: ['chapters'] },
   { id: 'shortcuts', name: '단축어', fields: ['shortcuts'] },

@@ -1,4 +1,12 @@
 import type { CreatorMessage } from './creatorAssistant';
+export type ChatUiType = 'novel' | 'visual-novel';
+export type CodeValidation = { fingerprint: string; policy: number };
+export type Presentation = {
+  background?: string;
+  music?: string | null;
+  uiType?: ChatUiType;
+  theme?: { textbox?: string; text?: string };
+};
 
 export type Viewpoint = '1인칭 주인공' | '1인칭 관찰자' | '3인칭 관찰자' | '전지적 작가';
 export const VIEWPOINTS: Viewpoint[] = [
@@ -92,6 +100,7 @@ export type Chapter = {
   prologue: string;
   prompt: string;
   afterstory: boolean;
+  bgm?: string;
 };
 export type Opening = {
   defaultName?: string;
@@ -136,7 +145,14 @@ export type Work = {
   personas: Persona[];
   guide: string;
   shortcuts: Shortcut[];
-  effects: { id: string; name: string; prompt: string; content: string }[];
+  effects: {
+    id: string;
+    name: string;
+    prompt: string;
+    content: string;
+    resources?: string[];
+    validation?: CodeValidation;
+  }[];
   media: {
     template: string;
     rangeMin?: number;
@@ -147,6 +163,7 @@ export type Work = {
     situations: { code: string; name: string }[];
   };
   statusTemplate: string;
+  chatUi?: { code: string; resources?: string[]; validation?: CodeValidation };
   characterGroups?: { defaultName?: string; id: string; name: string; prompt: string }[];
   relationPositions?: Record<string, { x: number; y: number }>;
   relationSplit?: boolean;
@@ -178,6 +195,7 @@ export type PublishedWork = {
   createdAt: number;
 };
 export type Runtime = {
+  presentation?: Presentation;
   effectResults?: EffectRecord[];
   status: Record<string, string | number>;
   inventory: Record<string, { owned: boolean; level: number; bonus: number }>;
@@ -204,6 +222,8 @@ export type Memory = {
   eventSources?: string[];
 };
 export type RoomSettings = {
+  uiType?: ChatUiType;
+  uiSource?: 'creator' | 'default';
   modelId: string;
   creativity: number;
   choices: boolean;
@@ -282,6 +302,7 @@ export type EffectRecord = {
   effectName: string;
   source: EffectSource;
   result: EffectResult;
+  presentation?: Presentation;
   createdAt: number;
 };
 export type TimelineEvent = Turn | LocalEvent;

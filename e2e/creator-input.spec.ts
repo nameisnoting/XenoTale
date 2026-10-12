@@ -102,6 +102,10 @@ for (const width of [1440, 393]) {
     await expect(publish).toBeDisabled();
     await section('도입부');
     await form.getByRole('textbox', { name: /^내용/ }).fill('@안내인: 반갑습니다.');
+    await expect(publish).toBeDisabled();
+    await section('대화방 UI');
+    await page.getByRole('button', { name: '유효성 검사', exact: true }).click();
+    await expect(page.locator('.code-validation')).toContainText('검사 통과');
     await expect(publish).toBeEnabled();
     expect(await publish.evaluate((e) => getComputedStyle(e).fontWeight)).toBe('700');
     await section('작품 개요');
@@ -128,7 +132,7 @@ for (const width of [1440, 393]) {
     await input.fill('드래그 상태에서 작성한 메시지');
     await handle.press('Home');
     await expect(page.locator('.resizable-composer')).toHaveAttribute('data-manual', 'false');
-    await expect.poll(() => input.evaluate(e => e.getBoundingClientRect().height)).toBe(48);
+    await expect.poll(() => input.evaluate((e) => e.getBoundingClientRect().height)).toBe(48);
     await input.fill('대화 테스트');
     await input.press('Enter');
     await expect(input).toHaveValue('');

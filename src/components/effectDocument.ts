@@ -1,7 +1,7 @@
 const scriptJSON = (value: unknown) => JSON.stringify(value).replaceAll('<', '\\u003c');
 
 /** The authored code only sees this bridge and public play context, never app references or keys. */
-export function effectDocument(content: string, runId: string) {
+export function effectDocument(content: string, runId: string, resources?: string[]) {
   const bridge = `(() => {
     'use strict';
     const runId = ${scriptJSON(runId)};
@@ -48,16 +48,24 @@ export function effectDocument(content: string, runId: string) {
       complete: result => request('complete', result),
       close: async () => { await ready; port.postMessage({ type: 'close' }); },
       screen: (name, duration = 800) => request('screen', { name, duration })
+      ,background: code => request('presentation', {background:code})
+      ,music: url => request('presentation', {music:url})
+      ,ui: options => request('presentation', options)
     }), writable: false, configurable: false });
+    window.addEventListener('error', e => ready.then(() => port.postMessage({type:'diagnostic',payload:e.message || '코드 실행 오류'})));
+    window.addEventListener('unhandledrejection', e => ready.then(() => port.postMessage({type:'diagnostic',payload:String(e.reason)})));
     document.addEventListener('keydown', event => {
       if (event.key === 'Escape') { event.preventDefault(); ready.then(() => port.postMessage({ type: 'close' })); }
     }, true);
   })();`;
   // The policy precedes all author markup. No same-origin privilege, external scripts, fetch,
   // child frames, workers, forms or popup permissions. HTTPS/data media are deliberately allowed.
+  const assets = resources
+    ? resources.filter((url) => /^https:\/\/[^\s"'<>;]+$/.test(url)).join(' ')
+    : 'https:';
   return `<!doctype html><html lang="ko"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src https: data:; media-src https: data:; connect-src 'none'; frame-src 'none'; worker-src 'none'; font-src 'none'; object-src 'none'; form-action 'none'; base-uri 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src ${assets} data:; media-src ${assets} data:; connect-src 'none'; frame-src 'none'; worker-src 'none'; font-src 'none'; object-src 'none'; form-action 'none'; base-uri 'none'">
 <style>html,body{margin:0;min-height:100%;background:transparent;color:#fff;font:16px/1.6 sans-serif}*{box-sizing:border-box}img,video{max-width:100%}button{cursor:pointer}a{color:#5fddce}@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}</style>
 <script>${bridge}</script></head><body>${content}</body></html>`;
 }

@@ -1,8 +1,10 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
-import type { EffectResult, Runtime, Work } from '../domain/types';
+import type { EffectResult, Runtime, Work, Presentation } from '../domain/types';
 import { effectResultSchema } from '../domain/effects';
+import { checkPresentation } from '../domain/presentation';
+import { codeChecked, registeredMedia } from '../domain/chatUi';
 import { IconButton, Markdown } from './UI';
 import { effectDocument } from './effectDocument';
 import './EffectPlayer.css';
@@ -15,6 +17,9 @@ export function EffectPlayer({
   readOnly = false,
   onResult,
   onClose,
+  work,
+  autoClose = false,
+  onPresentation,
 }: {
   effect: Effect;
   context?: {
@@ -25,7 +30,10 @@ export function EffectPlayer({
   };
   preview?: boolean;
   readOnly?: boolean;
-  onResult?: (result: EffectResult) => Promise<unknown>;
+  work?: Work;
+  autoClose?: boolean;
+  onPresentation?: (presentation: Presentation) => void;
+  onResult?: (result: EffectResult, presentation?: Presentation) => Promise<unknown>;
   onClose: () => void;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
@@ -35,13 +43,22 @@ export function EffectPlayer({
   const saving = useRef(false);
   const completed = useRef(false);
   const screenTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const callbacks = useRef({ onResult, onClose, context, readOnly });
-  callbacks.current = { onResult, onClose, context, readOnly };
+  const presentation = useRef<Presentation>({});
+  const callbacks = useRef({ onResult, onClose, context, readOnly, onPresentation });
+  callbacks.current = { onResult, onClose, context, readOnly, onPresentation };
   const [message, setMessage] = useState(readOnly ? '다시 보기 · 결과는 변경되지 않습니다.' : '');
   const [pending, setPending] = useState(false);
   const runId = useMemo(() => crypto.randomUUID(), []);
   const html = /<[a-z][\s\S]*>/i.test(effect.content);
-  const srcDoc = useMemo(() => effectDocument(effect.content, runId), [effect.content, runId]);
+  const srcDoc = useMemo(
+    () =>
+      effectDocument(
+        effect.content,
+        runId,
+        work ? [...registeredMedia(work), ...(effect.resources ?? [])] : undefined,
+      ),
+    [effect.content, effect.resources, work, runId],
+  );
   const close = () => {
     if (!saving.current) callbacks.current.onClose();
   };
@@ -90,12 +107,26 @@ export function EffectPlayer({
         close();
         return;
       }
+      if (data.type === 'diagnostic') {
+        setMessage('연출 코드 오류: ' + String(data.payload).slice(0, 1000));
+        return;
+      }
       if (typeof data.requestId !== 'string' || data.requestId.length > 100) return;
       const reply = (ok: boolean, result?: unknown, error?: string) =>
         channel.port1.postMessage({ requestId: data.requestId, ok, result, error });
       try {
         if (JSON.stringify(data).length > 16000) throw new Error('연출 결과가 너무 큽니다.');
-        if (data.type === 'screen') {
+        if (data.type === 'presentation') {
+          if (
+            !work ||
+            (!preview && !codeChecked(effect.content, effect.validation, effect.resources))
+          )
+            throw new Error('유효성 검사를 통과한 연출에서 사용할 수 있습니다.');
+          const checked = checkPresentation(data.payload, work, effect.resources);
+          presentation.current = { ...presentation.current, ...checked };
+          callbacks.current.onPresentation?.(presentation.current);
+          reply(true);
+        } else if (data.type === 'screen') {
           const { name, duration } = data.payload ?? {};
           if (
             !['shake', 'glitch'].includes(name) ||
@@ -113,7 +144,7 @@ export function EffectPlayer({
           reply(true);
         } else if (data.type === 'complete') {
           if (saving.current) throw new Error('결과를 저장하고 있습니다.');
-          if (completed.current || callbacks.current.readOnly)
+          if (completed.current || (callbacks.current.readOnly && !autoClose))
             throw new Error('이미 결과를 반영했거나 이전 장면입니다. 결과를 변경할 수 없습니다.');
           const parsed = effectResultSchema.safeParse(data.payload);
           if (!parsed.success)
@@ -125,10 +156,12 @@ export function EffectPlayer({
           try {
             if (!preview && !callbacks.current.onResult)
               throw new Error('결과를 저장할 수 없습니다.');
-            await callbacks.current.onResult?.(parsed.data);
+            if (!callbacks.current.readOnly)
+              await callbacks.current.onResult?.(parsed.data, presentation.current);
             completed.current = true;
             setMessage(`${preview ? '미리보기 결과' : '결과 저장완료'} · ${parsed.data.summary}`);
             reply(true, parsed.data);
+            if (autoClose) setTimeout(() => callbacks.current.onClose(), 0);
           } finally {
             saving.current = false;
             setPending(false);

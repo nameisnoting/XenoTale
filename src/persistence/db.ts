@@ -4,6 +4,7 @@ import type { Workspace, PublishedWork, Room, Profile } from '../domain/types';
 import { clone } from '../domain/types';
 import { defaultProfile } from '../domain/defaults';
 import { validateWork } from '../domain/engine';
+import { publicationCodeProblems } from '../domain/chatUi';
 import { upgradeProvidedSystemPrompt } from '../domain/systemPrompt';
 import { migrateSharedPersonas } from './personas';
 import type { StoredCredential } from './credentials';
@@ -126,6 +127,8 @@ export async function publishWorkspace(workspaceId: string) {
     const entry = await db.workspaces.get(workspaceId);
     if (!entry) throw new Error('작업 공간이 없습니다.');
     validateWork(entry.work, true);
+    const codeIssues = publicationCodeProblems(entry.work);
+    if (codeIssues.length) throw new Error(codeIssues.join('\n'));
     const work = clone(entry.work);
     work.version = entry.publishedVersion + 1;
     await db.works.put({ id: work.id, work, owned: true, hidden: false, createdAt: Date.now() });

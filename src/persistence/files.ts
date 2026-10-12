@@ -4,12 +4,15 @@ import type { Work, Room, Runtime, Workspace } from '../domain/types';
 import { clone, id } from '../domain/types';
 import { validateWork } from '../domain/engine';
 import { effectRecordSchema, canCompleteEffect } from '../domain/effects';
+import { presentationSchema } from '../domain/presentation';
 import { mergeNotes } from '../domain/notes';
 import { prepareCredential, readApiKey } from './credentials';
 
 const imageString = z.string().max(15_000_000);
 const str = z.string().max(2_000_000);
 const short = z.string().max(1000);
+const validation = z.object({ fingerprint: short, policy: z.number().int() });
+const resources = z.array(short).max(100);
 const identifier = short.refine((s) => !['__proto__', 'prototype', 'constructor'].includes(s));
 const arr = <T extends z.ZodType>(s: T) => z.array(s).max(10000);
 const relation = z.object({
@@ -149,12 +152,25 @@ export const workSchema = z.object({
       prologue: str,
       prompt: str,
       afterstory: z.boolean(),
+      bgm: str.optional(),
     }),
   ),
   personas: arr(persona),
   guide: str,
   shortcuts: arr(z.object({ id: identifier, name: short, description: str, prompt: str })),
-  effects: arr(z.object({ id: identifier, name: short, prompt: str, content: str })),
+  chatUi: z
+    .object({ code: str, resources: resources.optional(), validation: validation.optional() })
+    .optional(),
+  effects: arr(
+    z.object({
+      id: identifier,
+      name: short,
+      prompt: str,
+      content: str,
+      resources: resources.optional(),
+      validation: validation.optional(),
+    }),
+  ),
   media: z.object({
     template: str,
     rangeMin: z.number().int().min(0).max(9999).optional(),
@@ -175,6 +191,7 @@ export const workSchema = z.object({
   relationNodeIds: z.array(identifier).optional(),
 });
 const runtime = z.object({
+  presentation: presentationSchema.optional(),
   effectResults: z.array(effectRecordSchema).max(32).optional(),
   status: z.record(identifier, z.union([str, z.number().finite()])),
   inventory: z.record(
@@ -207,6 +224,8 @@ const memory = z.object({
   eventSources: arr(str).optional(),
 });
 const roomSettings = z.object({
+  uiType: z.enum(['novel', 'visual-novel']).optional(),
+  uiSource: z.enum(['creator', 'default']).optional(),
   modelId: short,
   creativity: z.number().int().min(0).max(4),
   choices: z.boolean(),

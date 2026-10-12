@@ -5,6 +5,7 @@ export const sections = [
   { id: 'media', name: '미디어' },
   { id: 'relations', name: '관계도' },
   { id: 'statuses', name: '상태창' },
+  { id: 'chatUi', name: '대화방 UI', required: true },
   { id: 'items', name: '아이템' },
   { id: 'scenarios', name: '시나리오' },
   { id: 'shortcuts', name: '단축어' },

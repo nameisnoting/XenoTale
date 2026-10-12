@@ -146,6 +146,18 @@ export function ScenarioSection({
                   onChange={(afterstory) => changeChapter(i, { afterstory })}
                 />
               )}
+              <Field label="BGM 주소 (비워 두면 음악 끄기)">
+                <TextInput
+                  value={c.bgm ?? ''}
+                  onChange={(bgm) => changeChapter(i, { bgm })}
+                  placeholder="이전 노드의 음악을 이어서 재생 중"
+                />
+                {c.bgm !== undefined && (
+                  <Button onClick={() => changeChapter(i, { bgm: undefined })}>
+                    이전 노드 음악 사용
+                  </Button>
+                )}
+              </Field>
               <DeleteAction
                 title="챕터 삭제"
                 label="챕터 삭제"

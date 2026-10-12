@@ -23,12 +23,12 @@ function answer(work: Work, patch: Partial<Work>) {
   };
 }
 describe('whole creation assistant', () => {
-  it('sends all twelve sections with real field schemas, without managed fields or image bytes', () => {
+  it('sends all thirteen sections with real field schemas, without managed fields or image bytes', () => {
     const work = exampleWork();
     work.cover = 'data:image/png;base64,secret-bytes';
     work.characters[0].image = work.cover;
     const request = creatorRequest(work);
-    expect(request.sections).toHaveLength(12);
+    expect(request.sections).toHaveLength(13);
     expect(request.draft.overview.cover).toBe(
       request.draft.characters.characters instanceof Array &&
         request.draft.characters.characters[0].image,
@@ -282,12 +282,10 @@ describe('structured creator request output budget', () => {
       const content = '{"reply":"이미 받은 설명","proposals":[';
       vi.stubGlobal(
         'fetch',
-        vi
-          .fn()
-          .mockResolvedValue({
-            ok: true,
-            json: async () => ({ choices: [{ finish_reason: finish, message: { content } }] }),
-          }),
+        vi.fn().mockResolvedValue({
+          ok: true,
+          json: async () => ({ choices: [{ finish_reason: finish, message: { content } }] }),
+        }),
       );
       expect(
         await requestJson('system', {}, model, 'fake-key', new AbortController().signal, {

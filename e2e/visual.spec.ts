@@ -27,7 +27,7 @@ test('전체 패널 화면 검수 · 제작 패널 테스트 · 모바일 메뉴
     '관계도',
     '기억관리',
     '대화설정',
-    '기타설정',
+    '환경설정',
   ]) {
     await page.getByRole('button', { name, exact: true }).click();
     await expect(page.getByRole('dialog')).toHaveCount(0);
