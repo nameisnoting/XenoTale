@@ -999,12 +999,6 @@ svg {
   object-fit: cover;
   object-position: top;
 }
-.work-art img[src='/artwork.png'] {
-  height: auto;
-  min-height: 100%;
-  object-fit: initial;
-  display: block;
-}
 .cover-placeholder {
   font-size: 56px;
   color: #5d7973;
