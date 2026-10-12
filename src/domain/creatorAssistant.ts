@@ -23,18 +23,18 @@ export const creatorSections = [
   { id: 'characters', name: '등장 캐릭터', fields: ['characters', 'characterGroups'] },
   { id: 'openings', name: '도입부', fields: ['openings'] },
   { id: 'media', name: '미디어', fields: ['media'] },
+  { id: 'personas', name: '추천 페르소나', fields: ['personas'] },
   {
     id: 'relations',
     name: '관계도',
     fields: ['relations', 'relationPositions', 'relationSplit', 'relationNodeIds'],
   },
   { id: 'statuses', name: '상태창', fields: ['statuses', 'statusTemplate'] },
-  { id: 'chatUi', name: '대화방 UI', fields: ['chatUi'] },
   { id: 'items', name: '아이템', fields: ['items'] },
   { id: 'scenarios', name: '시나리오', fields: ['chapters'] },
   { id: 'shortcuts', name: '단축어', fields: ['shortcuts'] },
   { id: 'effects', name: '연출', fields: ['effects'] },
-  { id: 'personas', name: '추천 페르소나', fields: ['personas'] },
+  { id: 'chatUi', name: '대화방 UI', fields: ['chatUi'] },
   { id: 'guide', name: '플레이가이드', fields: ['guide'] },
 ] as const;
 type SectionId = (typeof creatorSections)[number]['id'];

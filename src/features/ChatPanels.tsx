@@ -13,6 +13,7 @@ import {
   Download,
 } from 'lucide-react';
 import type { Room, Profile, RoomSettings, Work } from '../domain/types';
+import { chatUiEnabled } from '../domain/chatUi';
 
 import { availableChapters, enhance, enterChapter } from '../domain/engine';
 import { exportRoom } from '../persistence/files';
@@ -508,7 +509,7 @@ export function ChatPanel({
                 onChange={(v) => set({ uiType: v === '소설' ? 'novel' : 'visual-novel' })}
               />
             </Field>
-            {w.chatUi && (
+            {chatUiEnabled(w.chatUi) && (
               <Field label="화면 디자인">
                 <RadioOptions
                   value={settings.uiSource === 'default' ? '기본 UI' : '제작자 UI'}

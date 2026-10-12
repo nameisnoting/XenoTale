@@ -137,12 +137,20 @@ export function codeProblems(
   return [...new Set(errors)];
 }
 
+// Preserve older custom/approved layouts; an untouched pending template defaults OFF.
+export const chatUiEnabled = (ui?: Work['chatUi']) =>
+  !!ui &&
+  (ui.enabled ??
+    (ui.code !== DEFAULT_CHAT_UI || codeChecked(ui.code, ui.validation, ui.resources)));
+
 export function publicationCodeProblems(work: Work) {
   const issues: string[] = [];
-  const ui = work.chatUi ?? { code: DEFAULT_CHAT_UI };
-  if (!codeChecked(ui.code, ui.validation, ui.resources))
-    issues.push('대화방 UI 유효성 검사를 통과해 주세요.');
-  issues.push(...codeProblems(ui.code, 'ui', work, ui.resources));
+  const ui = work.chatUi;
+  if (ui && chatUiEnabled(ui)) {
+    if (!codeChecked(ui.code, ui.validation, ui.resources))
+      issues.push('대화방 UI 유효성 검사를 통과해 주세요.');
+    issues.push(...codeProblems(ui.code, 'ui', work, ui.resources));
+  }
   for (const effect of work.effects) {
     if (!codeChecked(effect.content, effect.validation, effect.resources))
       issues.push(`${effect.name || '연출'}: 유효성 검사를 통과해 주세요.`);

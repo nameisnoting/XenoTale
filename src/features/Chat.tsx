@@ -15,7 +15,7 @@ import { BottomSheet, SideDrawer, MobilePage } from '../components/MobileSurface
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { AuthorLayout } from '../components/AuthorLayout';
 import { nativeStyles, type LayoutReport } from '../components/authoredDocument';
-import { codeChecked, codeProblems, registeredMedia } from '../domain/chatUi';
+import { chatUiEnabled, codeChecked, codeProblems, registeredMedia } from '../domain/chatUi';
 import { VisualNovel } from './VisualNovel';
 import { chapterMusic, type NovelPage } from '../domain/visualNovel';
 import type { Presentation } from '../domain/types';
@@ -201,7 +201,7 @@ export function ChatContent({
         )
     ).trim(),
   );
-  const creatorUi = room.work.chatUi;
+  const creatorUi = chatUiEnabled(room.work.chatUi) ? room.work.chatUi : undefined;
   const scope = `chat-author-${room.id.replace(/[^a-zA-Z0-9-]/g, '')}`;
   const authorStyles = useMemo(() => {
     try {

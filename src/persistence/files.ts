@@ -159,7 +159,12 @@ export const workSchema = z.object({
   guide: str,
   shortcuts: arr(z.object({ id: identifier, name: short, description: str, prompt: str })),
   chatUi: z
-    .object({ code: str, resources: resources.optional(), validation: validation.optional() })
+    .object({
+      enabled: z.boolean().optional(),
+      code: str,
+      resources: resources.optional(),
+      validation: validation.optional(),
+    })
     .optional(),
   effects: arr(
     z.object({

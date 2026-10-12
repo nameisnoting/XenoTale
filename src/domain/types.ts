@@ -163,7 +163,7 @@ export type Work = {
     situations: { code: string; name: string }[];
   };
   statusTemplate: string;
-  chatUi?: { code: string; resources?: string[]; validation?: CodeValidation };
+  chatUi?: { enabled?: boolean; code: string; resources?: string[]; validation?: CodeValidation };
   characterGroups?: { defaultName?: string; id: string; name: string; prompt: string }[];
   relationPositions?: Record<string, { x: number; y: number }>;
   relationSplit?: boolean;

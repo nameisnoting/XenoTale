@@ -79,7 +79,9 @@ viewpoint must match its schema; optional viewpointActorId/viewpointTargetId use
 registered characters or user and do not give the narrator control over the player.
 
 CHAT UI
-chatUi: {code: HTML/CSS/inline JavaScript, resources: HTTPS media URL array}.
+chatUi: {enabled: boolean, code: HTML/CSS/inline JavaScript, resources: HTTPS media URL array}.
+Customization is optional and OFF by default. Preserve enabled unless the user asks
+to change the UI; use enabled:true when proposing a custom layout.
 Preserve exactly one data-xenotale-slot for each header, workspace, conversation,
 composer and log. These slots host the real application components; functions
 and secrets stay in the application. Arrange the slots with responsive CSS.

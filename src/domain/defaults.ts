@@ -96,7 +96,7 @@ export function emptyWork(author = '이야기꾼'): Work {
     guide: '',
     shortcuts: [],
     effects: [],
-    chatUi: { code: DEFAULT_CHAT_UI },
+    chatUi: { enabled: false, code: DEFAULT_CHAT_UI },
     media: { template: '', characters: [], situations: [] },
     statusTemplate: '',
   };
