@@ -154,3 +154,18 @@
     font-size: 11px;
   }
 }
+.chat-ui-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.chat-ui-heading h2 {
+  margin: 0;
+}
+.chat-ui-heading .toggle-row {
+  gap: 8px;
+  padding: 0;
+  flex-shrink: 0;
+}

@@ -36,12 +36,14 @@ export function ChatUiSection({
   const room = useMemo(() => createPreviewRoom({ ...work, chatUi: value }), [work]);
   return (
     <>
-      <h2>대화방 UI</h2>
-      <Toggle
-        label="UI 변경"
-        value={enabled}
-        onChange={(enabled) => update({ chatUi: { ...value, enabled } })}
-      />
+      <div className="chat-ui-heading">
+        <h2>대화방 UI</h2>
+        <Toggle
+          label="UI 변경"
+          value={enabled}
+          onChange={(enabled) => update({ chatUi: { ...value, enabled } })}
+        />
+      </div>
       {enabled && (
         <>
           <p className="muted">
