@@ -171,6 +171,7 @@ export function ChatContent({
   const [layoutReport, setLayoutReport] = useState<LayoutReport | null>(null);
   const [novelPage, setNovelPage] = useState<NovelPage | undefined>();
   const [novelJump, setNovelJump] = useState<{ eventId: string; nonce: number }>();
+  const [uiHidden, setUiHidden] = useState(false);
   const [opening, setOpening] = useState(false);
   const end = useRef<HTMLDivElement>(null);
   const scroll = useRef<HTMLDivElement>(null);
@@ -225,11 +226,48 @@ export function ChatContent({
     [room.work, creatorUi?.resources],
   );
   const authorStyle: CSSProperties = { ...panels.style };
-  if (authorActive)
-    for (const [name, rect] of Object.entries(layoutReport.slots)) {
+  if (authorActive) {
+    const slots = { ...layoutReport.slots };
+    const scene = slots.conversation,
+      header = slots.header,
+      composer = slots.composer;
+    const aligned = (other: typeof scene) =>
+      scene && other && Math.abs(scene.x - other.x) < 1 && Math.abs(scene.width - other.width) < 1;
+    if (uiType === 'visual-novel' && scene) {
+      // Reclaim an adjacent header/composer in the same column, including layouts
+      // saved before the visual-novel header became floating controls.
+      const top =
+        aligned(header) && header!.y + header!.height <= scene.y + 1 ? header!.y : scene.y;
+      const bottom =
+        uiHidden && aligned(composer) && composer!.y >= scene.y + scene.height - 1
+          ? composer!.y + composer!.height
+          : scene.y + scene.height;
+      slots.conversation = { ...scene, y: top, height: bottom - top };
+    }
+    for (const [name, rect] of Object.entries(slots)) {
       for (const [key, value] of Object.entries(rect))
         (authorStyle as Record<string, string>)[`--slot-${name}-${key}`] = `${value}px`;
     }
+  }
+  useEffect(() => {
+    if (uiType !== 'visual-novel') setUiHidden(false);
+  }, [uiType]);
+  useEffect(() => {
+    if (!uiHidden) return;
+    const restore = (event: Event) => {
+      if (event instanceof KeyboardEvent && !['Escape', 'Enter', ' '].includes(event.key)) return;
+      event.preventDefault();
+      event.stopPropagation();
+      setUiHidden(false);
+    };
+    // Capture the restoring click before any dialogue, choice or menu action.
+    document.addEventListener('click', restore, true);
+    document.addEventListener('keydown', restore, true);
+    return () => {
+      document.removeEventListener('click', restore, true);
+      document.removeEventListener('keydown', restore, true);
+    };
+  }, [uiHidden]);
   const switchUi = (mode: 'novel' | 'visual-novel') =>
     run(
       mutate((r) => {
@@ -432,7 +470,7 @@ export function ChatContent({
           '--vn-text': presentation.theme?.text,
         } as CSSProperties
       }
-      className={`chat-shell design-ui resizable-panel-layout ${uiType === 'visual-novel' ? 'is-visual-novel' : ''} ${authorActive ? 'author-chat' : ''} ${collapsed ? 'left-collapsed' : ''} ${!wide || logHidden ? 'right-collapsed' : ''}`}
+      className={`chat-shell design-ui resizable-panel-layout ${uiType === 'visual-novel' ? 'is-visual-novel' : ''} ${uiHidden && uiType === 'visual-novel' ? 'vn-ui-hidden' : ''} ${authorActive ? 'author-chat' : ''} ${collapsed ? 'left-collapsed' : ''} ${!wide || logHidden ? 'right-collapsed' : ''}`}
     >
       {wantsAuthor && (
         <AuthorLayout
@@ -485,14 +523,14 @@ export function ChatContent({
       )}
       <main className={`chat-main ${mobile && pageMenu ? 'is-page-covered' : ''}`}>
         <header
-          className={`chat-header ${headerHidden ? 'is-scroll-hidden' : ''}`}
-          inert={headerHidden}
-          aria-hidden={headerHidden}
+          className={`chat-header ${headerHidden && uiType === 'novel' ? 'is-scroll-hidden' : ''}`}
+          inert={uiHidden || (headerHidden && uiType === 'novel')}
+          aria-hidden={uiHidden || (headerHidden && uiType === 'novel')}
         >
           <IconButton title="메인으로" disabled={preview} onClick={() => navigate('/')}>
             <ArrowLeft size={20} />
           </IconButton>
-          <div className="chat-room-name">
+          <div className="chat-room-name" hidden={uiType === 'visual-novel'}>
             {renaming ? (
               <form
                 onSubmit={(e) => {
@@ -535,7 +573,7 @@ export function ChatContent({
             )}
           </div>
           {bgm && <BackgroundMusic src={bgm} />}
-          {(mobile || !wide) && (
+          {uiType === 'novel' && (mobile || !wide) && (
             <IconButton
               title="대화 로그"
               onClick={() => {
@@ -580,6 +618,10 @@ export function ChatContent({
               onSuggestion={setInput}
               onSwitch={() => switchUi('novel')}
               onEffect={setEffect}
+              onHideUI={() => {
+                composerRef.current?.blur();
+                setUiHidden(true);
+              }}
               candidate={displayed}
               onPage={setNovelPage}
               jump={novelJump}
@@ -867,6 +909,17 @@ export function ChatContent({
                 }}
               />
               <div className="composer-controls">
+                {uiType === 'visual-novel' && (mobile || !wide) && (
+                  <IconButton
+                    title="대화 로그"
+                    onClick={() => {
+                      setRightView('log');
+                      setLog(true);
+                    }}
+                  >
+                    <PanelRightOpen size={21} />
+                  </IconButton>
+                )}
                 <IconButton
                   className="mobile-only"
                   title="대화 메뉴"

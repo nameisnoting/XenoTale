@@ -8,7 +8,7 @@ import {
   type ReactNode,
 } from 'react';
 import { createPortal } from 'react-dom';
-import { ChevronLeft, ChevronRight, ClipboardList, ScrollText, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ClipboardList, Eye, ScrollText, X } from 'lucide-react';
 import type { Candidate, Room, Turn } from '../domain/types';
 import { selected } from '../domain/types';
 import { latestNovelStart, visualNovelPages, type NovelPage } from '../domain/visualNovel';
@@ -33,6 +33,7 @@ export function VisualNovel({
   onPage,
   jump,
   background,
+  onHideUI,
 }: {
   room: Room;
   busy: boolean;
@@ -47,6 +48,7 @@ export function VisualNovel({
   onPage?: (page: NovelPage | undefined) => void;
   jump?: { eventId: string; nonce: number };
   background?: string;
+  onHideUI: () => void;
 }) {
   const pages = useMemo(
     () => visualNovelPages(room, candidate),
@@ -185,8 +187,13 @@ export function VisualNovel({
           ))}
         </div>
       )}
-      <div className="visual-novel-dialogue">
+      <div
+        className={`visual-novel-dialogue ${(busy ? persona.name : page?.actor) ? 'has-speaker' : ''}`}
+      >
         <div className="visual-novel-switches">
+          <IconButton title="UI 숨기기" onClick={onHideUI}>
+            <Eye size={18} />
+          </IconButton>
           <IconButton title="상태창 보기" onClick={() => setStatus(true)}>
             <ClipboardList size={18} />
           </IconButton>

@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { DEFAULT_CHAT_UI, codeApproval } from '../src/domain/chatUi';
+test.use({ hasTouch: true });
 
 async function start(page: Page) {
   await page.route('https://openrouter.ai/api/v1/models', (r) => r.fulfill({ json: { data: [] } }));
@@ -65,9 +66,39 @@ for (const width of [1440, 393])
     await expect(vn).toBeVisible();
     await expect(vn.locator('.visual-novel-name')).toHaveText('아리아');
     await expect(vn.locator('.visual-novel-copy')).toHaveText('첫 번째 대사');
+    await expect(page.locator('.chat-header')).toHaveCSS('height', '0px');
+    await expect(page.locator('.chat-room-name')).toBeHidden();
+    await expect(page.getByRole('button', { name: '메인으로', exact: true })).toHaveCSS(
+      'border-radius',
+      '50%',
+    );
+    await expect(vn.locator('.visual-novel-image')).toHaveCSS('object-fit', 'scale-down');
     const image = await vn.boundingBox(),
       box = await vn.locator('.visual-novel-textbox').boundingBox();
     expect(image!.y + image!.height - box!.y - box!.height).toBeCloseTo(80, 0);
+    const badge = await vn.locator('.visual-novel-name').boundingBox();
+    const copy = await vn.locator('.visual-novel-copy').boundingBox();
+    expect(badge!.y + badge!.height / 2).toBeCloseTo(box!.y, 0);
+    expect(copy!.y).toBeGreaterThan(badge!.y + badge!.height + 8);
+    const beforeHidden = await vn.boundingBox();
+    await page.getByRole('button', { name: 'UI 숨기기', exact: true }).click();
+    await expect(page.locator('.chat-shell')).toHaveClass(/vn-ui-hidden/);
+    await expect(vn.locator('.visual-novel-dialogue')).toBeHidden();
+    await expect(page.getByRole('textbox', { name: '메시지', exact: true })).toBeHidden();
+    await expect(page.getByRole('button', { name: '메인으로', exact: true })).toBeHidden();
+    const afterHidden = await vn.boundingBox();
+    expect(afterHidden!.height).toBeGreaterThan(beforeHidden!.height + 100);
+    if (width === 393) {
+      await page.touchscreen.tap(
+        afterHidden!.x + afterHidden!.width / 2,
+        afterHidden!.y + afterHidden!.height / 2,
+      );
+    } else {
+      await page.mouse.click(afterHidden!.x + 20, afterHidden!.y + 20);
+    }
+    await expect(page.locator('.chat-shell')).not.toHaveClass(/vn-ui-hidden/);
+    await expect(vn.locator('.visual-novel-copy')).toHaveText('첫 번째 대사');
+    await expect(page.getByRole('textbox', { name: '메시지', exact: true })).toBeVisible();
     await page.getByRole('button', { name: '다음 대사', exact: true }).click();
     await expect(vn.locator('.visual-novel-copy')).toHaveText('두 번째 대사');
     await page.reload();
@@ -84,6 +115,7 @@ for (const width of [1440, 393])
     await expect(vn.locator('.visual-novel-copy')).toHaveText('두 번째 대사');
     await page.getByRole('button', { name: '다음 대사', exact: true }).click();
     await expect(vn.locator('.visual-novel-choices button')).toHaveCount(2);
+    await expect(vn.locator('.visual-novel-copy em')).toHaveCSS('color', 'rgb(255, 255, 255)');
     await vn.locator('.visual-novel-choices button').first().click();
     await expect(page.getByRole('textbox', { name: '메시지', exact: true })).toHaveValue('선택 A');
     await page.getByRole('button', { name: '전송', exact: true }).click();
@@ -120,6 +152,17 @@ test('제작자 UI 실제 컴포넌트 연결 · 독립 선택 · 숨긴 필수 
   await expect(authored.locator('body')).toHaveAttribute('data-execution-marker', 'kept');
   await page.getByRole('button', { name: '비주얼노벨 모드로 전환', exact: true }).click();
   await expect(authored.locator('html')).toHaveAttribute('data-ui-type', 'visual-novel');
+  const stage = page.locator('.visual-novel');
+  const initialStage = await stage.boundingBox();
+  const header = await page.locator('.chat-header').boundingBox();
+  expect(initialStage!.y).toBeCloseTo(header!.y, 0);
+  await page.getByRole('button', { name: 'UI 숨기기', exact: true }).click();
+  const fullStage = await stage.boundingBox();
+  expect(fullStage!.height).toBeGreaterThan(initialStage!.height + 100);
+  // A click elsewhere also restores the UI, without selecting that menu.
+  await page.getByRole('button', { name: '환경설정', exact: true }).click();
+  await expect(page.locator('.chat-shell')).not.toHaveClass(/vn-ui-hidden/);
+  await expect(page.locator('.chat-panel-content .setting-card')).toHaveCount(0);
   const workspace = await page.locator('.chat-workspace').boundingBox();
   expect(workspace!.width).toBeCloseTo(280, 0);
   await page.getByRole('button', { name: '환경설정', exact: true }).click();
