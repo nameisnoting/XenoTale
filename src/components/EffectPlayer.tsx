@@ -4,7 +4,7 @@ import { X } from 'lucide-react';
 import type { EffectResult, Runtime, Work, Presentation } from '../domain/types';
 import { effectResultSchema } from '../domain/effects';
 import { checkPresentation } from '../domain/presentation';
-import { codeChecked, registeredMedia } from '../domain/chatUi';
+import { codeChecked, registeredMedia } from '../domain/codeValidation';
 import { IconButton, Markdown } from './UI';
 import { effectDocument } from './effectDocument';
 import './EffectPlayer.css';

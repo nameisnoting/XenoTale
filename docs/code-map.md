@@ -2,7 +2,8 @@
 
 앱의 구조를 공부하거나 특정 기능을 고칠 때 시작할 파일을 찾기 위한 문서입니다.
 기능과 디자인을 유지하면서 제작 화면, 대화 저장 처리, 공통 입력 카드 스타일을 정리했습니다.
-새 라이브러리나 서버, 별도의 전역 상태 관리 도구는 추가하지 않았습니다.
+서버와 별도의 전역 상태 관리 도구는 사용하지 않습니다. 파일 압축과 HTML 표시에만
+zip.js·DOMPurify·rehype-raw를 사용하며, 필요한 화면에서 불러옵니다.
 
 ## 먼저 알아둘 네 가지 영역
 
@@ -36,22 +37,23 @@
 [`src/features/EditorPanels.tsx`](../src/features/EditorPanels.tsx)는 현재 섹션에 맞는 입력 화면을 고릅니다.
 과거 약 1,600줄에 섞여 있던 섹션 내용을 아래 파일로 옮겼습니다.
 
-| 바꾸려는 내용                           | 파일                                                                                 |
-| --------------------------------------- | ------------------------------------------------------------------------------------ |
-| 섹션 이름과 순서                        | [`creator/sections.ts`](../src/features/creator/sections.ts)                         |
-| 작품 개요·시스템 프롬프트               | [`creator/OverviewSection.tsx`](../src/features/creator/OverviewSection.tsx)         |
-| 등장 캐릭터                             | [`creator/CharactersSection.tsx`](../src/features/creator/CharactersSection.tsx)     |
-| 도입부                                  | [`creator/OpeningsSection.tsx`](../src/features/creator/OpeningsSection.tsx)         |
-| 상태값과 상태창 템플릿                  | [`creator/StatusSection.tsx`](../src/features/creator/StatusSection.tsx)             |
-| 대화방 UI 코드·검사·실제 미리보기       | [`creator/ChatUiSection.tsx`](../src/features/creator/ChatUiSection.tsx)             |
-| 아이템과 강화 입력 화면                 | [`creator/ItemsSection.tsx`](../src/features/creator/ItemsSection.tsx)               |
-| 챕터·엔딩과 조건 입력 화면              | [`creator/ScenarioSection.tsx`](../src/features/creator/ScenarioSection.tsx)         |
-| 단축어·연출·추천 페르소나·플레이가이드  | [`creator/ExtraSections.tsx`](../src/features/creator/ExtraSections.tsx)             |
-| 로어북 입력 카드                        | [`creator/LoreEditor.tsx`](../src/features/creator/LoreEditor.tsx)                   |
-| 제작·대화에서 공유하는 대화 품질 설정   | [`creator/QualityEditor.tsx`](../src/features/creator/QualityEditor.tsx)             |
-| 저장·불러오기·그룹화·연출 미리보기 모달 | [`creator/CreatorPanelDialogs.tsx`](../src/features/creator/CreatorPanelDialogs.tsx) |
-| 미디어 입력 화면                        | [`CreatorExtras.tsx`](../src/features/CreatorExtras.tsx)의 `MediaEditor`             |
-| 관계도·시나리오 지도                    | [`Graphs.tsx`](../src/features/Graphs.tsx)                                           |
+| 바꾸려는 내용                           | 파일                                                                                                                                                         |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 섹션 이름과 순서                        | [`creator/sections.ts`](../src/features/creator/sections.ts)                                                                                                 |
+| 작품 개요·시스템 프롬프트               | [`creator/OverviewSection.tsx`](../src/features/creator/OverviewSection.tsx)                                                                                 |
+| 등장 캐릭터                             | [`creator/CharactersSection.tsx`](../src/features/creator/CharactersSection.tsx)                                                                             |
+| 도입부                                  | [`creator/OpeningsSection.tsx`](../src/features/creator/OpeningsSection.tsx)                                                                                 |
+| 상태값과 상태창 템플릿                  | [`creator/StatusSection.tsx`](../src/features/creator/StatusSection.tsx)                                                                                     |
+| 제작 메뉴·접힌 추가 요소                | [`creator/CreatorSectionList.tsx`](../src/features/creator/CreatorSectionList.tsx)                                                                           |
+| 관계도 사용·내면 해금 조건              | [`creator/RelationsSection.tsx`](../src/features/creator/RelationsSection.tsx), [`creator/ConditionEditor.tsx`](../src/features/creator/ConditionEditor.tsx) |
+| 아이템과 강화 입력 화면                 | [`creator/ItemsSection.tsx`](../src/features/creator/ItemsSection.tsx)                                                                                       |
+| 챕터·엔딩과 조건 입력 화면              | [`creator/ScenarioSection.tsx`](../src/features/creator/ScenarioSection.tsx)                                                                                 |
+| 단축어·수동연출·추천 페르소나           | [`creator/ExtraSections.tsx`](../src/features/creator/ExtraSections.tsx)                                                                                     |
+| 로어북 입력 카드                        | [`creator/LoreEditor.tsx`](../src/features/creator/LoreEditor.tsx)                                                                                           |
+| 제작·대화에서 공유하는 대화 품질 설정   | [`creator/QualityEditor.tsx`](../src/features/creator/QualityEditor.tsx)                                                                                     |
+| 저장·불러오기·그룹화·연출 미리보기 모달 | [`creator/CreatorPanelDialogs.tsx`](../src/features/creator/CreatorPanelDialogs.tsx)                                                                         |
+| 미디어 입력 화면                        | [`CreatorExtras.tsx`](../src/features/CreatorExtras.tsx)의 `MediaEditor`                                                                                     |
+| 관계도·시나리오 지도                    | [`Graphs.tsx`](../src/features/Graphs.tsx)                                                                                                                   |
 
 짧은 섹션까지 각각 독립된 폴더나 복잡한 등록 시스템으로 만들지 않았습니다.
 `ExtraSections.tsx` 안에서는 해당 이름의 함수로 바로 이동하면 됩니다.
@@ -73,9 +75,9 @@ ItemsSection.tsx의 TextInput
 `work`는 현재 작품, `update`는 작품 일부 변경, `changeItem`은 특정 아이템 변경입니다.
 캐릭터 삭제 시 연결된 관계·등장 정보·미디어를 정리하는 기존 처리도 여기 있습니다.
 
-등장 캐릭터 선택이나 가이드 미리보기 상태는 이 훅이 보관합니다.
+등장 캐릭터 선택 상태는 이 훅이 보관합니다.
 `Editor.tsx`는 기존처럼 `EditorPanels`에 `key={section}`을 주므로,
-섹션을 나갔다 돌아오면 등장 캐릭터 선택과 가이드 미리보기는 초기화됩니다. 입력한 작품 데이터는 남습니다.
+섹션을 나갔다 돌아오면 등장 캐릭터 선택는 초기화됩니다. 입력한 작품 데이터는 남습니다.
 이 `key`는 React가 화면을 새로 만드는 기준입니다. 리팩터링하면서 이 기준을 바꾸지 않았습니다.
 도입부와 추천 페르소나 선택은 상위 제작 화면에서 관리하며 작업공간에 저장합니다.
 관계도 위치 저장과 제작 섹션 새로고침 복원도 유지합니다.
@@ -262,3 +264,15 @@ npm run test:e2e
 - 기본 테스트 148개, 브라우저 테스트 193개 통과.
 - 같은 데이터로 비교한 PC 1440px·모바일 393px의 주요 화면 34개는 화면 배치·글자·색상과 스크린샷이 동일.
 - 사용하지 않는 카드 CSS 규칙 15개, 항상 덮이는 선언 3개와 사용하지 않는 import 제거.
+
+## 작품 파일과 표시 규칙
+
+- [`persistence/package.ts`](../src/persistence/package.ts): .xeno ZIP 입출력과 무결성 확인.
+- [`persistence/risu.ts`](../src/persistence/risu.ts): Risu 컨테이너 읽기와 작품 데이터 매핑.
+- [`persistence/assets.ts`](../src/persistence/assets.ts): 이미지 바이트·해시·화면 URL 관리.
+- [`features/LocalMedia.tsx`](../src/features/LocalMedia.tsx): 이미지 업로드와 사용량.
+- [`components/DisplayText.tsx`](../src/components/DisplayText.tsx): Worker를 통한 화면 정규식 치환.
+- [`components/HtmlContent.tsx`](../src/components/HtmlContent.tsx): HTML 정제와 격리 표시.
+- [`app/pwa.tsx`](../src/app/pwa.tsx): 웹앱 설치 안내와 파일 실행 연결.
+
+지원 범위와 예시 파일 분석은 [제작·가져오기 안내](creation-and-import.md)를 참고하세요.

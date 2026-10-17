@@ -23,12 +23,12 @@ function answer(work: Work, patch: Partial<Work>) {
   };
 }
 describe('whole creation assistant', () => {
-  it('sends all thirteen sections with real field schemas, without managed fields or image bytes', () => {
+  it('sends all eleven sections with real field schemas, without managed fields or image bytes', () => {
     const work = exampleWork();
     work.cover = 'data:image/png;base64,secret-bytes';
     work.characters[0].image = work.cover;
     const request = creatorRequest(work);
-    expect(request.sections).toHaveLength(13);
+    expect(request.sections).toHaveLength(11);
     expect(request.draft.overview.cover).toBe(
       request.draft.characters.characters instanceof Array &&
         request.draft.characters.characters[0].image,
@@ -402,7 +402,7 @@ describe('partial creator application', () => {
     expect(() => validateWork(result.work)).not.toThrow();
   });
   it('does not remove a character still referenced by an unchanged opening', () => {
-    const work = emptyWork();
+    const work = exampleWork();
     const result = review(work, {
       title: '유효한 제목',
       characters: [{ ...work.characters[0], id: 'replacement' }],
@@ -429,7 +429,7 @@ describe('partial creator application', () => {
     expect(result.issues).toEqual([]);
   });
   it('preserves required lists when all newly proposed entries are malformed', () => {
-    const work = emptyWork();
+    const work = exampleWork();
     const raw = answer(work, { title: '제목', characters: work.characters });
     raw.proposals.find((s) => s.section === 'characters')!.replacement.characters = [42, null];
     const result = reviewCreatorProposal(
@@ -470,13 +470,13 @@ describe('partial creator application', () => {
   it('skips only the field edited after a response while applying other valid fields', () => {
     const work = emptyWork();
     const proposal = parseCreatorAnswer(
-      answer(work, { title: 'AI 제목', guide: '유효한 가이드' }),
+      answer(work, { title: 'AI 제목', defaultUi: 'visual-novel' }),
       work,
       creatorRequest(work),
     ).proposal;
     const result = reviewCreatorProposal({ ...work, title: '내 제목' }, proposal);
     expect(result.work.title).toBe('내 제목');
-    expect(result.work.guide).toBe('유효한 가이드');
+    expect(result.work.defaultUi).toBe('visual-novel');
     expect(result.issues[0].field).toBe('title');
   });
   it('collects every invalid condition and terminates on cycles', () => {

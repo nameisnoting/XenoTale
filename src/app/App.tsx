@@ -12,6 +12,8 @@ import { Editor } from '../features/Editor';
 import { Chat } from '../features/Chat';
 import { Button, Spinner, useNotify } from '../components/UI';
 import { useApiKey } from '../components/useApiKey';
+import { hydrateAssets } from '../persistence/assets';
+import { useWebApp } from './pwa';
 class Boundary extends Component<{ children: ReactNode }, { error: boolean }> {
   state = { error: false };
   static getDerivedStateFromError() {
@@ -49,6 +51,7 @@ function Routes() {
   const notify = useNotify();
   useEffect(() => {
     initialize()
+      .then(hydrateAssets)
       .then(() => setReady(true))
       .catch(() =>
         setError(
@@ -57,6 +60,7 @@ function Routes() {
       );
   }, []);
   const profile = useLive(() => db.profiles.get('profile'), undefined as Profile | undefined);
+  useWebApp(ready && !!profile?.onboarded, profile);
   const loadModels = useCallback(() => {
     if (loading.current) return loading.current;
     setLoading(true);

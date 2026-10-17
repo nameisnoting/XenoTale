@@ -1,0 +1,42 @@
+{
+  "id": "/",
+  "name": "XenoTale",
+  "short_name": "XenoTale",
+  "description": "나만의 이야기와 캐릭터를 만드는 XenoTale",
+  "start_url": "/#/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#222222",
+  "theme_color": "#222222",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "file_handlers": [
+    {
+      "action": "/",
+      "accept": {
+        "application/vnd.xenotale+zip": [
+          ".xeno"
+        ]
+      },
+      "launch_type": "single-client"
+    }
+  ]
+}

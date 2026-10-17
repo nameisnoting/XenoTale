@@ -1,9 +1,21 @@
 import { test, expect, type Page, type Locator } from '@playwright/test';
 
 async function section(page: Page, width: number, name: string) {
+  const nav = page.locator(width < 800 ? '.editor-mobile-stages' : '.editor-nav');
+  await nav.waitFor({ state: 'visible' });
+  if (
+    (await nav.count()) &&
+    !(await nav.getByRole(width < 800 ? 'tab' : 'button', { name, exact: false }).count())
+  )
+    await nav.getByRole('button', { name: '추가 요소', exact: false }).click();
+
   if (width < 800)
     await page.locator('.editor-mobile-stages').getByRole('tab', { name, exact: false }).click();
   else await page.locator('.editor-nav').getByRole('button', { name, exact: false }).click();
+  if (name === '관계도') {
+    const toggle = page.getByRole('switch', { name: '관계도 사용', exact: true });
+    if (!(await toggle.isChecked())) await toggle.click();
+  }
 }
 const world = (canvas: Locator) => canvas.locator('svg[role=application] > g');
 async function panAndZoom(page: Page, canvas: Locator) {

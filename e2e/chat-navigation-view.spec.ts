@@ -2,6 +2,13 @@ import { test, expect, type Page, type Locator } from '@playwright/test';
 import fs from 'node:fs/promises';
 
 async function section(page: Page, width: number, name: string) {
+  const nav = page.locator(width < 800 ? '.editor-mobile-stages' : '.editor-nav');
+  if (
+    (await nav.count()) &&
+    !(await nav.getByRole(width < 800 ? 'tab' : 'button', { name, exact: false }).count())
+  )
+    await nav.getByRole('button', { name: '추가 요소', exact: false }).click();
+
   if (width === 393) {
     if (page.url().includes('/panel/'))
       await page.getByRole('button', { name: '대화방으로 돌아가기', exact: true }).click();

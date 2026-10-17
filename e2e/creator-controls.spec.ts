@@ -8,6 +8,14 @@ async function start(page: Page, width: number) {
   await page.getByRole('button', { name: '키 없이 먼저 둘러보기', exact: true }).click();
 }
 async function section(page: Page, width: number, name: string) {
+  const nav = page.locator(width < 800 ? '.editor-mobile-stages' : '.editor-nav');
+  await nav.waitFor({state:'visible'});
+  if (
+    (await nav.count()) &&
+    !(await nav.getByRole(width < 800 ? 'tab' : 'button', { name, exact: false }).count())
+  )
+    await nav.getByRole('button', { name: '추가 요소', exact: false }).click();
+
   if (width < 800)
     await page.locator('.editor-mobile-stages').getByRole('tab', { name, exact: false }).click();
   else await page.locator('.editor-nav').getByRole('button', { name, exact: false }).click();

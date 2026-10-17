@@ -14,7 +14,6 @@ import {
 } from './db';
 import { workspace, defaultProfile } from '../domain/defaults';
 import { exampleWork } from '../test/exampleWork';
-import { DEFAULT_CHAT_UI, codeApproval } from '../domain/chatUi';
 import { createRoom } from '../domain/engine';
 import { SYSTEM_PROMPT } from '../domain/systemPrompt';
 import legacyPrompt from '../engine/prompts/narrator_legacy_v2.txt?raw';
@@ -184,24 +183,9 @@ describe('revision transactions', () => {
     expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(1);
     expect((await db.rooms.get(r.id))?.revision).toBe(1);
   });
-  it('disabled creator UI publishes without approval, while enabling it requires validation', async () => {
-    const w = workspace('작가');
-    w.work = exampleWork();
-    w.work.chatUi = { enabled: false, code: '<p>아직 작성 중</p>' };
-    await db.workspaces.add(w);
-    const published = await publishWorkspace(w.id);
-    expect((await db.works.get(w.work.id))?.work.chatUi).toEqual(w.work.chatUi);
-    await saveWorkspace(
-      { ...published, work: { ...published.work, chatUi: { ...w.work.chatUi, enabled: true } } },
-      published.revision,
-    );
-    await expect(publishWorkspace(w.id)).rejects.toThrow('대화방 UI 유효성 검사를 통과해 주세요.');
-    expect((await db.works.get(w.work.id))?.work.version).toBe(1);
-  });
   it('publishing creates a version and leaves existing room definitions immutable', async () => {
     const w = workspace('작가');
     w.work = exampleWork();
-    w.work.chatUi = { code: DEFAULT_CHAT_UI, validation: codeApproval(DEFAULT_CHAT_UI) };
     await db.workspaces.add(w);
     const r = createRoom(w.work);
     await db.rooms.add(r);

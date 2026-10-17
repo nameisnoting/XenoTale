@@ -69,21 +69,8 @@ for (const width of [1440, 1000, 393]) {
     );
     await page.reload();
     await section(page, 'info');
-    await page.getByRole('tab', { name: '플레이 가이드', exact: true }).click();
-    await section(page, 'notes');
-    await section(page, 'info');
-    await expect(page.getByRole('tab', { name: '플레이 가이드', exact: true })).toHaveAttribute(
-      'aria-selected',
-      width > 800 ? 'true' : 'false',
-    );
-    if (width > 800) await expect(page.locator('.work-guide')).toBeVisible();
-    else
-      await expect(page.getByRole('tab', { name: '작품', exact: true })).toHaveAttribute(
-        'aria-selected',
-        'true',
-      );
-    await page.getByRole('tab', { name: '작품', exact: true }).click();
-    await page.getByRole('button', { name: '캐릭터', exact: true }).click();
+    await expect(page.getByRole('tab', { name: '플레이 가이드', exact: true })).toHaveCount(0);
+    await page.getByRole('tab', { name: '캐릭터', exact: true }).click();
     await page.getByRole('button', { name: '베라', exact: true }).click();
     await section(page, 'memory');
     await page.getByRole('tab', { name: '장기요약', exact: true }).click();
@@ -103,8 +90,8 @@ for (const width of [1440, 1000, 393]) {
     );
     await expect(page.locator('.chat-gallery img')).toHaveAttribute('src', '/tab-fixture/2-0.svg');
     await section(page, 'info');
-    await expect(page.getByRole('button', { name: '캐릭터', exact: true })).toHaveAttribute(
-      'aria-pressed',
+    await expect(page.getByRole('tab', { name: '캐릭터', exact: true })).toHaveAttribute(
+      'aria-selected',
       'true',
     );
     await expect(page.getByRole('button', { name: '베라', exact: true })).toHaveAttribute(

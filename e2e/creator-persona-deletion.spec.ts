@@ -10,6 +10,10 @@ for (const width of [1440, 393]) {
       .getByRole('button', { name: width < 800 ? '만들기' : '작품 만들기', exact: true })
       .click();
     const section = async () => {
+      await page
+        .locator(width < 800 ? '.editor-mobile-stages' : '.editor-nav')
+        .getByRole('button', { name: '추가 요소', exact: false })
+        .click();
       if (width < 800)
         await page
           .locator('.editor-mobile-stages')

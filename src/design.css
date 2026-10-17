@@ -672,8 +672,10 @@
   line-height: 1.7;
 }
 .work-info-description {
-  background: transparent;
-  padding: 0 0 16px;
+  background: #222;
+  border-radius: 5px;
+  padding: 16px;
+  margin-bottom: 16px;
   font-size: 14px;
   line-height: 24px;
 }
@@ -688,9 +690,6 @@
 .work-lore p {
   color: #ccc;
   margin: 0;
-}
-.work-guide {
-  min-height: 70vh;
 }
 .work-character-list {
   display: flex;

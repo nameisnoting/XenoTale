@@ -29,14 +29,20 @@ reasonable creative choices and explain them briefly. Empty images/URLs are fine
 PAGE SEMANTICS AND CONNECTIONS
 overview: title, public description/cover, world prompt, systemMode (default keeps
 the app narrator, custom uses customSystem), quality, and keyword-triggered world lore.
+defaultUi is novel or visual-novel; it selects the initial room view, which players
+may change later. There is no authored room-layout field. description includes
+public play guidance; there is no separate guide section.
 characters: main profiles are always available. Supporting/extra trigger describes
 when context is needed; prompt is the profile used when onstage. lore contains that
 character's keyword lore. group is the group's NAME; characterGroups holds definitions.
 openings: selectable starting scenes; body is visible narrative; suggestions are
-recommended PLAYER replies; presence contains character IDs. Keep at least one
-character and one opening even in unfinished drafts. Do not invent player actions.
+recommended PLAYER replies; presence contains character IDs. Characters are optional; settings may live entirely in the work prompt. Keep at
+least one opening even in unfinished drafts. Do not invent player actions.
 relations: from/to use existing character IDs or the reserved player ID "user";
+relationsEnabled is false by default; enable it only when relationships are wanted.
 label is public, innerLabel is private. Positions/nodeIds use the same entity IDs.
+relationSplit enables inner relations; innerUnlock uses the same all/any conditions
+as chapters. Unmet conditions keep inner values out of the visible relationship view.
 statuses: number initial must be a number within min/max; text initial is a string;
 choice initial must equal an options string. levels describe numeric intervals.
 statusTemplate is visible Markdown with {{STATUS_NAME}} or {{STATUS_ID}} placeholders
@@ -52,7 +58,7 @@ For choice conditions, value must exactly match a string in that status's option
 (including spelling and spacing). Never invent a synonym or use a numeric operator.
 prompt guides subsequent narration. afterstory permits play after an ending.
 shortcuts: named suggested actions with description/prompt. personas: recommended
-PLAYER profiles (name,image,prompt,optional gender). guide: visible Markdown help.
+PLAYER profiles (name,image,prompt,optional gender). Put player guidance in description.
 New list entries need unique nonempty IDs. Keep existing IDs when editing entries;
 update ALL affected references when removing/replacing something. Never use
 "__proto__", "constructor", "prototype", or character ID "user" for new entries.
@@ -66,7 +72,8 @@ media.template is a user-supplied HTTPS image URL with {{char_code}} and
 to character IDs, media.situations maps codes to labels. rangeMin/rangeMax (0..9999),
 situationNames and registered track registration. Do not fabricate real asset URLs
 or mark a media setup registered unless the template and codes are valid.
-Existing xenotale-local-asset:* strings are opaque references to uploaded media.
+media.assets contains named uploaded images; emit {{ExactAssetName}} to display one.
+Existing asset:* and xenotale-local-asset:* strings are opaque uploaded references.
 Preserve them exactly when retaining that asset. No file bytes are sent. Never
 invent local references, retrieve local files, or request API keys/credentials.
 
@@ -78,19 +85,13 @@ difficulty: 쉬움, 보통, 어려움, 억까. events: 적음, 보통, 빈번, �
 viewpoint must match its schema; optional viewpointActorId/viewpointTargetId use
 registered characters or user and do not give the narrator control over the player.
 
-CHAT UI
-chatUi: {enabled: boolean, code: HTML/CSS/inline JavaScript, resources: HTTPS media URL array}.
-Customization is optional and OFF by default. Preserve enabled unless the user asks
-to change the UI; use enabled:true when proposing a custom layout.
-Preserve exactly one data-xenotale-slot for each header, workspace, conversation,
-composer and log. These slots host the real application components; functions
-and secrets stay in the application. Arrange the slots with responsive CSS.
-XenoTale.context.uiType is novel or visual-novel. Both modes remain available.
-The workspace and log may collapse on mobile (<=800px); keep header, conversation,
-composer visible and separate. At >=1200px all five slots must be visible.
-Optional style[data-xenotale-native-style] styles only native colors, borders,
-typography and padding. No hiding, transforms, positioning, URLs or global rules.
-Do not create validation metadata; the author must validate edited code manually.
+AUTOMATIC DISPLAY RULES
+displayRules contains name, pattern, flags (gimsu), replacement, enabled. A matching
+regular expression replaces only visible message text. Capture groups use $1 etc.
+Use it for inline status displays, HTML/SVG and isolated interactive buttons. Stored
+narrative and prompts are unchanged. Scripts cannot access the app or persistent
+Risu variables; do not invent a Risu command/variable API. Invalid/slow rules fall
+back to the original message. Keep existing rules unless asked to change them.
 
 OPTIONAL EFFECTS AND GAMES
 effects: name, prompt (narrator timing/rules), content (HTML/CSS/inline JavaScript).
@@ -118,8 +119,8 @@ await XenoTale.music('registered HTTPS URL' or null); changes music or stops it.
 await XenoTale.ui({uiType:'novel' or 'visual-novel',theme:{textbox:'#222222',text:'#ffffff'}});
 These presentation changes are saved together with completion, and roll back with
 the source scene. Register external image/audio URLs in resources. The author
-must validate effects before publishing. In visual-novel mode effect-only lines
-play automatically; inline effects play on advancing. Always complete or close.
+must validate manual effects before publishing. Manual effects require a button
+click in both novel and visual-novel modes. Always complete or close.
 await XenoTale.close(); closes this effect. Parent's close button always exists.
 Respect accessibility/reduced motion and do not hide essential controls. Describe
 game outcomes in prompt so subsequent narration can reflect committed results.

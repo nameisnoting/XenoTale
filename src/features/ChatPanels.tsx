@@ -1,3 +1,6 @@
+import { UploadedGallery } from './UploadedGallery';
+import { relationsEnabled } from '../domain/workContent';
+import { conditionsMet } from '../domain/engine';
 import { useState } from 'react';
 import {
   BookOpen,
@@ -13,7 +16,6 @@ import {
   Download,
 } from 'lucide-react';
 import type { Room, Profile, RoomSettings, Work } from '../domain/types';
-import { chatUiEnabled } from '../domain/chatUi';
 
 import { availableChapters, enhance, enterChapter } from '../domain/engine';
 import { exportRoom } from '../persistence/files';
@@ -36,11 +38,9 @@ import { RoomMemory, type MemoryTab } from './RoomMemory';
 import { ChatPersona } from './ChatPersona';
 import type { GraphViewProps } from './Graphs';
 import { RadioOptions, Stepper } from '../components/DesignControls';
-import { PlayGuide } from '../components/PlayGuide';
 export const chatMenuGroups = [
   [
     { id: 'info', name: '작품정보', icon: Info },
-    { id: 'guide', name: '플레이 가이드', icon: BookOpen },
     { id: 'usage', name: '사용량', icon: SlidersHorizontal },
   ],
   [
@@ -62,7 +62,6 @@ export const chatMenuGroups = [
 export const chatMenus = chatMenuGroups.flat();
 // Keep navigation selections in the room shell, which outlives individual panels.
 export type ChatPanelSelection = {
-  infoTab: 'work' | 'guide';
   workTab: 'work' | 'character';
   characterId?: string;
   galleryChar: string;
@@ -70,7 +69,6 @@ export type ChatPanelSelection = {
 };
 export function initialPanelSelection(work: Work): ChatPanelSelection {
   return {
-    infoTab: 'work',
     workTab: 'work',
     characterId: work.characters[0]?.id,
     galleryChar: work.media.characters[0]?.code ?? '0',
@@ -115,7 +113,7 @@ export function ChatPanel({
       }),
     );
   const [inventoryId, setInventoryId] = useState<string | null>(null);
-  const { galleryChar, infoTab, workTab, characterId, memoryTab } = selection;
+  const { galleryChar, workTab, characterId, memoryTab } = selection;
   const character = w.characters.find((c) => c.id === characterId) ?? w.characters[0];
   return (
     <div className="chat-panel-content">
@@ -126,65 +124,83 @@ export function ChatPanel({
               role="tab"
               id="work-info-tab"
               aria-controls="work-info-body"
-              aria-selected={infoTab === 'work'}
-              onClick={() => onSelectionChange({ infoTab: 'work' })}
+              aria-selected={workTab === 'work'}
+              onClick={() => onSelectionChange({ workTab: 'work' })}
             >
               작품
             </button>
             <button
               role="tab"
-              id="work-guide-tab"
+              id="work-character-tab"
               aria-controls="work-info-body"
-              aria-selected={infoTab === 'guide'}
-              onClick={() => onSelectionChange({ infoTab: 'guide' })}
+              aria-selected={workTab === 'character'}
+              onClick={() => onSelectionChange({ workTab: 'character' })}
             >
-              플레이 가이드
+              캐릭터
             </button>
           </div>
           <div
             id="work-info-body"
             role="tabpanel"
-            aria-labelledby={infoTab === 'work' ? 'work-info-tab' : 'work-guide-tab'}
+            aria-labelledby={workTab === 'work' ? 'work-info-tab' : 'work-character-tab'}
           >
-            {infoTab === 'guide' ? (
-              <PlayGuide
-                className="work-guide"
-                content={w.guide || '등록된 플레이 가이드가 없습니다.'}
-              />
+            {workTab === 'work' ? (
+              <>
+                <div className="work-info-cover">
+                  {w.cover ? (
+                    <img src={safeUrl(w.cover)} alt={`${w.title} 표지`} />
+                  ) : (
+                    <span>{w.title.slice(0, 1)}</span>
+                  )}
+                </div>
+                <div className="work-info-byline">
+                  <h3>{w.title}</h3>
+                  <small>{w.author}</small>
+                  <small>v{w.version}</small>
+                </div>
+                <div className="work-info-description">
+                  <Markdown>
+                    {[w.description, w.guide].filter(Boolean).join('\n\n') ||
+                      '등록된 작품 설명이 없습니다.'}
+                  </Markdown>
+                </div>
+                {w.lore.map((lore) => (
+                  <section className="work-lore" key={lore.id}>
+                    <h4>{lore.name}</h4>
+                    <p>
+                      <span className="keyword-label">키워드:</span>{' '}
+                      {lore.keywords.filter(Boolean).join(', ')}
+                    </p>
+                  </section>
+                ))}
+              </>
             ) : (
               <>
-                <div className="work-info-pills" role="group" aria-label="작품 또는 캐릭터">
-                  <button
-                    aria-pressed={workTab === 'work'}
-                    onClick={() => onSelectionChange({ workTab: 'work' })}
-                  >
-                    작품
-                  </button>
-                  <button
-                    aria-pressed={workTab === 'character'}
-                    onClick={() => onSelectionChange({ workTab: 'character' })}
-                  >
-                    캐릭터
-                  </button>
+                <div className="work-character-list" aria-label="캐릭터 선택">
+                  {w.characters.map((c) => (
+                    <button
+                      key={c.id}
+                      aria-label={c.name}
+                      aria-pressed={character?.id === c.id}
+                      onClick={() => onSelectionChange({ characterId: c.id })}
+                    >
+                      <Avatar src={c.image} name={c.name} size={44} />
+                    </button>
+                  ))}
                 </div>
-                {workTab === 'work' ? (
+                {character && (
                   <>
                     <div className="work-info-cover">
-                      {w.cover ? (
-                        <img src={safeUrl(w.cover)} alt={`${w.title} 표지`} />
+                      {character.image ? (
+                        <img src={safeUrl(character.image)} alt={character.name} />
                       ) : (
-                        <span>{w.title.slice(0, 1)}</span>
+                        <Avatar name={character.name} size={96} />
                       )}
                     </div>
                     <div className="work-info-byline">
-                      <h3>{w.title}</h3>
-                      <small>{w.author}</small>
-                      <small>v{w.version}</small>
+                      <h3>{character.name}</h3>
                     </div>
-                    <div className="work-info-description">
-                      <Markdown>{w.description || '등록된 작품 설명이 없습니다.'}</Markdown>
-                    </div>
-                    {w.lore.map((lore) => (
+                    {character.lore.map((lore) => (
                       <section className="work-lore" key={lore.id}>
                         <h4>{lore.name}</h4>
                         <p>
@@ -193,44 +209,6 @@ export function ChatPanel({
                         </p>
                       </section>
                     ))}
-                  </>
-                ) : (
-                  <>
-                    <div className="work-character-list" aria-label="캐릭터 선택">
-                      {w.characters.map((c) => (
-                        <button
-                          key={c.id}
-                          aria-label={c.name}
-                          aria-pressed={character?.id === c.id}
-                          onClick={() => onSelectionChange({ characterId: c.id })}
-                        >
-                          <Avatar src={c.image} name={c.name} size={44} />
-                        </button>
-                      ))}
-                    </div>
-                    {character && (
-                      <>
-                        <div className="work-info-cover">
-                          {character.image ? (
-                            <img src={safeUrl(character.image)} alt={character.name} />
-                          ) : (
-                            <Avatar name={character.name} size={96} />
-                          )}
-                        </div>
-                        <div className="work-info-byline">
-                          <h3>{character.name}</h3>
-                        </div>
-                        {character.lore.map((lore) => (
-                          <section className="work-lore" key={lore.id}>
-                            <h4>{lore.name}</h4>
-                            <p>
-                              <span className="keyword-label">키워드:</span>{' '}
-                              {lore.keywords.filter(Boolean).join(', ')}
-                            </p>
-                          </section>
-                        ))}
-                      </>
-                    )}
                   </>
                 )}
               </>
@@ -242,8 +220,11 @@ export function ChatPanel({
       {panel === 'persona' && <ChatPersona room={room} profile={profile} mutate={mutate} />}
       {panel === 'gallery' && (
         <>
+          {!!w.media.assets?.length && <UploadedGallery assets={w.media.assets} />}
           {!w.media.template ? (
-            <Empty>이 작품에는 갤러리 이미지가 등록되지 않았습니다.</Empty>
+            w.media.assets?.length ? null : (
+              <Empty>이 작품에는 갤러리 이미지가 등록되지 않았습니다.</Empty>
+            )
           ) : (
             <>
               <div className="work-character-list">
@@ -432,12 +413,25 @@ export function ChatPanel({
           {!w.chapters.some((c) => c.from === state.nodeId) && <Empty>다음 챕터가 없습니다.</Empty>}
         </div>
       )}
-      {panel === 'relations' && (
+      {panel === 'relations' && relationsEnabled(w) && (
         <RelationGraph
           {...relationView}
-          work={relationGraphWork(w, state)}
+          work={relationGraphWork(
+            {
+              ...w,
+              relationSplit:
+                w.relationSplit &&
+                (!w.innerUnlock ||
+                  conditionsMet(w, state, w.innerUnlock.conditions, w.innerUnlock.mode)),
+            },
+            state,
+          )}
           values={state.relationships}
-          innerValues={state.innerRelationships}
+          innerValues={
+            !w.innerUnlock || conditionsMet(w, state, w.innerUnlock.conditions, w.innerUnlock.mode)
+              ? state.innerRelationships
+              : undefined
+          }
         />
       )}
       {panel === 'quality' && (
@@ -509,17 +503,8 @@ export function ChatPanel({
                 onChange={(v) => set({ uiType: v === '소설' ? 'novel' : 'visual-novel' })}
               />
             </Field>
-            {chatUiEnabled(w.chatUi) && (
-              <Field label="화면 디자인">
-                <RadioOptions
-                  value={settings.uiSource === 'default' ? '기본 UI' : '제작자 UI'}
-                  values={['제작자 UI', '기본 UI']}
-                  onChange={(v) => set({ uiSource: v === '기본 UI' ? 'default' : 'creator' })}
-                />
-              </Field>
-            )}
           </section>
-          <Button className="full" onClick={() => exportRoom(room)}>
+          <Button className="full" onClick={() => run(exportRoom(room))}>
             <Download size={16} />
             대화 파일 내보내기
           </Button>

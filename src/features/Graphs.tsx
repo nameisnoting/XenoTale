@@ -2,6 +2,7 @@ import { DeleteAction } from '../components/DeleteAction';
 import { requiresDeleteConfirmation } from '../domain/deletion';
 import {
   useId,
+  useEffect,
   useLayoutEffect,
   useRef,
   useState,
@@ -47,9 +48,19 @@ export function RelationGraph(props: GraphProps) {
   const [expanded, setExpanded] = useState(false);
   const [localView, setLocalView] = useState<GraphView>({ x: 0, y: 0, scale: 1 });
   const [inner, setInner] = useState(false);
+  useEffect(() => {
+    if (!props.work.relationSplit) setInner(false);
+  }, [props.work.relationSplit]);
   const [showAll, setShowAll] = useState(false);
   const [selection, setSelection] = useState<RelationSelection>(null);
-  const interaction = { inner, setInner, showAll, setShowAll, selection, setSelection };
+  const interaction = {
+    inner: inner && !!props.work.relationSplit,
+    setInner,
+    showAll,
+    setShowAll,
+    selection,
+    setSelection,
+  };
   const viewProps = {
     view: props.view ?? localView,
     onViewChange: props.onViewChange ?? setLocalView,

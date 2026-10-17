@@ -4,10 +4,12 @@ import type { Workspace, PublishedWork, Room, Profile } from '../domain/types';
 import { clone } from '../domain/types';
 import { defaultProfile } from '../domain/defaults';
 import { validateWork } from '../domain/engine';
-import { publicationCodeProblems } from '../domain/chatUi';
+import { publicationCodeProblems } from '../domain/codeValidation';
 import { upgradeProvidedSystemPrompt } from '../domain/systemPrompt';
 import { migrateSharedPersonas } from './personas';
 import type { StoredCredential } from './credentials';
+import type { StoredAsset } from './assets';
+import { cleanWork } from '../domain/workContent';
 
 export class XenoDatabase extends Dexie {
   workspaces!: Table<Workspace, string>;
@@ -15,6 +17,7 @@ export class XenoDatabase extends Dexie {
   rooms!: Table<Room, string>;
   profiles!: Table<Profile, string>;
   credentials!: Table<StoredCredential, string>;
+  assets!: Table<StoredAsset, string>;
   constructor(name = 'xenotale-v1') {
     super(name);
     this.version(1).stores({
@@ -24,6 +27,7 @@ export class XenoDatabase extends Dexie {
       profiles: 'id',
     });
     this.version(2).stores({ credentials: 'id' });
+    this.version(3).stores({ assets: 'id' });
   }
 }
 export const db = new XenoDatabase();
@@ -129,7 +133,7 @@ export async function publishWorkspace(workspaceId: string) {
     validateWork(entry.work, true);
     const codeIssues = publicationCodeProblems(entry.work);
     if (codeIssues.length) throw new Error(codeIssues.join('\n'));
-    const work = clone(entry.work);
+    const work = cleanWork(clone(entry.work));
     work.version = entry.publishedVersion + 1;
     await db.works.put({ id: work.id, work, owned: true, hidden: false, createdAt: Date.now() });
     entry.publishedVersion = work.version;

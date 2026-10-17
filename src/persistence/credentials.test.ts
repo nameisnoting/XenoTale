@@ -39,14 +39,12 @@ it('waits for rapid key edits before reading a backup key and serializes deletio
 it('upgrades the existing database without losing profiles or works', async () => {
   const name = 'credential-upgrade-test';
   const old = new Dexie(name);
-  old
-    .version(1)
-    .stores({
-      workspaces: 'id, updatedAt',
-      works: 'id, createdAt',
-      rooms: 'id, updatedAt, folderId',
-      profiles: 'id',
-    });
+  old.version(1).stores({
+    workspaces: 'id, updatedAt',
+    works: 'id, createdAt',
+    rooms: 'id, updatedAt, folderId',
+    profiles: 'id',
+  });
   await old.table('profiles').put({ ...defaultProfile(), nickname: '기존 사용자' });
   old.close();
   const upgraded = new XenoDatabase(name);

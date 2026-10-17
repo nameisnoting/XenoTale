@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { DEFAULT_CHAT_UI, codeApproval } from '../src/domain/chatUi';
+import { codeApproval } from '../src/domain/codeValidation';
 test.use({ hasTouch: true });
 
 async function start(page: Page) {
@@ -72,7 +72,7 @@ for (const width of [1440, 393])
       'border-radius',
       '50%',
     );
-    await expect(vn.locator('.visual-novel-image')).toHaveCSS('object-fit', 'scale-down');
+    await expect(vn.locator('.visual-novel-image')).toHaveClass(/is-portrait/);
     const image = await vn.boundingBox(),
       box = await vn.locator('.visual-novel-textbox').boundingBox();
     expect(image!.y + image!.height - box!.y - box!.height).toBeCloseTo(80, 0);
@@ -131,126 +131,12 @@ for (const width of [1440, 393])
     expect(errors).toEqual([]);
   });
 
-test('제작자 UI 실제 컴포넌트 연결 · 독립 선택 · 숨긴 필수 영역 자동 복구', async ({ page }) => {
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await start(page);
-  const code = DEFAULT_CHAT_UI.replace(
-    '340px minmax(300px,1fr) 340px',
-    '280px minmax(300px,1fr) 300px',
-  );
-  await changeRoom(page, {
-    work: { chatUi: { code, validation: codeApproval(code) } },
-    settings: { uiType: 'visual-novel' },
-  });
-  await expect(page.locator('.chat-shell')).toHaveClass(/author-chat/);
-  const authored = page.frameLocator('iframe.author-layout-frame');
-  await authored
-    .locator('body')
-    .evaluate((element) => element.setAttribute('data-execution-marker', 'kept'));
-  await page.getByRole('button', { name: '소설 모드로 전환', exact: true }).click();
-  await expect(authored.locator('html')).toHaveAttribute('data-ui-type', 'novel');
-  await expect(authored.locator('body')).toHaveAttribute('data-execution-marker', 'kept');
-  await page.getByRole('button', { name: '비주얼노벨 모드로 전환', exact: true }).click();
-  await expect(authored.locator('html')).toHaveAttribute('data-ui-type', 'visual-novel');
-  const stage = page.locator('.visual-novel');
-  const initialStage = await stage.boundingBox();
-  const header = await page.locator('.chat-header').boundingBox();
-  expect(initialStage!.y).toBeCloseTo(header!.y, 0);
-  await page.getByRole('button', { name: 'UI 숨기기', exact: true }).click();
-  const fullStage = await stage.boundingBox();
-  expect(fullStage!.height).toBeGreaterThan(initialStage!.height + 100);
-  // A click elsewhere also restores the UI, without selecting that menu.
-  await page.getByRole('button', { name: '환경설정', exact: true }).click();
-  await expect(page.locator('.chat-shell')).not.toHaveClass(/vn-ui-hidden/);
-  await expect(page.locator('.chat-panel-content .setting-card')).toHaveCount(0);
-  const workspace = await page.locator('.chat-workspace').boundingBox();
-  expect(workspace!.width).toBeCloseTo(280, 0);
-  await page.getByRole('button', { name: '환경설정', exact: true }).click();
-  await expect(page.getByRole('group', { name: '화면 디자인', exact: true })).toBeVisible();
-  await page.getByRole('radio', { name: '기본 UI', exact: true }).click();
-  await expect(page.locator('.chat-shell')).not.toHaveClass(/author-chat/);
-  await expect(page.locator('.visual-novel')).toBeVisible();
-  await page.reload();
-  await expect(page.locator('.chat-shell')).not.toHaveClass(/author-chat/);
-  await page.getByRole('button', { name: '환경설정', exact: true }).click();
-  await page.getByRole('radio', { name: '제작자 UI', exact: true }).click();
-  await expect(page.locator('.chat-shell')).toHaveClass(/author-chat/);
-  await changeRoom(page, {
-    work: { chatUi: { enabled: false, code, validation: codeApproval(code) } },
-  });
-  await expect(page.locator('.chat-shell')).not.toHaveClass(/author-chat/);
-  await expect(page.locator('iframe.author-layout-frame')).toHaveCount(0);
-  await page.getByRole('button', { name: '환경설정', exact: true }).click();
-  await expect(page.getByRole('group', { name: '화면 디자인', exact: true })).toHaveCount(0);
-  const bad = code + '<style>[data-xenotale-slot="composer"]{display:none}</style>';
-  await changeRoom(page, { work: { chatUi: { code: bad, validation: codeApproval(bad) } } });
-  await expect(page.locator('.author-ui-error')).toContainText('기본 UI로 전환');
-  await expect(page.getByRole('textbox', { name: '메시지', exact: true })).toBeVisible();
-});
-
-test('대화방 UI 수동 검사 게이트 · 코드 변경 후 재검사 · 실제 미리보기', async ({ page }) => {
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await start(page);
-  await page.getByRole('button', { name: '메인으로', exact: true }).click();
-  await page.getByRole('button', { name: '작품 만들기', exact: true }).click();
-  await expect(page.getByRole('button', { name: '미디어', exact: true })).toBeVisible();
-  const sections = await page.locator('.editor-nav').getByRole('button').allTextContents();
-  expect(sections[sections.indexOf('미디어') + 1]).toBe('추천 페르소나');
-  expect(sections[sections.indexOf('대화방 UI') + 1]).toBe('플레이가이드');
-  await page.getByRole('textbox', { name: /^제목/ }).fill('기본 UI 작품');
-  await page.getByRole('textbox', { name: /^프롬프트/ }).fill('차분한 이야기');
-  await page.getByRole('button', { name: '등장 캐릭터', exact: false }).click();
-  await page.getByRole('textbox', { name: /^이름/ }).fill('안내인');
-  await page.getByRole('textbox', { name: /^캐릭터 프롬프트/ }).fill('차분한 안내인');
-  await page.getByRole('button', { name: '도입부', exact: false }).click();
-  await page.getByRole('textbox', { name: /^내용/ }).fill('이야기가 시작됩니다.');
-  await page.getByRole('button', { name: '대화방 UI', exact: true }).click();
-  const toggle = page.getByRole('switch', { name: 'UI 변경', exact: true });
-  const code = page.getByRole('textbox', { name: '코드 입력', exact: true });
-  const publish = page.getByRole('button', { name: '제작완료', exact: true });
-  await expect(toggle).not.toBeChecked();
-  await expect(code).toHaveCount(0);
-  await expect(page.getByRole('button', { name: '미리보기', exact: true })).toHaveCount(0);
-  await expect(page.getByRole('button', { name: '유효성 검사', exact: true })).toHaveCount(0);
-  await expect(publish).toBeEnabled();
-  await toggle.click();
-  await expect(toggle).toBeChecked();
-  await expect(publish).toBeDisabled();
-  await expect(code).toHaveValue(DEFAULT_CHAT_UI);
-  await page.getByRole('button', { name: '유효성 검사', exact: true }).click();
-  await expect(page.locator('.code-validation')).toContainText('검사 통과');
-  await expect(publish).toBeEnabled();
-  await code.fill(DEFAULT_CHAT_UI + '\n<!--바뀐 코드-->');
-  await expect(page.locator('.code-validation')).toContainText('검사 필요');
-  await expect(publish).toBeDisabled();
-  await code.fill(
-    DEFAULT_CHAT_UI.replaceAll('data-xenotale-slot="composer"', 'data-xenotale-slot="없음"'),
-  );
-  await page.getByRole('button', { name: '유효성 검사', exact: true }).click();
-  await expect(page.locator('.code-validation')).toContainText('composer: 필수');
-  await expect(page.getByRole('button', { name: '제작완료', exact: true })).toBeDisabled();
-  await code.fill(DEFAULT_CHAT_UI);
-  await page.getByRole('button', { name: '미리보기', exact: true }).click();
-  await expect(page.getByRole('dialog', { name: '대화방 UI 미리보기' })).toBeVisible();
-  await expect(page.locator('.chat-ui-preview .chat-shell')).toHaveClass(/author-chat/);
-  await expect(
-    page.locator('.chat-ui-preview').getByRole('textbox', { name: '메시지', exact: true }),
-  ).toBeVisible();
-  await page.getByRole('button', { name: '미리보기 닫기', exact: true }).click();
-  await expect(page.getByRole('dialog', { name: '대화방 UI 미리보기' })).toHaveCount(0);
-  await toggle.click();
-  await expect(code).toHaveCount(0);
-  await expect(publish).toBeEnabled();
-  await toggle.click();
-  await expect(code).toHaveValue(DEFAULT_CHAT_UI);
-  await expect(publish).toBeDisabled();
-});
-
 test('인라인/독립 연출 자동 재생 · 완료 후 다음 줄 · 중복 저장 없음', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await start(page);
   const effect = {
     id: 'auto',
+    mode: 'auto',
     name: '자동 연출',
     prompt: '',
     content:
@@ -337,9 +223,10 @@ test('연출의 배경·음악·테마 변경 저장 · 응답 삭제로 복원'
       }),
   );
   await page.reload();
-  await page.getByRole('button', { name: '다음 대사', exact: true }).click();
+  await page.getByRole('button', { name: '화면 연출 보기', exact: true }).click();
   await page.frameLocator('iframe.effect-frame').getByRole('button', { name: '화면 변경' }).click();
   await expect(page.locator('.effect-player')).toHaveCount(0);
+  await page.getByRole('button', { name: '다음 대사', exact: true }).click();
   await expect(page.locator('.visual-novel-copy')).toHaveText('다음 대사');
   await expect(page.locator('.visual-novel-textbox')).toHaveCSS(
     'background-color',
@@ -368,6 +255,7 @@ test('연출 코드 검증 · 실행 오류/외부 통신 거절 · 편집으로
   await start(page);
   await page.getByRole('button', { name: '메인으로', exact: true }).click();
   await page.getByRole('button', { name: '작품 만들기', exact: true }).click();
+  await page.getByRole('button', { name: '추가 요소', exact: false }).click();
   await page.getByRole('button', { name: '연출', exact: true }).click();
   await page.getByRole('button', { name: '연출 추가', exact: true }).click();
   const code = page.getByRole('textbox', { name: '코드 입력', exact: true });

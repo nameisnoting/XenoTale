@@ -15,11 +15,20 @@
   background: #1c1c1c;
 }
 .visual-novel-image {
-  width: 100%;
-  height: 100%;
-  object-fit: scale-down;
-  object-position: center;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  max-width: none;
   display: block;
+}
+.visual-novel-image.is-portrait {
+  height: 100%;
+  width: auto;
+}
+.visual-novel-image.is-landscape {
+  width: 100%;
+  height: auto;
 }
 .visual-novel-dialogue {
   position: absolute;
@@ -219,18 +228,10 @@
   left: auto;
   right: 48px;
 }
-.chat-shell.author-chat.is-visual-novel .chat-header {
-  left: var(--slot-header-x);
-  top: var(--slot-header-y);
-  right: auto;
-  width: var(--slot-header-width);
-}
 .chat-shell.vn-ui-hidden .chat-header,
 .chat-shell.vn-ui-hidden .visual-novel-dialogue,
 .chat-shell.vn-ui-hidden .visual-novel-choices,
-.chat-shell.vn-ui-hidden .chapter-unlock,
-.chat-shell.vn-ui-hidden .author-ui-escape,
-.chat-shell.vn-ui-hidden .author-ui-error {
+.chat-shell.vn-ui-hidden .chapter-unlock {
   visibility: hidden;
 }
 .chat-shell.vn-ui-hidden .chat-footer,
@@ -239,11 +240,6 @@
 }
 .chat-shell.vn-ui-hidden .visual-novel {
   cursor: pointer;
-}
-.author-chat .novel-mode-switch {
-  left: calc(var(--slot-conversation-x) + var(--slot-conversation-width) - 44px);
-  right: auto;
-  top: calc(var(--slot-conversation-y) + 8px);
 }
 .chat-scroll.novel-scroll {
   position: relative;

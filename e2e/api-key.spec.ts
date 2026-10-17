@@ -1,5 +1,5 @@
+import { readDownloadedJson } from './read-file';
 import { test, expect } from '@playwright/test';
-import fs from 'node:fs/promises';
 test('암호화한 API 키는 새로고침·새 탭에서 유지되고 삭제하면 지워진다', async ({
   page,
   context,
@@ -72,14 +72,14 @@ test('비밀번호 없는 백업의 API 키를 다른 브라우저에 복원하�
   await page.getByRole('button', { name: '전체 백업 다운로드', exact: false }).click();
   const file = await download;
   const path = (await file.path())!;
-  const data = JSON.parse(await fs.readFile(path, 'utf8'));
+  const data = await readDownloadedJson(path);
   expect(data.credentials).toEqual({ openrouterApiKey: 'fake-backup-key' });
   expect(JSON.stringify(data.profile)).not.toContain('fake-backup-key');
   await page.getByRole('switch', { name: 'API 키 포함', exact: true }).click();
   const withoutKey = page.waitForEvent('download');
   await page.getByRole('button', { name: '전체 백업 다운로드', exact: false }).click();
   const plainPath = (await (await withoutKey).path())!;
-  expect(JSON.parse(await fs.readFile(plainPath, 'utf8')).credentials).toBeUndefined();
+  expect((await readDownloadedJson(plainPath)).credentials).toBeUndefined();
   const restored = await browser.newContext();
   await restored.route('https://openrouter.ai/**', (r) => r.fulfill({ json: { data: [] } }));
   const target = await restored.newPage();

@@ -2,7 +2,7 @@ import { useMediaQuery } from '../components/useMediaQuery';
 import { CreditBalanceButton } from '../components/CreditBalanceButton';
 import { useCreditBalance } from '../components/useCreditBalance';
 import { validateWork } from '../domain/engine';
-import { publicationCodeProblems } from '../domain/chatUi';
+import { publicationCodeProblems } from '../domain/codeValidation';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
@@ -34,6 +34,8 @@ import { exportWorkspace, exportBackup } from '../persistence/files';
 import { navigate } from '../app/navigation';
 import { EditorPanels } from './EditorPanels';
 import { sections } from './creator/sections';
+import { CreatorSectionList } from './creator/CreatorSectionList';
+import { ImportWorkButton } from './creator/ImportWorkButton';
 import { newWorkspace } from './Library';
 import type { ApiProps, ModelProps } from './Profile';
 import { CollapsedPanel, PanelHeader } from '../components/Headers';
@@ -86,6 +88,7 @@ function EditorContent({
     />
   );
   const [work, setWork] = useState(initial.work);
+  const [extrasExpanded, setExtrasExpanded] = useState(false);
   const [testCreativity, setTestCreativity] = useState(
     initial.testCreativity ?? initial.supporterSettings?.testCreativity ?? 2,
   );
@@ -564,19 +567,15 @@ function EditorContent({
                   </div>
                 </>
               ) : (
-                sections.map((s) => (
-                  <button
-                    key={s.id}
-                    className={section === s.id ? 'active' : ''}
-                    onClick={() => {
-                      setSection(s.id);
-                      setMobile(false);
-                    }}
-                  >
-                    {s.name}
-                    {s.required && <i> *</i>}
-                  </button>
-                ))
+                <CreatorSectionList
+                  section={section}
+                  expanded={extrasExpanded}
+                  onToggle={() => setExtrasExpanded(!extrasExpanded)}
+                  onSelect={(id) => {
+                    setSection(id);
+                    setMobile(false);
+                  }}
+                />
               )}
             </>
           </aside>
@@ -623,10 +622,16 @@ function EditorContent({
             >
               <Redo2 size={18} />
             </IconButton>
+            <ImportWorkButton
+              author={profile.nickname}
+              disabled={locked}
+              beforeImport={flush}
+              onImported={(id) => navigate(`/create/${id}`)}
+            />
             <IconButton
               className="editor-export"
               title="작품 파일 내보내기"
-              onClick={() => exportWorkspace({ ...latest.current, work })}
+              onClick={() => run(exportWorkspace({ ...latest.current, work }))}
             >
               <Download size={20} />
             </IconButton>
@@ -640,20 +645,12 @@ function EditorContent({
           </div>
         </header>
         <nav className="editor-mobile-stages" aria-label="모바일 제작 단계">
-          <Tabs
-            label="제작 단계"
-            scrollable
-            items={sections.map((item) => ({
-              id: item.id,
-              label: (
-                <>
-                  {item.name}
-                  {item.required && <span className="required"> *</span>}
-                </>
-              ),
-            }))}
-            value={section}
-            onChange={setSection}
+          <CreatorSectionList
+            tabbed
+            section={section}
+            expanded={extrasExpanded}
+            onToggle={() => setExtrasExpanded(!extrasExpanded)}
+            onSelect={setSection}
           />
           <IconButton title="제작 도구" onClick={() => setMobile(!mobile)}>
             <MoreHorizontal size={20} />

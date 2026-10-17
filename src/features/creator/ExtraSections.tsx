@@ -1,7 +1,7 @@
+import { DisplayRulesEditor } from './DisplayRulesEditor';
 import { AddButton } from '../../components/AddButton';
 import { DeleteAction } from '../../components/DeleteAction';
 import { insertTextWithUndo } from '../../components/textEditing';
-import { PlayGuide } from '../../components/PlayGuide';
 import { DisclosureCard } from '../../components/DisclosureCard';
 import { requiresDeleteConfirmation } from '../../domain/deletion';
 import { ShortcutFields } from '../../components/ShortcutFields';
@@ -65,15 +65,21 @@ export function EffectsSection({
 }: Pick<CreatorPanelState, 'work' | 'setEffectPreview' | 'update'>) {
   return (
     <>
-      <h2>연출 설정</h2>
+      <h2>연출</h2>
+      <DisplayRulesEditor
+        work={work}
+        onChange={(work) => update({ displayRules: work.displayRules })}
+      />
+      <hr />
+      <h3>수동연출 · 버튼</h3>
       <p className="muted">
         AI가 {'{{이름}}'}을 출력하면 보기 버튼이 나타납니다. 사용자가 누르면 화면 전체에서 연출을
         실행합니다.
       </p>
       <p className="muted">
-        비주얼노벨에서는 자동 재생됩니다. XenoTale.background('1/2'), XenoTale.music(주소 또는
-        null), XenoTale.ui({'{uiType, theme}'})로 화면·음악을 바꿀 수 있습니다. XenoTale.complete
-        결과와 함께 저장됩니다.
+        버튼을 눌러 실행합니다. XenoTale.background('1/2'), XenoTale.music(주소 또는 null),
+        XenoTale.ui({'{uiType, theme}'})로 화면·음악을 바꿀 수 있습니다. XenoTale.complete 결과와
+        함께 저장됩니다.
       </p>
       {work.effects.map((s, i) => (
         <DisclosureCard
@@ -228,38 +234,6 @@ export function PersonasSection({
         selectedId={selectedPersonaId}
         onSelect={onPersonaSelect}
       />
-    </>
-  );
-}
-
-export function GuideSection({
-  work,
-  guidePreview,
-  setGuidePreview,
-  update,
-}: Pick<CreatorPanelState, 'work' | 'guidePreview' | 'setGuidePreview' | 'update'>) {
-  return (
-    <>
-      <h2>플레이가이드</h2>
-      <Field label="내용">
-        <Area
-          value={work.guide}
-          onChange={(guide) => update({ guide })}
-          rows={16}
-          placeholder="플레이 방법을 안내해 주세요. Markdown을 사용할 수 있습니다."
-        />
-      </Field>
-      <Button onClick={() => setGuidePreview(work.guide)}>
-        <Eye size={15} />
-        미리보기
-      </Button>
-      {guidePreview !== null && (
-        <PlayGuide
-          className="guide-preview"
-          label="플레이가이드 미리보기"
-          content={guidePreview || '아직 내용이 없습니다.'}
-        />
-      )}
     </>
   );
 }

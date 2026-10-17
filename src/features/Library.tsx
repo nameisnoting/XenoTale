@@ -1,4 +1,5 @@
 import { PageHeader } from '../components/Headers';
+import { InstallAppButton } from '../app/pwa';
 import { SortableList } from '../components/SortableList';
 import { useRef, useState } from 'react';
 import {
@@ -236,7 +237,7 @@ export function Library({ profile }: { profile: Profile }) {
           run(copyToWorkspace(entry));
         }}
         onExport={() => {
-          exportWork(entry.work);
+          run(exportWork(entry.work));
           setMenu(null);
         }}
         onDelete={() => {
@@ -307,6 +308,7 @@ export function Library({ profile }: { profile: Profile }) {
             </ActionButton>
           </div>
           <div className="toolbar-right">
+            <InstallAppButton />
             <Button onClick={() => run(enterWorkspace(profile))}>
               <Plus size={17} />
               작품 만들기
@@ -431,7 +433,7 @@ export function Library({ profile }: { profile: Profile }) {
       </main>
       <input
         type="file"
-        accept=".json"
+        accept=".xeno,.json,.charx,.png,.jpg,.jpeg"
         hidden
         ref={input}
         onChange={(e) => {
@@ -672,6 +674,11 @@ export function Library({ profile }: { profile: Profile }) {
           <p className="muted">
             현재 자료는 덮어쓰지 않습니다. 외부 미디어는 연결된 주소에서 불러옵니다.
           </p>
+          {importData.warnings?.map((warning, i) => (
+            <p className="import-warning" key={i}>
+              {warning}
+            </p>
+          ))}
           {importData.kind === 'backup' && importData.data.credentials && (
             <p className="muted">백업의 API 키도 복원하며 현재 등록된 API 키를 교체합니다.</p>
           )}

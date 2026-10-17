@@ -24,10 +24,10 @@ async function personas(page: Page, width: number) {
       .getByRole('button', { name: '작업공간', exact: true })
       .click();
   }
-  await page
-    .locator('.editor-nav')
-    .getByRole('button', { name: '추천 페르소나', exact: false })
-    .click();
+  const nav = page.locator('.editor-nav');
+  if (!(await nav.getByRole('button', { name: '추천 페르소나', exact: false }).count()))
+    await nav.getByRole('button', { name: '추가 요소', exact: false }).click();
+  await nav.getByRole('button', { name: '추천 페르소나', exact: false }).click();
 }
 async function seedWorkspace(page: Page) {
   const workspaceId = page.url().split('/create/')[1];

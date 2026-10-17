@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import { exampleWork } from '../test/exampleWork';
-import { emptyWork } from './defaults';
 import {
   createRoom,
   addResponse,
@@ -13,21 +12,14 @@ import { selected } from './types';
 import { visualNovelPages, chapterMusic } from './visualNovel';
 import { completeEffect } from './effects';
 import { checkPresentation } from './presentation';
-import {
-  DEFAULT_CHAT_UI,
-  chatUiEnabled,
-  codeApproval,
-  codeChecked,
-  codeProblems,
-  publicationCodeProblems,
-} from './chatUi';
+import { codeApproval, codeChecked, codeProblems } from './codeValidation';
 import { readImport } from '../persistence/files';
 
 const usage = { model: 'demo', cost: 0, duration: 0 };
 describe('visual novel views share the actual timeline', () => {
   it('pages newlines, retains speakers and exact effect occurrences, changes images in order', () => {
     const work = exampleWork();
-    work.effects = [{ id: 'fx', name: '빛', prompt: '', content: '빛' }];
+    work.effects = [{ id: 'fx', name: '빛', prompt: '', content: '빛', mode: 'auto' }];
     work.media = {
       template: 'https://example.com/{{char_code}}-{{situation_code}}.png',
       characters: [{ code: '1', characterId: work.characters[0].id }],
@@ -121,7 +113,7 @@ describe('visual novel views share the actual timeline', () => {
   });
   it('reroll/candidate/delete restores sourced effects while preserving room UI choices', () => {
     const work = exampleWork();
-    work.effects = [{ id: 'fx', name: '빛', prompt: '', content: '빛' }];
+    work.effects = [{ id: 'fx', name: '빛', prompt: '', content: '빛', mode: 'auto' }];
     const room = createRoom(work);
     const first = addResponse(
       room,
@@ -166,7 +158,7 @@ describe('visual novel views share the actual timeline', () => {
   });
   it('saves presentation with effect results, restores it on delete/branch and round trips', async () => {
     const work = exampleWork();
-    work.effects = [{ id: 'fx', name: '빛', prompt: '', content: '빛' }];
+    work.effects = [{ id: 'fx', name: '빛', prompt: '', content: '빛', mode: 'auto' }];
     work.openings[0].body = '{{빛}}';
     const room = createRoom(work),
       source = { eventId: 'opening:' + room.openingId, occurrence: 0 };
@@ -202,56 +194,9 @@ describe('visual novel views share the actual timeline', () => {
   });
 });
 describe('authored code validation', () => {
-  it('new work uses the built-in UI until customization is enabled and approved', () => {
-    const work = emptyWork();
-    expect(chatUiEnabled(work.chatUi)).toBe(false);
-    expect(publicationCodeProblems(work)).toEqual([]);
-    work.chatUi!.enabled = true;
-    expect(publicationCodeProblems(work)).toContain('대화방 UI 유효성 검사를 통과해 주세요.');
-    expect(codeProblems(DEFAULT_CHAT_UI, 'ui', work)).toEqual([]);
-    work.chatUi!.validation = codeApproval(work.chatUi!.code);
-    expect(publicationCodeProblems(work)).toEqual([]);
-    work.chatUi!.code += '\n<!--edit-->';
-    expect(codeChecked(work.chatUi!.code, work.chatUi!.validation)).toBe(false);
-    expect(publicationCodeProblems(work)).toContain('대화방 UI 유효성 검사를 통과해 주세요.');
-    work.chatUi!.enabled = false;
-    expect(publicationCodeProblems(work)).toEqual([]);
-  });
-  it('legacy custom layouts still require approval; absent layouts do not', () => {
-    const work = exampleWork();
-    expect(publicationCodeProblems(work)).toEqual([]);
-    work.chatUi = { code: DEFAULT_CHAT_UI + '\n<!--custom-->' };
-    expect(chatUiEnabled(work.chatUi)).toBe(true);
-    expect(publicationCodeProblems(work)).toContain('대화방 UI 유효성 검사를 통과해 주세요.');
-  });
-  it('older untouched pending templates default OFF while approved templates stay ON', () => {
-    const work = emptyWork();
-    work.chatUi = { code: DEFAULT_CHAT_UI };
-    expect(chatUiEnabled(work.chatUi)).toBe(false);
-    expect(publicationCodeProblems(work)).toEqual([]);
-    work.chatUi.validation = codeApproval(DEFAULT_CHAT_UI);
-    expect(chatUiEnabled(work.chatUi)).toBe(true);
-  });
-  it('a disabled layout round-trips with its draft but does not bypass effect validation', async () => {
-    const work = exampleWork();
-    work.chatUi = { enabled: false, code: '<script>fetch("https://example.com")</script>' };
-    const imported = await readImport(
-      new File([JSON.stringify({ kind: 'xenotale.work', schemaVersion: 2, work })], 'work.json'),
-    );
-    expect(imported.kind === 'work' && imported.work.chatUi).toEqual(work.chatUi);
-    expect(publicationCodeProblems(work)).toEqual([]);
-    work.effects = [{ id: 'effect', name: '효과', prompt: '', content: '<p>효과</p>' }];
-    expect(publicationCodeProblems(work)).toContain('효과: 유효성 검사를 통과해 주세요.');
-  });
   it('resource changes revoke approval and external communication/missing slots are reported', () => {
-    const stamp = codeApproval(DEFAULT_CHAT_UI, ['https://example.com/a.png']);
-    expect(codeChecked(DEFAULT_CHAT_UI, stamp, [])).toBe(false);
-    expect(
-      codeProblems(
-        DEFAULT_CHAT_UI.replaceAll('data-xenotale-slot="composer"', 'data-xenotale-slot="removed"'),
-        'ui',
-      ),
-    ).toContain('composer: 필수 대화방 영역이 하나 있어야 합니다.');
+    const stamp = codeApproval('<p>연출</p>', ['https://example.com/a.png']);
+    expect(codeChecked('<p>연출</p>', stamp, [])).toBe(false);
     expect(
       codeProblems('<script>fetch("https://example.com")</script>', 'effect').join(''),
     ).toContain('외부 통신');

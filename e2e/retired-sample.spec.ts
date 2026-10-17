@@ -1,5 +1,5 @@
+import { readDownloadedJson } from './read-file';
 import { test, expect } from '@playwright/test';
-import fs from 'node:fs/promises';
 
 test('기존 샘플 카드는 숨기고 대화·사용자 작품·백업은 유지', async ({ page }) => {
   await page.goto('/');
@@ -90,7 +90,7 @@ test('기존 샘플 카드는 숨기고 대화·사용자 작품·백업은 유�
   await page.getByRole('button', { name: '백업 및 동기화', exact: true }).click();
   const pending = page.waitForEvent('download');
   await page.getByRole('button', { name: '전체 백업 다운로드', exact: false }).click();
-  const backup = JSON.parse(await fs.readFile((await (await pending).path())!, 'utf8'));
+  const backup = await readDownloadedJson((await (await pending).path())!);
   expect(backup.works.map((entry: { id: string }) => entry.id).sort()).toEqual([
     'example-garden',
     'user-copy',

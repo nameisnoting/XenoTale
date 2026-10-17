@@ -7,6 +7,14 @@ async function start(page: Page, width: number) {
   await page.getByRole('button', { name: '키 없이 먼저 둘러보기', exact: true }).click();
 }
 async function section(page: Page, width: number, name: string) {
+  const nav = page.locator(width < 800 ? '.editor-mobile-stages' : '.editor-nav');
+  await nav.waitFor({ state: 'visible' });
+  if (
+    (await nav.count()) &&
+    !(await nav.getByRole(width < 800 ? 'tab' : 'button', { name, exact: false }).count())
+  )
+    await nav.getByRole('button', { name: '추가 요소', exact: false }).click();
+
   if (width < 800)
     await page.locator('.editor-mobile-stages').getByRole('tab', { name, exact: false }).click();
   else await page.locator('.editor-nav').getByRole('button', { name, exact: false }).click();
@@ -72,7 +80,7 @@ for (const width of [1440, 393]) {
     const statusButton = (await page
       .getByRole('button', { name: '미리보기', exact: true })
       .boundingBox())!;
-    const statusGap = statusBox.y - statusButton.y - statusButton.height;
+    expect(statusBox.y - statusButton.y - statusButton.height).toBeGreaterThanOrEqual(8);
     await section(page, width, '연출');
     await page.getByRole('button', { name: '연출 추가', exact: true }).click();
     const code = page.getByRole('textbox', { name: '코드 입력', exact: true });
@@ -90,36 +98,9 @@ for (const width of [1440, 393]) {
     await page.keyboard.insertText('추가 입력');
     await code.press('Control+z');
     expect(await code.inputValue()).not.toContain('추가 입력');
-    await section(page, width, '플레이가이드');
-    const guide = page.getByRole('textbox', { name: '내용', exact: true });
-    const preview = page.getByRole('region', { name: '플레이가이드 미리보기', exact: true });
-    await guide.fill('## 플레이 방법\n**기억할 내용**');
-    await expect(preview).toHaveCount(0);
-    await page.getByRole('button', { name: '미리보기', exact: true }).click();
-    await expect(page.getByRole('dialog')).toHaveCount(0);
-    await expect(preview.getByRole('heading', { name: '플레이 방법', exact: true })).toBeVisible();
-    await expect(preview).toHaveCSS('background-color', 'rgb(28, 28, 28)');
-    await expect(preview).toHaveCSS('border-radius', '5px');
-    await expect(preview).toHaveCSS('padding', '16px');
-    const previewBox = (await preview.boundingBox())!;
-    const previewButton = (await page
-      .getByRole('button', { name: '미리보기', exact: true })
-      .boundingBox())!;
-    expect(previewBox.y - previewButton.y - previewButton.height).toBeCloseTo(statusGap, 0);
-    await page.screenshot({ path: `docs/screenshots/guide-preview-${width}.png` });
-    expect((await preview.boundingBox())!.y).toBeGreaterThan(
-      (await page.getByRole('button', { name: '미리보기', exact: true }).boundingBox())!.y,
-    );
-    await guide.fill('## 수정한 안내');
-    await expect(preview).toContainText('플레이 방법');
-    await page.getByRole('button', { name: '미리보기', exact: true }).click();
-    await expect(preview).toContainText('수정한 안내');
-    await guide.fill('');
-    await page.getByRole('button', { name: '미리보기', exact: true }).click();
-    await expect(preview).toContainText('아직 내용이 없습니다.');
   });
 
-  test(`대화방 플레이가이드 공통 영역 · Markdown과 HTML (${width})`, async ({ page }) => {
+  test(`작품 설명의 통합 안내 · Markdown과 HTML (${width})`, async ({ page }) => {
     await start(page, width);
     await page.getByRole('button', { name: '정원 앞에서 대화 시작', exact: true }).click();
     await expect(page.getByRole('textbox', { name: '메시지', exact: true })).toBeVisible();
@@ -127,8 +108,9 @@ for (const width of [1440, 393]) {
       await page.getByRole('button', { name: '대화 메뉴', exact: true }).click();
       await page.getByRole('button', { name: '작품정보', exact: true }).click();
     }
-    await page.getByRole('tab', { name: '플레이 가이드', exact: true }).click();
-    const guide = page.locator('.work-guide');
+    await expect(page.getByRole('tab', { name: '플레이 가이드', exact: true })).toHaveCount(0);
+    const guide = page.locator('.work-info-description');
+    await expect(guide).toContainText('천천히 대화');
     await expect(guide).toHaveCSS('background-color', 'rgb(34, 34, 34)');
     await expect(guide).toHaveCSS('border-radius', '5px');
     await expect(guide).toHaveCSS('padding', '16px');
@@ -162,7 +144,6 @@ for (const width of [1440, 393]) {
         }),
     );
     await page.reload();
-    await page.getByRole('tab', { name: '플레이 가이드', exact: true }).click();
     await expect(guide.frameLocator('iframe').locator('#guide-test')).toHaveText(
       'HTML 플레이가이드',
     );
@@ -172,7 +153,7 @@ for (const width of [1440, 393]) {
     );
     await expect
       .poll(() => guide.locator('iframe').evaluate((frame) => frame.getBoundingClientRect().height))
-      .toBe(90);
+      .toBeGreaterThanOrEqual(90);
     await expect(guide).toHaveCSS('padding', '16px');
   });
 

@@ -1,10 +1,12 @@
+import { displayRuleProblem } from './displayRules';
 import { effectiveSystemPrompt } from './systemPrompt';
 import { z } from 'zod';
-import type { Work, Runtime, Checkpoint, Room, Candidate, Turn, Usage } from './types';
+import type { Work, Runtime, Checkpoint, Room, Candidate, Turn, Usage, Condition } from './types';
 import { id, clone, after } from './types';
 import { defaultPersona, settings } from './defaults';
 import { validMemories, repairMemoryActivity } from './memory';
 import { runtimeRelations } from './relations';
+import { cleanWork, relationsEnabled } from './workContent';
 
 const changes = <T extends z.ZodType>(schema: T) => z.array(schema).max(100);
 export const envelopeSchema = z
@@ -62,6 +64,7 @@ export type WorkIssue = {
   related: (keyof Work)[];
 };
 export function validateWork(w: Work, publish = false, report?: (issue: WorkIssue) => void) {
+  w = cleanWork(w);
   let location: Omit<WorkIssue, 'message'> = { field: 'title', related: [] };
   const at = (field: keyof Work, index?: number, related: (keyof Work)[] = []) => {
     location = { field, index, related };
@@ -73,10 +76,8 @@ export function validateWork(w: Work, publish = false, report?: (issue: WorkIssu
   if (publish && (!w.title.trim() || !w.prompt.trim()))
     fail('작품 제목과 프롬프트를 입력해 주세요.');
   if (publish && !effectiveSystemPrompt(w).trim()) fail('시스템 프롬프트를 입력해 주세요.');
-  at('characters');
-  if (!w.characters.length) fail('캐릭터와 도입부가 하나 이상 필요합니다.');
   at('openings');
-  if (!w.openings.length) fail('캐릭터와 도입부가 하나 이상 필요합니다.');
+  if (!w.openings.length) fail('도입부가 하나 이상 필요합니다.');
   const ids = (list: { id: string }[], field: keyof Work, related: (keyof Work)[] = []) => {
     at(field, undefined, related);
     if (new Set(list.map((x) => x.id)).size !== list.length) fail('중복된 ID가 있습니다.');
@@ -135,7 +136,7 @@ export function validateWork(w: Work, publish = false, report?: (issue: WorkIssu
   at('quality', undefined, ['characters']);
   for (const key of [w.quality.viewpointActorId, w.quality.viewpointTargetId])
     if (key && !entityIds.has(key)) fail('서술 시점의 인물 참조를 확인해 주세요.');
-  for (const [index, r] of w.relations.entries()) {
+  for (const [index, r] of (relationsEnabled(w) ? w.relations : []).entries()) {
     at('relations', index, ['characters']);
     if (!entityIds.has(r.from) || !entityIds.has(r.to))
       fail('관계도의 인물 참조가 올바르지 않습니다.');
@@ -159,10 +160,17 @@ export function validateWork(w: Work, publish = false, report?: (issue: WorkIssu
       seen.add(current);
       current = w.chapters.find((n) => n.id === current)!.from;
     }
+  }
+  for (const [index, c] of [
+    ...w.chapters,
+    ...(relationsEnabled(w) && w.relationSplit && w.innerUnlock
+      ? [{ name: '내면 해금', conditions: w.innerUnlock.conditions }]
+      : []),
+  ].entries()) {
     for (const condition of c.conditions) {
       at(
-        'chapters',
-        index,
+        index < w.chapters.length ? 'chapters' : 'innerUnlock',
+        index < w.chapters.length ? index : undefined,
         ['number', 'choice'].includes(condition.kind) ? ['statuses'] : ['items'],
       );
       const d = w.statuses.find((s) => s.id === condition.ref);
@@ -190,6 +198,32 @@ export function validateWork(w: Work, publish = false, report?: (issue: WorkIssu
       if (condition.kind === 'level' && !w.items.find((i) => i.id === condition.ref)?.enhancement)
         fail(`${c.name}: 강화 가능한 아이템을 선택해 주세요.`);
     }
+  }
+  for (const [index, rule] of (w.displayRules ?? []).entries()) {
+    at('displayRules', index);
+    if (rule.enabled) {
+      const error = displayRuleProblem(rule.pattern, rule.flags);
+      if (error) fail(`${rule.name}: ${error}`);
+    }
+  }
+  at('media');
+  const assets = w.media.assets ?? [];
+  if (
+    [...new Map(assets.map((a) => [a.url, a.size])).values()].reduce((n, size) => n + size, 0) >
+    2 * 1024 ** 3
+  )
+    fail('내장 이미지 합계는 2GB 이하여야 합니다.');
+  const names = new Set<string>();
+  for (const asset of assets) {
+    if (
+      !asset.name.trim() ||
+      /[{}:/]/.test(asset.name) ||
+      asset.name === 'user' ||
+      names.has(asset.name) ||
+      w.effects.some((e) => e.name === asset.name)
+    )
+      fail('이미지 이름은 예약어·연출 이름과 겹치지 않게 입력해 주세요.');
+    names.add(asset.name);
   }
   for (const [index, item] of w.items.entries()) {
     at('items', index, ['statuses']);
@@ -244,6 +278,7 @@ export function createRoom(
   persona = work.personas[0] ?? defaultPersona(),
   openingId = work.openings[0].id,
 ): Room {
+  work = cleanWork(work);
   validateWork(work, true);
   return createPreviewRoom(work, modelId, persona, openingId);
 }
@@ -255,13 +290,18 @@ export function createPreviewRoom(
   persona = work.personas[0] ?? defaultPersona(),
   openingId = work.openings[0].id,
 ): Room {
+  work = cleanWork(work);
   const initial: Checkpoint = {
     runtime: initialState(work, openingId),
     context: {
       persona: clone(persona),
       notes: [],
       memories: [],
-      settings: { ...settings(modelId), quality: clone(work.quality) },
+      settings: {
+        ...settings(modelId),
+        uiType: work.defaultUi ?? 'novel',
+        quality: clone(work.quality),
+      },
     },
   };
   return {
@@ -373,30 +413,39 @@ export function effectiveStatus(work: Work, state: Runtime, fieldId: string) {
   const def = work.statuses.find((s) => s.id === fieldId)!;
   return Math.max(def.min, Math.min(def.max, base + bonus));
 }
+export function conditionMet(work: Work, state: Runtime, condition: Condition) {
+  const v =
+    condition.kind === 'item'
+      ? state.inventory[condition.ref]?.owned
+      : condition.kind === 'level'
+        ? state.inventory[condition.ref]?.owned
+          ? state.inventory[condition.ref]?.level
+          : -1
+        : effectiveStatus(work, state, condition.ref);
+  if (v === undefined) return false;
+  if (condition.op === 'eq') return v === condition.value;
+  if (condition.op === 'ne') return v !== condition.value;
+  return condition.op === 'gte'
+    ? Number(v) >= Number(condition.value)
+    : Number(v) <= Number(condition.value);
+}
+export function conditionsMet(
+  work: Work,
+  state: Runtime,
+  conditions: Condition[],
+  mode: 'all' | 'any',
+) {
+  return (
+    !conditions.length ||
+    (mode === 'all'
+      ? conditions.every((c) => conditionMet(work, state, c))
+      : conditions.some((c) => conditionMet(work, state, c)))
+  );
+}
 export function availableChapters(work: Work, state: Runtime) {
   if (state.ending) return [];
   return work.chapters.filter(
-    (c) =>
-      c.from === state.nodeId &&
-      (!c.conditions.length ||
-        (c.mode === 'all' ? c.conditions.every : c.conditions.some).call(
-          c.conditions,
-          (condition) => {
-            const v =
-              condition.kind === 'item'
-                ? state.inventory[condition.ref]?.owned
-                : condition.kind === 'level'
-                  ? state.inventory[condition.ref]?.owned
-                    ? state.inventory[condition.ref]?.level
-                    : -1
-                  : effectiveStatus(work, state, condition.ref);
-            if (condition.op === 'eq') return v === condition.value;
-            if (condition.op === 'ne') return v !== condition.value;
-            return condition.op === 'gte'
-              ? Number(v) >= Number(condition.value)
-              : Number(v) <= Number(condition.value);
-          },
-        )),
+    (c) => c.from === state.nodeId && conditionsMet(work, state, c.conditions, c.mode),
   );
 }
 export function addResponse(

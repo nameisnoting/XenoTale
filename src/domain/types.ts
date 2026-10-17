@@ -135,6 +135,7 @@ export type Work = {
   systemMode: 'default' | 'custom';
   customSystem: string;
   quality: Quality;
+  defaultUi?: ChatUiType;
   characters: Character[];
   lore: Lore[];
   openings: Opening[];
@@ -143,7 +144,7 @@ export type Work = {
   relations: Relation[];
   chapters: Chapter[];
   personas: Persona[];
-  guide: string;
+  guide?: string;
   shortcuts: Shortcut[];
   effects: {
     id: string;
@@ -152,8 +153,18 @@ export type Work = {
     content: string;
     resources?: string[];
     validation?: CodeValidation;
+    mode?: 'manual' | 'auto';
+  }[];
+  displayRules?: {
+    id: string;
+    name: string;
+    pattern: string;
+    flags: string;
+    replacement: string;
+    enabled: boolean;
   }[];
   media: {
+    assets?: { id: string; name: string; url: string; size: number; type: string }[];
     template: string;
     rangeMin?: number;
     rangeMax?: number;
@@ -167,6 +178,8 @@ export type Work = {
   characterGroups?: { defaultName?: string; id: string; name: string; prompt: string }[];
   relationPositions?: Record<string, { x: number; y: number }>;
   relationSplit?: boolean;
+  relationsEnabled?: boolean;
+  innerUnlock?: { mode: 'all' | 'any'; conditions: Condition[] };
   relationNodeIds?: string[];
 };
 export type Workspace = {

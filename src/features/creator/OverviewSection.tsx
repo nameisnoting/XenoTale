@@ -5,6 +5,7 @@ import { ViewpointActors } from '../CreatorExtras';
 import type { CreatorPanelState } from './useCreatorPanelState';
 import { QualityEditor } from './QualityEditor';
 import { LoreEditor } from './LoreEditor';
+import { RadioOptions } from '../../components/DesignControls';
 
 export function OverviewSection({
   work,
@@ -37,11 +38,13 @@ export function OverviewSection({
               placeholder="제목을 입력하세요"
             />
           </Field>
-          <Field label="작품 설명">
-            <Area
-              value={work.description}
-              onChange={(description) => update({ description })}
-              placeholder="작품을 소개해 주세요. Markdown을 사용할 수 있습니다."
+          <Field label="기본 UI">
+            <RadioOptions
+              value={work.defaultUi === 'visual-novel' ? '비주얼노벨' : '소설'}
+              values={['소설', '비주얼노벨']}
+              onChange={(value) =>
+                update({ defaultUi: value === '소설' ? 'novel' : 'visual-novel' })
+              }
             />
           </Field>
         </div>
@@ -67,6 +70,15 @@ export function OverviewSection({
           onChange={(prompt) => update({ prompt })}
           rows={10}
           placeholder="세계관과 이야기의 기본 설정을 입력하세요."
+        />
+      </Field>
+      <hr />
+      <Field label="작품 설명">
+        <Area
+          rows={8}
+          value={work.description}
+          onChange={(description) => update({ description })}
+          placeholder="작품에 대한 소개와 플레이 가이드를 자유롭게 입력하세요. 하이퍼링크, Markdown은 전부 렌더링됩니다."
         />
       </Field>
       <hr />

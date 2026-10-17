@@ -1,3 +1,4 @@
+import { relationsEnabled } from '../domain/workContent';
 import { useChatSession, CONTINUE } from './chat/useChatSession';
 import { useMediaQuery } from '../components/useMediaQuery';
 import { MessageInput } from '../components/MessageInput';
@@ -12,14 +13,10 @@ import { useScrollHeader } from '../components/useScrollHeader';
 
 import { CreditBalanceButton } from '../components/CreditBalanceButton';
 import { BottomSheet, SideDrawer, MobilePage } from '../components/MobileSurfaces';
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
-import { AuthorLayout } from '../components/AuthorLayout';
-import { nativeStyles, type LayoutReport } from '../components/authoredDocument';
-import { chatUiEnabled, codeChecked, codeProblems, registeredMedia } from '../domain/chatUi';
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
 import { VisualNovel } from './VisualNovel';
 import { chapterMusic, type NovelPage } from '../domain/visualNovel';
 import type { Presentation } from '../domain/types';
-import './AuthorChat.css';
 import {
   ArrowLeft,
   MoreVertical,
@@ -67,7 +64,7 @@ import {
 } from '../components/UI';
 import { ModelPicker } from '../components/ModelPicker';
 import type { ApiProps, ModelProps } from './Profile';
-import { ChatPanel, chatMenus, chatMenuGroups, initialPanelSelection } from './ChatPanels';
+import { ChatPanel, chatMenuGroups, initialPanelSelection } from './ChatPanels';
 import { useGraphView } from '../components/useGraphView';
 import { ChatWorkspace, ConversationLog, ChatLogHeader } from './ChatWorkspace';
 import { CollapsedPanel, PanelHeader } from '../components/Headers';
@@ -123,7 +120,6 @@ export function ChatContent({
   const [panel, setPanel] = useState('info');
   const [panelSelection, setPanelSelection] = useState(() => {
     const selection = initialPanelSelection(room.work);
-    if (pagePanel === 'guide') selection.infoTab = 'guide';
     return selection;
   });
   const [relationView, setRelationView] = useGraphView(
@@ -133,10 +129,18 @@ export function ChatContent({
   const wide = useMediaQuery('(min-width: 1200px)');
   const [collapsed, setCollapsed] = useState(false);
   const [previewPanel, setPreviewPanel] = useState<string>();
-  const pageMenu = chatMenus.find(
-    (menu) => menu.id === (preview ? previewPanel : pagePanel === 'guide' ? 'info' : pagePanel),
-  );
-  const activePanel = pageMenu?.id ?? panel;
+  const roomMenus = chatMenuGroups
+    .map((group) => group.filter((menu) => menu.id !== 'relations' || relationsEnabled(room.work)))
+    .filter((group) => group.length);
+  const pageMenu = roomMenus
+    .flat()
+    .find(
+      (menu) => menu.id === (preview ? previewPanel : pagePanel === 'guide' ? 'info' : pagePanel),
+    );
+  const activePanel =
+    (pageMenu?.id ?? panel) === 'relations' && !relationsEnabled(room.work)
+      ? 'info'
+      : (pageMenu?.id ?? panel);
   const [logHidden, setLogHidden] = useState(false);
   const panels = useResizablePanels({
     layout: 'chat',
@@ -148,7 +152,6 @@ export function ChatContent({
   const [roomName, setRoomName] = useState(room.name);
   const composerRef = useRef<HTMLTextAreaElement>(null);
   const footerRef = useRef<HTMLElement>(null);
-  const [composerHeight, setComposerHeight] = useState(174);
   const [sheet, setSheet] = useState(false);
   const [log, setLog] = useState(false);
   const [picker, setPicker] = useState<'chat' | 'summary' | null>(null);
@@ -168,7 +171,6 @@ export function ChatContent({
   } | null>(null);
   const [effect, setEffect] = useState<EffectRequest | null>(null);
   const [effectPresentation, setEffectPresentation] = useState<Presentation>({});
-  const [layoutReport, setLayoutReport] = useState<LayoutReport | null>(null);
   const [novelPage, setNovelPage] = useState<NovelPage | undefined>();
   const [novelJump, setNovelJump] = useState<{ eventId: string; nonce: number }>();
   const [uiHidden, setUiHidden] = useState(false);
@@ -178,12 +180,6 @@ export function ChatContent({
   const headerHidden = useScrollHeader(scroll) && !renaming;
 
   const run = useAction();
-
-  useEffect(() => {
-    if (pagePanel !== 'guide') return;
-    setPanelSelection((previous) => ({ ...previous, infoTab: 'guide' }));
-    navigate(`/chat/${room.id}/panel/info`, true);
-  }, [pagePanel, room.id]);
 
   const cfg = room.current.context.settings;
   const active = cfg.modelId === 'demo' ? demoModel : models.find((m) => m.id === cfg.modelId);
@@ -201,54 +197,6 @@ export function ChatContent({
         )
     ).trim(),
   );
-  const creatorUi = chatUiEnabled(room.work.chatUi) ? room.work.chatUi : undefined;
-  const scope = `chat-author-${room.id.replace(/[^a-zA-Z0-9-]/g, '')}`;
-  const authorStyles = useMemo(() => {
-    try {
-      return { css: creatorUi ? nativeStyles(creatorUi.code, `#${scope}`) : '', error: '' };
-    } catch (error) {
-      return {
-        css: '',
-        error: error instanceof Error ? error.message : '제작자 스타일을 표시하지 못했습니다.',
-      };
-    }
-  }, [creatorUi?.code, scope]);
-  const eligibleAuthor =
-    !!creatorUi &&
-    !authorStyles.error &&
-    (preview || codeChecked(creatorUi.code, creatorUi.validation, creatorUi.resources)) &&
-    !codeProblems(creatorUi.code, 'ui', room.work, creatorUi.resources).length;
-  const wantsAuthor = eligibleAuthor && cfg.uiSource !== 'default';
-  const authorActive =
-    wantsAuthor && !!layoutReport && !layoutReport.errors.length && !(mobile && pageMenu);
-  const authorResources = useMemo(
-    () => [...registeredMedia(room.work), ...(creatorUi?.resources ?? [])],
-    [room.work, creatorUi?.resources],
-  );
-  const authorStyle: CSSProperties = { ...panels.style };
-  if (authorActive) {
-    const slots = { ...layoutReport.slots };
-    const scene = slots.conversation,
-      header = slots.header,
-      composer = slots.composer;
-    const aligned = (other: typeof scene) =>
-      scene && other && Math.abs(scene.x - other.x) < 1 && Math.abs(scene.width - other.width) < 1;
-    if (uiType === 'visual-novel' && scene) {
-      // Reclaim an adjacent header/composer in the same column, including layouts
-      // saved before the visual-novel header became floating controls.
-      const top =
-        aligned(header) && header!.y + header!.height <= scene.y + 1 ? header!.y : scene.y;
-      const bottom =
-        uiHidden && aligned(composer) && composer!.y >= scene.y + scene.height - 1
-          ? composer!.y + composer!.height
-          : scene.y + scene.height;
-      slots.conversation = { ...scene, y: top, height: bottom - top };
-    }
-    for (const [name, rect] of Object.entries(slots)) {
-      for (const [key, value] of Object.entries(rect))
-        (authorStyle as Record<string, string>)[`--slot-${name}-${key}`] = `${value}px`;
-    }
-  }
   useEffect(() => {
     if (uiType !== 'visual-novel') setUiHidden(false);
   }, [uiType]);
@@ -282,24 +230,6 @@ export function ChatContent({
     setEffectPresentation({});
     next?.();
   };
-  useEffect(() => {
-    const footer = footerRef.current,
-      content = footer?.firstElementChild;
-    if (!footer || !content) return;
-    const measure = () => {
-      const style = getComputedStyle(footer);
-      const height = Math.ceil(
-        content.getBoundingClientRect().height +
-          parseFloat(style.paddingTop) +
-          parseFloat(style.paddingBottom),
-      );
-      setComposerHeight((previous) => (previous === height ? previous : height));
-    };
-    const observer = new ResizeObserver(measure);
-    observer.observe(content);
-    measure();
-    return () => observer.disconnect();
-  }, [uiType]);
 
   useEffect(() => {
     // Open at the latest conversation once; new responses never move the reader.
@@ -351,9 +281,6 @@ export function ChatContent({
   const showMenu = (value: string, asPage = false) => {
     setSheet(false);
     const target = value === 'guide' ? 'info' : value;
-    if (value === 'guide') setPanelSelection((previous) => ({ ...previous, infoTab: 'guide' }));
-    else if (mobile && value === 'info')
-      setPanelSelection((previous) => ({ ...previous, infoTab: 'work' }));
     if (mobile && asPage) {
       setPanel(target);
       if (preview) setPreviewPanel(target);
@@ -462,55 +389,19 @@ export function ChatContent({
   return (
     <div
       ref={panels.root}
-      id={scope}
       style={
         {
-          ...authorStyle,
+          ...panels.style,
           '--vn-box': presentation.theme?.textbox,
           '--vn-text': presentation.theme?.text,
         } as CSSProperties
       }
-      className={`chat-shell design-ui resizable-panel-layout ${uiType === 'visual-novel' ? 'is-visual-novel' : ''} ${uiHidden && uiType === 'visual-novel' ? 'vn-ui-hidden' : ''} ${authorActive ? 'author-chat' : ''} ${collapsed ? 'left-collapsed' : ''} ${!wide || logHidden ? 'right-collapsed' : ''}`}
+      className={`chat-shell design-ui resizable-panel-layout ${uiType === 'visual-novel' ? 'is-visual-novel' : ''} ${uiHidden && uiType === 'visual-novel' ? 'vn-ui-hidden' : ''} ${collapsed ? 'left-collapsed' : ''} ${!wide || logHidden ? 'right-collapsed' : ''}`}
     >
-      {wantsAuthor && (
-        <AuthorLayout
-          code={creatorUi!.code}
-          uiType={uiType}
-          resources={authorResources}
-          onReport={setLayoutReport}
-          composerHeight={composerHeight}
-        />
-      )}
-      {authorActive && <style>{authorStyles.css}</style>}
-      {creatorUi && cfg.uiSource !== 'default' && !eligibleAuthor && (
-        <div className="author-ui-error" role="alert">
-          제작자 UI를 확인할 수 없어 기본 UI를 사용합니다.{' '}
-          {authorStyles.error || '제작 페이지에서 유효성 검사를 진행해 주세요.'}
-        </div>
-      )}
-      {wantsAuthor && layoutReport?.errors.length ? (
-        <div className="author-ui-error" role="alert">
-          제작자 UI를 표시하지 못해 기본 UI로 전환했습니다. {layoutReport.errors[0]}
-        </div>
-      ) : null}
-      {authorActive && (
-        <button
-          className="author-ui-escape"
-          onClick={() =>
-            run(
-              mutate((r) => {
-                r.current.context.settings.uiSource = 'default';
-                return r;
-              }),
-            )
-          }
-        >
-          기본 UI로 전환
-        </button>
-      )}
-      {!authorActive && <PanelResizeHandles panels={panels} />}
+      <PanelResizeHandles panels={panels} />
       {!mobile && (
         <ChatWorkspace
+          showRelations={relationsEnabled(room.work)}
           panel={activePanel}
           collapsed={collapsed}
           onSelect={showMenu}
@@ -1030,7 +921,7 @@ export function ChatContent({
       {sheet && (
         <BottomSheet title="대화 메뉴" onClose={() => setSheet(false)}>
           <div className="sheet-menu">
-            {chatMenuGroups.map((menus) => (
+            {roomMenus.map((menus) => (
               <div
                 className="sheet-menu-group"
                 key={menus[0].id}

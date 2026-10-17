@@ -1,3 +1,4 @@
+import { cleanWork, relationsEnabled } from '../domain/workContent';
 import { RECENT_RAW_TURNS, activeMemories, memoryTitle } from '../domain/memory';
 import type { Model, Room, Checkpoint, Usage } from '../domain/types';
 import { selected, fingerprint } from '../domain/types';
@@ -71,7 +72,7 @@ export function buildMessages(
     transport: string;
   },
 ): Message[] {
-  const w = room.work;
+  const w = cleanWork(room.work);
   const ctx = before.context;
   const mainIds = w.characters.filter((c) => c.role === 'main').map((c) => c.id);
   const loadedIds = [...new Set([...mainIds, ...before.runtime.presence, ...options.extra])];
@@ -81,22 +82,32 @@ export function buildMessages(
     effectiveSystemPrompt(w),
     JSON.stringify({
       work: w.prompt,
-      directory: stable(w.characters).map((c) => ({
-        id: c.id,
-        name: c.name,
-        role: c.role,
-        trigger: c.trigger,
-        group: c.group,
-        profileRequiresLoad: c.role !== 'main',
-      })),
-      mainCharacters: stable(w.characters)
-        .filter((c) => c.role === 'main')
-        .map((c) => ({ id: c.id, name: c.name, prompt: c.prompt })),
+      directory: w.characters.length
+        ? stable(w.characters).map((c) => ({
+            id: c.id,
+            name: c.name,
+            role: c.role,
+            trigger: c.trigger,
+            group: c.group,
+            profileRequiresLoad: c.role !== 'main',
+          }))
+        : undefined,
+      mainCharacters: !w.characters.length
+        ? undefined
+        : stable(w.characters)
+            .filter((c) => c.role === 'main')
+            .map((c) => ({ id: c.id, name: c.name, prompt: c.prompt })),
       statuses: stable(w.statuses),
       characterGroups: w.characterGroups ?? [],
       items: stable(w.items).map((i) => ({ id: i.id, name: i.name, prompt: i.prompt })),
-      relationships: stable(w.relations),
-      media: { ...w.media, commonCharacterCode: '0' },
+      relationships: relationsEnabled(w) ? stable(w.relations) : [],
+      media: {
+        template: w.media.template,
+        characters: w.media.characters,
+        situations: w.media.situations,
+        commonCharacterCode: '0',
+        assets: w.media.assets?.map((a) => ({ name: a.name, tag: '{{' + a.name + '}}' })),
+      },
       effects: w.effects.map((e) => ({
         id: e.id,
         name: e.name,
@@ -174,7 +185,7 @@ export function buildMessages(
           ? { id: chapter.id, backdrop: chapter.prompt }
           : { id: room.openingId, backdrop: '도입부에서 이어지는 장면' },
         currentState: before.runtime,
-        relationships: runtimeRelations(w, before.runtime),
+        relationships: relationsEnabled(w) ? runtimeRelations(w, before.runtime) : [],
         effectResults: before.runtime.effectResults ?? [],
         loadedCharacterIds: loadedIds,
         // On-stage supporting profiles and same-turn context loads belong to this uncached tail.

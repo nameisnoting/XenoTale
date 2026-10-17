@@ -1,3 +1,4 @@
+import { DisplayText } from '../components/DisplayText';
 import {
   useEffect,
   useLayoutEffect,
@@ -14,7 +15,7 @@ import { selected } from '../domain/types';
 import { latestNovelStart, visualNovelPages, type NovelPage } from '../domain/visualNovel';
 import { mediaImage } from '../domain/visualNovel';
 import { recordedEffect } from '../domain/effects';
-import { IconButton, Markdown, safeUrl } from '../components/UI';
+import { IconButton, safeUrl, Button } from '../components/UI';
 import { StatusDisplay } from '../components/DesignControls';
 import type { EffectRequest } from './StoryBody';
 import './VisualNovel.css';
@@ -68,6 +69,7 @@ export function VisualNovel({
   const previousSource = useRef(pages.at(-1)?.key);
   const mounted = useRef(true);
   const playing = useRef(false);
+  const [portrait, setPortrait] = useState(true);
   const [status, setStatus] = useState(false);
   const statusRef = useRef<HTMLDialogElement>(null);
   const [loadedImage, setLoadedImage] = useState('');
@@ -125,6 +127,10 @@ export function VisualNovel({
       return;
     }
     const effect = effects[i];
+    if (room.work.effects.find((e) => e.id === effect.id)?.mode !== 'auto') {
+      play(effects, after, i + 1);
+      return;
+    }
     if (recordedEffect(room, effect.id, effect.source)) {
       play(effects, after, i + 1);
       return;
@@ -148,8 +154,11 @@ export function VisualNovel({
   }, [page?.key, busy, ready]);
   const persona = room.current.context.persona;
   const effectsPending =
-    !!page?.effects.some((effect) => !recordedEffect(room, effect.id, effect.source)) &&
-    !finishedEffects.has(page?.key ?? '');
+    !!page?.effects.some(
+      (effect) =>
+        room.work.effects.find((e) => e.id === effect.id)?.mode === 'auto' &&
+        !recordedEffect(room, effect.id, effect.source),
+    ) && !finishedEffects.has(page?.key ?? '');
   const showChoices =
     !busy &&
     ready &&
@@ -171,10 +180,13 @@ export function VisualNovel({
     >
       {image && !failedImages.has(image) && (
         <img
-          className="visual-novel-image"
+          className={`visual-novel-image ${portrait ? 'is-portrait' : 'is-landscape'}`}
           src={image}
           alt="장면 이미지"
-          onLoad={() => setLoadedImage(image)}
+          onLoad={(e) => {
+            setPortrait(e.currentTarget.naturalHeight >= e.currentTarget.naturalWidth);
+            setLoadedImage(image);
+          }}
           onError={() => setFailedImages((previous) => new Set([...previous, image]))}
         />
       )}
@@ -208,13 +220,28 @@ export function VisualNovel({
         )}
         <div className="visual-novel-textbox" onClick={advance}>
           <div className="visual-novel-copy">
-            <Markdown>
+            <DisplayText rules={room.work.displayRules}>
               {busy
                 ? submittedInput === '[이어서 내용 전개]'
                   ? '이어서 내용 전개'
                   : submittedInput
                 : page?.text || '이야기를 시작해 주세요.'}
-            </Markdown>
+            </DisplayText>
+            {!busy &&
+              page?.effects
+                .filter((e) => room.work.effects.find((x) => x.id === e.id)?.mode !== 'auto')
+                .map((e) => (
+                  <Button
+                    key={e.id + e.source.occurrence}
+                    className="story-effect-button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onEffect({ id: e.id, source: e.source });
+                    }}
+                  >
+                    {room.work.effects.find((x) => x.id === e.id)?.name || '연출'} 보기
+                  </Button>
+                ))}
           </div>
           <div className="visual-novel-controls" onClick={(e) => e.stopPropagation()}>
             <IconButton

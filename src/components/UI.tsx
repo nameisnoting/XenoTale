@@ -1,5 +1,7 @@
 import {
   createContext,
+  lazy,
+  Suspense,
   useCallback,
   useContext,
   useEffect,
@@ -22,6 +24,7 @@ import type {
 import { X, Check, Loader2, UserRound, Camera, AlertCircle, Trash2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { assetUrl } from '../persistence/assets';
 const Notify = createContext<(message: string) => void>(() => {});
 export function Notifications({ children }: { children: ReactNode }) {
   const [message, setMessage] = useState({ text: '', sequence: 0 });
@@ -299,6 +302,7 @@ export function TextInput({
   disabled,
   readOnly = false,
   size = 'regular',
+  'aria-label': ariaLabel,
 }: {
   value: string;
   onChange: (s: string) => void;
@@ -308,10 +312,12 @@ export function TextInput({
   disabled?: boolean;
   readOnly?: boolean;
   size?: 'regular' | 'small';
+  'aria-label'?: string;
 }) {
   return (
     <input
       className={`text-control text-control--${size}`}
+      aria-label={ariaLabel}
       readOnly={readOnly}
       type={type}
       value={value}
@@ -452,6 +458,8 @@ export function Avatar({ src, name, size = 36 }: { src?: string; name?: string; 
   );
 }
 export function safeUrl(url: string) {
+  url = assetUrl(url);
+  if (url.startsWith('blob:') && url.startsWith(`blob:${location.origin}/`)) return url;
   return /^(https?:\/\/|data:image\/(png|jpeg|webp|gif);base64,|\/(?!\/))/.test(url) ? url : '';
 }
 export function ImageUpload({
@@ -503,7 +511,24 @@ export function ImageUpload({
     </div>
   );
 }
-export function Markdown({ children }: { children: string }) {
+const HtmlContent = lazy(() => import('./HtmlContent').then((m) => ({ default: m.HtmlContent })));
+export function Markdown({
+  children,
+  executeScripts = false,
+}: {
+  children: string;
+  executeScripts?: boolean;
+}) {
+  if (
+    /<\/?(?:div|span|img|svg|style|table|details|button|input|select|section|article|p|h[1-6]|br)\b/i.test(
+      children,
+    )
+  )
+    return (
+      <Suspense fallback={<div className="muted">화면 준비 중…</div>}>
+        <HtmlContent executeScripts={executeScripts}>{children}</HtmlContent>
+      </Suspense>
+    );
   return (
     <div className="markdown">
       <ReactMarkdown

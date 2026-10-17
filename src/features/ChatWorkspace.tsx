@@ -29,6 +29,7 @@ export function ChatWorkspace({
   onBackup,
   onNew,
   children,
+  showRelations = true,
 }: {
   panel: string;
   collapsed: boolean;
@@ -37,6 +38,7 @@ export function ChatWorkspace({
   onBackup: () => void;
   onNew: () => void;
   children: ReactNode;
+  showRelations?: boolean;
 }) {
   return (
     <aside className={`chat-workspace ${collapsed ? 'is-collapsed' : ''}`} aria-label="대화 기능">
@@ -56,13 +58,15 @@ export function ChatWorkspace({
           label="대화 기능 메뉴"
           className="chat-feature-rail"
           items={[
-            ...destinations.map((item) => ({
-              id: item.id,
-              label: item.label,
-              icon: item.icon || <Info size={28} strokeWidth={1.75} />,
-              active: panel === item.id && !collapsed,
-              onClick: () => onSelect(item.id),
-            })),
+            ...destinations
+              .filter((item) => showRelations || item.id !== 'relations')
+              .map((item) => ({
+                id: item.id,
+                label: item.label,
+                icon: item.icon || <Info size={28} strokeWidth={1.75} />,
+                active: panel === item.id && !collapsed,
+                onClick: () => onSelect(item.id),
+              })),
             { id: 'backup', label: '전체백업', icon: 'file-signature', onClick: onBackup },
             { id: 'new', label: '새로열기', icon: 'plus-circle', onClick: onNew },
           ]}
@@ -101,6 +105,7 @@ export function ChatLogHeader({
   onCollapse,
 }: {
   children: ReactNode;
+  showRelations?: boolean;
   onCollapse: () => void;
 }) {
   return (

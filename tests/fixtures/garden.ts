@@ -159,7 +159,8 @@ export function populateGarden(w: Work): Work {
       prompt: '정원 한가운데에는 방문객들이 약속을 새겨 두는 작은 돌판이 있다.',
     },
   ];
-  w.guide =
+  w.relationsEnabled = true;
+  w.description += "\n\n" +
     '천천히 대화하며 저택의 이야기를 알아가세요. 호감도가 쌓이면 새로운 챕터가 열립니다.\n\n**체험 모드**에서는 정해진 예제 응답으로 저장·리롤·분기를 확인할 수 있습니다. 자유로운 대화는 API 키를 연결해 시작하세요.';
   return w;
 }

@@ -1,5 +1,5 @@
+import { readDownloadedJson } from './read-file';
 import { test, expect, type Page } from '@playwright/test';
-import fs from 'node:fs/promises';
 
 const model = {
   id: 'test/creator',
@@ -68,6 +68,7 @@ function result(draft: any) {
     characters: [{ characterId: c, code: '1' }],
     situations: [{ code: '1', name: '기본' }],
   };
+  d.relations.relationsEnabled = true;
   d.relations.relations = [{ id: 'first-relation', from: 'user', to: c, label: '초면' }];
   d.relations.relationNodeIds = ['user', c];
   d.statuses.statuses = [
@@ -127,7 +128,7 @@ function result(draft: any) {
   d.personas.personas = [
     { id: 'visitor', name: '여행자', image: '', prompt: '정원을 방문한 여행자.' },
   ];
-  d.guide.guide = '신뢰를 쌓아 다음 챕터를 열어보세요.';
+  d.overview.description += '\n신뢰를 쌓아 다음 챕터를 열어보세요.';
   return {
     reply: '전체 작품 초안을 준비했습니다.',
     proposals: Object.entries(d).map(([section, replacement]) => ({
@@ -142,10 +143,10 @@ async function exported(page: Page) {
   const wait = page.waitForEvent('download');
   await page.getByRole('button', { name: '작품 파일 내보내기', exact: true }).click();
   const download = await wait;
-  return JSON.parse(await fs.readFile((await download.path())!, 'utf8')).workspace.work;
+  return (await readDownloadedJson((await download.path())!)).workspace.work;
 }
 
-test('전체 구조 전달 · 13개 섹션 제안 · 클릭 전 미적용 · 일괄 적용/취소 · 저장/재접속', async ({
+test('전체 구조 전달 · 11개 섹션 제안 · 클릭 전 미적용 · 일괄 적용/취소 · 저장/재접속', async ({
   page,
 }) => {
   const errors: string[] = [];
@@ -166,8 +167,8 @@ test('전체 구조 전달 · 13개 섹션 제안 · 클릭 전 미적용 · 일
   await ask(page);
   await expect(page.getByRole('button', { name: '적용하기', exact: true }).last()).toBeVisible();
   const data = JSON.parse(payload.messages[1].content);
-  expect(data.sections).toHaveLength(13);
-  expect(Object.keys(data.draftSchema)).toHaveLength(13);
+  expect(data.sections).toHaveLength(11);
+  expect(Object.keys(data.draftSchema)).toHaveLength(11);
   expect(data.draftSchema.effects.properties.effects.items.properties.content.type).toBe('string');
   expect(payload.messages[0].content).toContain('XenoTale.complete');
   expect(payload.messages[0].content).toContain('{{ExactEffectName}}');
@@ -175,7 +176,7 @@ test('전체 구조 전달 · 13개 섹션 제안 · 클릭 전 미적용 · 일
   expect(JSON.stringify(payload)).not.toContain('fake-creator-key');
   await expect(page.getByRole('button', { name: '도움받을 항목' })).toHaveCount(0);
   await expect(page.getByRole('textbox', { name: '제목', exact: false })).toHaveValue('');
-  await expect(page.locator('.support-proposal details')).toHaveCount(13);
+  await expect(page.locator('.support-proposal details')).toHaveCount(11);
   await page.screenshot({ path: 'test-results/creator-assistant-desktop.png' });
   await page.getByRole('button', { name: '적용하기', exact: true }).last().click();
   await expect(page.getByRole('textbox', { name: '제목', exact: false })).toHaveValue(
@@ -457,7 +458,7 @@ test('작업공간별 대화·미적용/적용 제안 복원 · 이전 제안 �
   const download = page.waitForEvent('download');
   await page.getByRole('button', { name: '작품 파일 내보내기', exact: true }).click();
   const exportedFile = await download;
-  const metadata = JSON.parse(await fs.readFile((await exportedFile.path())!, 'utf8')).workspace;
+  const metadata = (await readDownloadedJson((await exportedFile.path())!)).workspace;
   expect(metadata.assistantHistory).toHaveLength(2);
   expect(metadata.assistantHistory[1].applied).toBe(true);
   expect(metadata.assistantHistory[1].proposal.sections[0].replacement.title).toBe('기록되는 제목');

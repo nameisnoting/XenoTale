@@ -1,3 +1,4 @@
+import { readDownloadedJson } from './read-file';
 import { test, expect, type Page, type Locator } from '@playwright/test';
 import fs from 'node:fs/promises';
 const out = 'docs/screenshots/media-sort';
@@ -167,7 +168,7 @@ test('사용자 캐러셀 그립 이동 · 위치와 내용 저장 · 전체 백
   await page.getByRole('button', { name: '백업 및 동기화', exact: true }).click();
   const pending = page.waitForEvent('download');
   await page.getByRole('button', { name: '전체 백업 다운로드', exact: false }).click();
-  const backup = JSON.parse(await fs.readFile((await (await pending).path())!, 'utf8'));
+  const backup = await readDownloadedJson((await (await pending).path())!);
   expect(backup.profile.carouselOrder[0]).toBe(backup.profile.carousels[0].id);
   expect(backup.profile.carousels.map((carousel: any) => carousel.name)).toEqual([
     '두 번째',

@@ -17,6 +17,7 @@ export const creatorSections = [
       'systemMode',
       'customSystem',
       'quality',
+      'defaultUi',
       'lore',
     ],
   },
@@ -27,18 +28,23 @@ export const creatorSections = [
   {
     id: 'relations',
     name: '관계도',
-    fields: ['relations', 'relationPositions', 'relationSplit', 'relationNodeIds'],
+    fields: [
+      'relations',
+      'relationPositions',
+      'relationSplit',
+      'relationNodeIds',
+      'relationsEnabled',
+      'innerUnlock',
+    ],
   },
   { id: 'statuses', name: '상태창', fields: ['statuses', 'statusTemplate'] },
   { id: 'items', name: '아이템', fields: ['items'] },
   { id: 'scenarios', name: '시나리오', fields: ['chapters'] },
   { id: 'shortcuts', name: '단축어', fields: ['shortcuts'] },
-  { id: 'effects', name: '연출', fields: ['effects'] },
-  { id: 'chatUi', name: '대화방 UI', fields: ['chatUi'] },
-  { id: 'guide', name: '플레이가이드', fields: ['guide'] },
+  { id: 'effects', name: '연출', fields: ['effects', 'displayRules'] },
 ] as const;
 type SectionId = (typeof creatorSections)[number]['id'];
-type EditableField = (typeof creatorSections)[number]['fields'][number];
+type EditableField = (typeof creatorSections)[number]['fields'][number] | 'guide';
 const sectionSchemas = Object.fromEntries(
   creatorSections.map((section) => [
     section.id,

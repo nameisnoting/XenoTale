@@ -36,7 +36,6 @@ export function useCreatorPanelState({
   const [saveName, setSaveName] = useState('');
   const [statusPreview, setStatusPreview] = useState<Work | null>(null);
   const [chapterId, setChapterId] = useState<string | null>(null);
-  const [guidePreview, setGuidePreview] = useState<string | null>(null);
   const [effectPreview, setEffectPreview] = useState<Work['effects'][number] | null>(null);
   const [library, setLibrary] = useState<'lore' | 'characters' | null>(null);
   const run = useAction();
@@ -139,8 +138,6 @@ export function useCreatorPanelState({
     setStatusPreview,
     chapterId,
     setChapterId,
-    guidePreview,
-    setGuidePreview,
     effectPreview,
     setEffectPreview,
     library,

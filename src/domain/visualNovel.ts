@@ -15,6 +15,8 @@ export type NovelPage = {
   last: boolean;
 };
 export function mediaImage(work: Work, code: string) {
+  const named = work.media.assets?.find((a) => a.name === code);
+  if (named) return named.url;
   const match = code.match(/^(?:img:)?([^/]+)\/([^/]+)$/);
   if (
     !match ||
@@ -51,7 +53,7 @@ export function visualNovelPages(
       const effects: NovelPage['effects'] = [];
       let text = '';
       for (const token of storyTokens(raw)) {
-        if (token.tag?.startsWith('img:')) {
+        if (token.tag && mediaImage(room.work, token.tag)) {
           const image = mediaImage(room.work, token.tag);
           if (image) background = image;
         } else {
@@ -82,7 +84,10 @@ export function visualNovelPages(
         source,
         checkpoint,
         effects,
-        effectOnly: !text && !!effects.length,
+        effectOnly:
+          !text &&
+          !!effects.length &&
+          effects.every((e) => room.work.effects.find((x) => x.id === e.id)?.mode === 'auto'),
         last: false,
       });
       if (!player)

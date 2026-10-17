@@ -1,9 +1,21 @@
 import { test, expect, type Page, type Locator } from '@playwright/test';
 
 async function section(page: Page, width: number, name: string) {
+  const nav = page.locator(width < 800 ? '.editor-mobile-stages' : '.editor-nav');
+  await nav.waitFor({ state: 'visible' });
+  if (
+    (await nav.count()) &&
+    !(await nav.getByRole(width < 800 ? 'tab' : 'button', { name, exact: false }).count())
+  )
+    await nav.getByRole('button', { name: '추가 요소', exact: false }).click();
+
   if (width < 800)
     await page.locator('.editor-mobile-stages').getByRole('tab', { name, exact: false }).click();
   else await page.locator('.editor-nav').getByRole('button', { name, exact: false }).click();
+  if (name === '관계도') {
+    const toggle = page.getByRole('switch', { name: '관계도 사용', exact: true });
+    if (!(await toggle.isChecked())) await toggle.click();
+  }
 }
 async function start(page: Page, width: number) {
   await page.setViewportSize({ width, height: 1000 });
@@ -49,6 +61,7 @@ for (const width of [1440, 393]) {
     page.on('pageerror', (e) => errors.push(e.message));
     await start(page, width);
     await section(page, width, '미디어');
+    await page.getByRole('radio', { name: '외부 URL', exact: true }).click();
     const range = page.locator('.code-range');
     expect(await range.locator('.code-label').evaluate((e) => getComputedStyle(e).color)).toBe(
       'rgb(204, 204, 204)',

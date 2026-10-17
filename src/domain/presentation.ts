@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { Work } from './types';
 import { mediaImage } from './visualNovel';
-import { registeredMedia } from './chatUi';
+import { registeredMedia } from './codeValidation';
 
 const color = z.string().regex(/^(?:#[\da-fA-F]{3,8}|rgba?\([\d., %]+\))$/);
 export const presentationSchema = z

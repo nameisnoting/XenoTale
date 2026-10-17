@@ -1,3 +1,6 @@
+import { downloadPackage, readPackage } from './package';
+import { exposeAsset, type StoredAsset } from './assets';
+import { cleanWork } from '../domain/workContent';
 import { z } from 'zod';
 import { db } from './db';
 import type { Work, Room, Runtime, Workspace } from '../domain/types';
@@ -78,7 +81,7 @@ export const workSchema = z.object({
   systemMode: z.enum(['default', 'custom']),
   customSystem: str,
   quality: qualitySchema,
-  characters: arr(character),
+  characters: arr(character).default([]),
   lore: arr(lore),
   openings: arr(
     z.object({
@@ -156,16 +159,34 @@ export const workSchema = z.object({
     }),
   ),
   personas: arr(persona),
-  guide: str,
-  shortcuts: arr(z.object({ id: identifier, name: short, description: str, prompt: str })),
-  chatUi: z
+  guide: str.optional(),
+  defaultUi: z.enum(['novel', 'visual-novel']).optional(),
+  relationsEnabled: z.boolean().optional(),
+  innerUnlock: z
     .object({
-      enabled: z.boolean().optional(),
-      code: str,
-      resources: resources.optional(),
-      validation: validation.optional(),
+      mode: z.enum(['all', 'any']),
+      conditions: arr(
+        z.object({
+          id: identifier,
+          kind: z.enum(['number', 'choice', 'item', 'level']),
+          ref: identifier,
+          op: z.enum(['gte', 'lte', 'eq', 'ne']),
+          value: z.union([z.string(), z.number(), z.boolean()]),
+        }),
+      ),
     })
     .optional(),
+  displayRules: arr(
+    z.object({
+      id: identifier,
+      name: short,
+      pattern: str,
+      flags: short,
+      replacement: str,
+      enabled: z.boolean(),
+    }),
+  ).optional(),
+  shortcuts: arr(z.object({ id: identifier, name: short, description: str, prompt: str })),
   effects: arr(
     z.object({
       id: identifier,
@@ -174,9 +195,19 @@ export const workSchema = z.object({
       content: str,
       resources: resources.optional(),
       validation: validation.optional(),
+      mode: z.enum(['manual', 'auto']).optional(),
     }),
   ),
   media: z.object({
+    assets: arr(
+      z.object({
+        id: identifier,
+        name: short,
+        url: short,
+        size: z.number().nonnegative(),
+        type: short,
+      }),
+    ).optional(),
     template: str,
     rangeMin: z.number().int().min(0).max(9999).optional(),
     rangeMax: z.number().int().min(0).max(9999).optional(),
@@ -426,11 +457,12 @@ const backup = z.object({
   credentials: z.object({ openrouterApiKey: z.string().trim().min(1).max(1000) }).optional(),
 });
 export type Backup = z.infer<typeof backup>;
-export type ImportData =
+export type ImportData = (
   | { kind: 'work'; work: Work }
   | { kind: 'room'; room: Room }
   | { kind: 'workspace'; workspace: Workspace }
-  | { kind: 'backup'; data: Backup };
+  | { kind: 'backup'; data: Backup }
+) & { assets?: StoredAsset[]; warnings?: string[] };
 export function downloadJson(name: string, value: unknown) {
   const url = URL.createObjectURL(
     new Blob([JSON.stringify(value, null, 2)], { type: 'application/json' }),
@@ -441,18 +473,22 @@ export function downloadJson(name: string, value: unknown) {
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
-export function exportWork(work: Work) {
-  downloadJson(`${work.title || '작품'}.xenotale.json`, {
+export async function exportWork(work: Work) {
+  await downloadPackage(`${work.title || '작품'}.xeno`, {
     kind: 'xenotale.work',
     schemaVersion: 2,
     work,
   });
 }
-export function exportRoom(room: Room) {
-  downloadJson(`${room.name}.room.json`, { kind: 'xenotale.room', schemaVersion: 2, room });
+export async function exportRoom(room: Room) {
+  await downloadPackage(`${room.name}.room.xeno`, {
+    kind: 'xenotale.room',
+    schemaVersion: 2,
+    room,
+  });
 }
-export function exportWorkspace(value: Workspace) {
-  downloadJson(`${value.work.title || '제목 없음'}.workspace.json`, {
+export async function exportWorkspace(value: Workspace) {
+  await downloadPackage(`${value.work.title || '제목 없음'}.xeno`, {
     kind: 'xenotale.workspace',
     schemaVersion: 2,
     workspace: value,
@@ -476,7 +512,7 @@ export async function exportBackup({ includeApiKey = true }: { includeApiKey?: b
       ...(apiKey ? { credentials: { openrouterApiKey: apiKey } } : {}),
     }),
   );
-  downloadJson(`XenoTale_${new Date().toISOString().slice(0, 10)}.backup.json`, value);
+  await downloadPackage(`XenoTale_${new Date().toISOString().slice(0, 10)}.backup.xeno`, value);
 }
 function validateRoom(room: Room, publish = true) {
   // Creator tests may start with an unfinished draft when playing an opening effect.
@@ -619,30 +655,41 @@ function validateRoom(room: Room, publish = true) {
     throw new Error('현재 대화 횟수가 일치하지 않습니다.');
 }
 export async function readImport(file: File): Promise<ImportData> {
-  if (file.size > 50 * 1024 * 1024) throw new Error('50MB 이하의 파일을 선택해 주세요.');
   let value: any;
-  try {
-    value = JSON.parse(await file.text());
-  } catch {
-    throw new Error('JSON 파일을 읽을 수 없습니다.');
+  let assets: StoredAsset[] = [];
+  const header = new Uint8Array(await file.slice(0, 4).arrayBuffer());
+  if (header[0] === 0x50 && header[1] === 0x4b && !/\.charx$/i.test(file.name)) {
+    ({ value, assets } = await readPackage(file));
+  } else if (/\.(?:charx|png|jpe?g)$/i.test(file.name)) {
+    return (await import('./risu')).readRisu(file);
+  } else {
+    if (file.size > 50 * 1024 * 1024) throw new Error('JSON 파일은 50MB 이하로 선택해 주세요.');
+    try {
+      value = JSON.parse(await file.text());
+    } catch {
+      throw new Error('작품 파일을 읽을 수 없습니다.');
+    }
+    if (value.spec === 'chara_card_v2' || value.spec === 'chara_card_v3')
+      return (await import('./risu')).convertRisu(value, file.name);
   }
   if (value.schemaVersion !== 2)
     throw new Error('지원하지 않는 파일 버전입니다. 현재 앱에서 내보낸 파일을 사용해 주세요.');
   try {
     if (value.kind === 'xenotale.work') {
-      const work = workSchema.parse(value.work);
+      const work = cleanWork(workSchema.parse(value.work));
       validateWork(work, true);
-      return { kind: 'work', work };
+      return { kind: 'work', work, ...(assets.length ? { assets } : {}) };
     }
     if (value.kind === 'xenotale.workspace') {
       const entry = workspace.parse(value.workspace);
       if (entry.testRoom) validateRoom(entry.testRoom, false);
-      return { kind: 'workspace', workspace: entry };
+      entry.work = cleanWork(entry.work);
+      return { kind: 'workspace', workspace: entry, ...(assets.length ? { assets } : {}) };
     }
     if (value.kind === 'xenotale.room') {
       const room = roomSchema.parse(value.room);
       validateRoom(room);
-      return { kind: 'room', room };
+      return { kind: 'room', room, ...(assets.length ? { assets } : {}) };
     }
     if (value.kind === 'xenotale.backup') {
       const data = backup.parse(value);
@@ -651,7 +698,7 @@ export async function readImport(file: File): Promise<ImportData> {
       data.workspaces.forEach((workspace) => {
         if (workspace.testRoom) validateRoom(workspace.testRoom, false);
       });
-      return { kind: 'backup', data };
+      return { kind: 'backup', data, ...(assets.length ? { assets } : {}) };
     }
   } catch (e) {
     if (e instanceof z.ZodError) throw new Error('파일의 데이터 형식이 올바르지 않습니다.');
@@ -665,86 +712,104 @@ export async function applyImport(value: ImportData) {
     value.kind === 'backup' && value.data.credentials
       ? await prepareCredential(value.data.credentials.openrouterApiKey)
       : undefined;
-  if (value.kind === 'work') {
-    const existing = await db.works.get(value.work.id);
-    if (existing) {
-      if (JSON.stringify(existing.work) === JSON.stringify(value.work))
-        throw new Error('이미 등록된 작품입니다.');
-      const work = clone(value.work);
-      work.id = id();
-      await db.works.add({ id: work.id, work, owned: false, hidden: false, createdAt: Date.now() });
-    } else
-      await db.works.add({
-        id: value.work.id,
-        work: value.work,
-        owned: false,
-        hidden: false,
-        createdAt: Date.now(),
-      });
-  } else if (value.kind === 'room') {
-    const room = clone(value.room);
-    room.id = id();
-    room.folderId = null;
-    room.revision = 0;
-    room.updatedAt = Date.now();
-    await db.rooms.add(room);
-  } else if (value.kind === 'workspace') {
-    const entry = clone(value.workspace);
-    entry.id = id();
-    entry.work.id = id();
-    entry.revision = 0;
-    entry.publishedVersion = 0;
-    entry.updatedAt = Date.now();
-    await db.workspaces.add(entry);
-  } else
-    await db.transaction(
-      'rw',
-      [db.works, db.workspaces, db.rooms, db.profiles, db.credentials],
-      async () => {
-        const data = clone(value.data);
-        const workMap = new Map<string, string>();
-        const roomMap = new Map(data.rooms.map((r) => [r.id, id()]));
-        const folderMap = new Map(data.profile.folders.map((f) => [f.id, id()]));
-        const workId = (old: string) => {
-          if (!workMap.has(old)) workMap.set(old, id());
-          return workMap.get(old)!;
-        };
-        for (const w of data.works) {
-          w.id = workId(w.work.id);
-          w.work.id = w.id;
-          await db.works.add(w);
-        }
-        for (const w of data.workspaces) {
-          w.id = id();
-          w.work.id = workId(w.work.id);
-          w.revision = 0;
-          await db.workspaces.add(w);
-        }
-        for (const r of data.rooms) {
-          r.id = roomMap.get(r.id)!;
-          r.work.id = workId(r.work.id);
-          r.folderId = r.folderId ? (folderMap.get(r.folderId) ?? null) : null;
-          if (r.branchFrom)
-            r.branchFrom.roomId = roomMap.get(r.branchFrom.roomId) ?? r.branchFrom.roomId;
-          r.revision = 0;
-          await db.rooms.add(r);
-        }
-        const p = (await db.profiles.get('profile'))!;
-        p.folders.push(...data.profile.folders.map((f) => ({ ...f, id: folderMap.get(f.id)! })));
-        p.carousels.push(
-          ...data.profile.carousels.map((c) => ({
-            ...c,
-            id: id(),
-            name: `${c.name} · 복원`,
-            workIds: c.workIds.map((w) => workMap.get(w)).filter((x): x is string => !!x),
-          })),
+  await db.transaction(
+    'rw',
+    [db.works, db.workspaces, db.rooms, db.profiles, db.credentials, db.assets],
+    async () => {
+      if (value.assets?.length) await db.assets.bulkPut(value.assets);
+      if (value.kind === 'work') {
+        const existing = await db.works.get(value.work.id);
+        if (existing) {
+          if (JSON.stringify(existing.work) === JSON.stringify(value.work))
+            throw new Error('이미 등록된 작품입니다.');
+          const work = clone(value.work);
+          work.id = id();
+          await db.works.add({
+            id: work.id,
+            work,
+            owned: false,
+            hidden: false,
+            createdAt: Date.now(),
+          });
+        } else
+          await db.works.add({
+            id: value.work.id,
+            work: value.work,
+            owned: false,
+            hidden: false,
+            createdAt: Date.now(),
+          });
+      } else if (value.kind === 'room') {
+        const room = clone(value.room);
+        room.id = id();
+        room.folderId = null;
+        room.revision = 0;
+        room.updatedAt = Date.now();
+        await db.rooms.add(room);
+      } else if (value.kind === 'workspace') {
+        const entry = clone(value.workspace);
+        entry.id = id();
+        entry.work.id = id();
+        entry.revision = 0;
+        entry.publishedVersion = 0;
+        entry.updatedAt = Date.now();
+        await db.workspaces.add(entry);
+      } else
+        await db.transaction(
+          'rw',
+          [db.works, db.workspaces, db.rooms, db.profiles, db.credentials],
+          async () => {
+            const data = clone(value.data);
+            const workMap = new Map<string, string>();
+            const roomMap = new Map(data.rooms.map((r) => [r.id, id()]));
+            const folderMap = new Map(data.profile.folders.map((f) => [f.id, id()]));
+            const workId = (old: string) => {
+              if (!workMap.has(old)) workMap.set(old, id());
+              return workMap.get(old)!;
+            };
+            for (const w of data.works) {
+              w.id = workId(w.work.id);
+              w.work.id = w.id;
+              await db.works.add(w);
+            }
+            for (const w of data.workspaces) {
+              w.id = id();
+              w.work.id = workId(w.work.id);
+              w.revision = 0;
+              await db.workspaces.add(w);
+            }
+            for (const r of data.rooms) {
+              r.id = roomMap.get(r.id)!;
+              r.work.id = workId(r.work.id);
+              r.folderId = r.folderId ? (folderMap.get(r.folderId) ?? null) : null;
+              if (r.branchFrom)
+                r.branchFrom.roomId = roomMap.get(r.branchFrom.roomId) ?? r.branchFrom.roomId;
+              r.revision = 0;
+              await db.rooms.add(r);
+            }
+            const p = (await db.profiles.get('profile'))!;
+            p.folders.push(
+              ...data.profile.folders.map((f) => ({ ...f, id: folderMap.get(f.id)! })),
+            );
+            p.carousels.push(
+              ...data.profile.carousels.map((c) => ({
+                ...c,
+                id: id(),
+                name: `${c.name} · 복원`,
+                workIds: c.workIds.map((w) => workMap.get(w)).filter((x): x is string => !!x),
+              })),
+            );
+            p.personas.push(...data.profile.personas.map((p) => ({ ...p, id: id() })));
+            Object.assign(p, mergeNotes(p, data.profile));
+            p.savedLore.push(...data.profile.savedLore.map((n) => ({ ...n, id: id() })));
+            p.savedCharacters.push(
+              ...data.profile.savedCharacters.map((n) => ({ ...n, id: id() })),
+            );
+            await db.profiles.put(p);
+            if (credential) await db.credentials.put(credential);
+          },
         );
-        p.personas.push(...data.profile.personas.map((p) => ({ ...p, id: id() })));
-        Object.assign(p, mergeNotes(p, data.profile));
-        p.savedLore.push(...data.profile.savedLore.map((n) => ({ ...n, id: id() })));
-        p.savedCharacters.push(...data.profile.savedCharacters.map((n) => ({ ...n, id: id() })));
-        await db.profiles.put(p);
-        if (credential) await db.credentials.put(credential);
-      },
-    );
+    },
+  );
+  value.assets?.forEach(exposeAsset);
 }

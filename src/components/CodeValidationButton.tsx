@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ShieldCheck } from 'lucide-react';
 import type { CodeValidation, Work } from '../domain/types';
-import { codeApproval, codeChecked } from '../domain/chatUi';
+import { codeApproval, codeChecked } from '../domain/codeValidation';
 import { inspectCode } from './inspectCode';
 import { Button } from './UI';
 
@@ -16,7 +16,7 @@ export function CodeValidationButton({
   code: string;
   resources?: string[];
   validation?: CodeValidation;
-  kind: 'ui' | 'effect';
+  kind: 'effect';
   work: Work;
   onValidated: (validation: CodeValidation | undefined) => void;
 }) {

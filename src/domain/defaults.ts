@@ -1,5 +1,4 @@
 import { SYSTEM_PROMPT } from './systemPrompt';
-import { DEFAULT_CHAT_UI } from './chatUi';
 import { SUMMARY_POLICY, SUMMARY_PROMPTS } from './memory';
 import type { Work, Profile, Persona, Quality, RoomSettings, Workspace } from './types';
 import { id } from './types';
@@ -93,10 +92,10 @@ export function emptyWork(author = '이야기꾼'): Work {
     relations: [],
     chapters: [],
     personas: [],
-    guide: '',
     shortcuts: [],
     effects: [],
-    chatUi: { enabled: false, code: DEFAULT_CHAT_UI },
+    defaultUi: 'novel',
+    relationsEnabled: false,
     media: { template: '', characters: [], situations: [] },
     statusTemplate: '',
   };

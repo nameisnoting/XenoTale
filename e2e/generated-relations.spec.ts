@@ -1,5 +1,5 @@
+import { readDownloadedJson } from './read-file';
 import { test, expect, type Page } from '@playwright/test';
-import fs from 'node:fs/promises';
 
 async function loadModel(page: Page) {
   await page.locator('.model-trigger').click();
@@ -198,7 +198,7 @@ for (const width of [1440, 393]) {
     const download = page.waitForEvent('download');
     await page.getByRole('button', { name: '전체 백업 다운로드', exact: false }).click();
     const backupPath = (await (await download).path())!;
-    const backup = JSON.parse(await fs.readFile(backupPath, 'utf8'));
+    const backup = await readDownloadedJson(backupPath);
     expect(
       backup.rooms.find((r: any) => r.id === saved.id).current.runtime.generatedRelations[0].id,
     ).toBe(edgeId);

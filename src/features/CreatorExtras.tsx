@@ -1,3 +1,5 @@
+import { LocalMedia } from './LocalMedia';
+import { RadioOptions } from '../components/DesignControls';
 import { DeleteAction } from '../components/DeleteAction';
 import { requiresDeleteConfirmation } from '../domain/deletion';
 import { useRef, useState } from 'react';
@@ -166,6 +168,7 @@ export function CharacterGroups({
 }
 
 export function MediaEditor({ work, onChange }: { work: Work; onChange: (w: Work) => void }) {
+  const [source, setSource] = useState(work.media.template ? '외부 URL' : '직접 업로드');
   const media = work.media;
   const input = useRef<HTMLInputElement>(null);
   const min = media.rangeMin ?? Number(media.situations[0]?.code ?? 1);
@@ -236,108 +239,115 @@ export function MediaEditor({ work, onChange }: { work: Work; onChange: (w: Work
   return (
     <div className="media-editor">
       <h2>이미지</h2>
-      <MediaCard title="이미지 URL">
-        <TemplateInput
-          inputRef={input}
-          value={media.template}
-          onChange={(template) => update({ template })}
-        />
-        <div className="keyword-pills">
-          {['{{char_code}}', '{{situation_code}}'].map((code) => (
-            <Button
-              key={code}
-              onClick={() => {
-                const start = input.current?.selectionStart ?? media.template.length;
-                const end = input.current?.selectionEnd ?? start;
-                update({
-                  template: media.template.slice(0, start) + code + media.template.slice(end),
-                });
-                requestAnimationFrame(() => {
-                  input.current?.focus();
-                  input.current?.setSelectionRange(start + code.length, start + code.length);
-                });
-              }}
-            >
-              {code}
-            </Button>
-          ))}
-        </div>
-      </MediaCard>
-      <MediaCard title="캐릭터 코드">
-        <div className="code-pills">
-          <CodePill label="공용" value="0" />
-          {work.characters.map((c, i) => (
-            <CodePill
-              key={c.id}
-              label={c.name || `캐릭터 ${i + 1}`}
-              inputLabel={`${c.name || `캐릭터 ${i + 1}`} 코드`}
-              value={characters.find((entry) => entry.characterId === c.id)!.code}
-              onChange={(code) =>
-                update({
-                  characters: characters.map((entry) =>
-                    entry.characterId === c.id ? { ...entry, code } : entry,
-                  ),
-                })
-              }
-            />
-          ))}
-        </div>
-      </MediaCard>
-      <MediaCard title="상황 코드">
-        <div className="situation-code-fields">
-          <CodeRange>
-            <CodePill
-              label="최솟값"
-              type="number"
-              value={min}
-              onChange={(value) => update({ rangeMin: Number(value) })}
-            />
-            <CodePill
-              label="최댓값"
-              type="number"
-              value={max}
-              onChange={(value) => update({ rangeMax: Number(value) })}
-            />
-          </CodeRange>
-          <Field label="상황 이름 정의" hint="쉼표 또는 줄바꿈으로 구분해 주세요.">
-            <Area
-              value={names}
-              onChange={(v) => {
-                update({
-                  situationNames: v,
-                  situations: v
-                    .split(/\n|,/)
-                    .map((name) => name.trim())
-                    .filter(Boolean)
-                    .map((name, i) => ({ code: String(min + i), name })),
-                });
-              }}
-              rows={10}
-              placeholder={
-                '코드에 맞는 상황 이름을 아래 방식 중 하나로 작성해 주세요.\n\n[예시1] - 콤마로 구분\n상황이름1,상황이름2,상황이름3\n\n[예시2] - 줄바꿈으로 구분\n상황이름1\n상황이름2\n상황이름3'
-              }
-            />
-          </Field>
-        </div>
-      </MediaCard>
-      <Button
-        className="full media-register"
-        disabled={registered || !!validation}
-        onClick={register}
-      >
-        {registered ? '등록 완료' : '이미지 등록'}
-      </Button>
-      {(error || (!registered && validation && (media.template || names))) && (
-        <p className="danger-text" role="alert">
-          {error || validation}
-        </p>
-      )}
-      <hr />
-      <h3>등록 이미지 확인</h3>
-      {registered ? (
-        <MediaPreview media={media} characters={work.characters} />
+      <RadioOptions value={source} values={['직접 업로드', '외부 URL']} onChange={setSource} />
+      {source === '직접 업로드' ? (
+        <LocalMedia work={work} onChange={onChange} />
       ) : (
-        <p className="muted">이미지 등록을 먼저 진행해 주세요.</p>
+        <>
+          <MediaCard title="이미지 URL">
+            <TemplateInput
+              inputRef={input}
+              value={media.template}
+              onChange={(template) => update({ template })}
+            />
+            <div className="keyword-pills">
+              {['{{char_code}}', '{{situation_code}}'].map((code) => (
+                <Button
+                  key={code}
+                  onClick={() => {
+                    const start = input.current?.selectionStart ?? media.template.length;
+                    const end = input.current?.selectionEnd ?? start;
+                    update({
+                      template: media.template.slice(0, start) + code + media.template.slice(end),
+                    });
+                    requestAnimationFrame(() => {
+                      input.current?.focus();
+                      input.current?.setSelectionRange(start + code.length, start + code.length);
+                    });
+                  }}
+                >
+                  {code}
+                </Button>
+              ))}
+            </div>
+          </MediaCard>
+          <MediaCard title="캐릭터 코드">
+            <div className="code-pills">
+              <CodePill label="공용" value="0" />
+              {work.characters.map((c, i) => (
+                <CodePill
+                  key={c.id}
+                  label={c.name || `캐릭터 ${i + 1}`}
+                  inputLabel={`${c.name || `캐릭터 ${i + 1}`} 코드`}
+                  value={characters.find((entry) => entry.characterId === c.id)!.code}
+                  onChange={(code) =>
+                    update({
+                      characters: characters.map((entry) =>
+                        entry.characterId === c.id ? { ...entry, code } : entry,
+                      ),
+                    })
+                  }
+                />
+              ))}
+            </div>
+          </MediaCard>
+          <MediaCard title="상황 코드">
+            <div className="situation-code-fields">
+              <CodeRange>
+                <CodePill
+                  label="최솟값"
+                  type="number"
+                  value={min}
+                  onChange={(value) => update({ rangeMin: Number(value) })}
+                />
+                <CodePill
+                  label="최댓값"
+                  type="number"
+                  value={max}
+                  onChange={(value) => update({ rangeMax: Number(value) })}
+                />
+              </CodeRange>
+              <Field label="상황 이름 정의" hint="쉼표 또는 줄바꿈으로 구분해 주세요.">
+                <Area
+                  value={names}
+                  onChange={(v) => {
+                    update({
+                      situationNames: v,
+                      situations: v
+                        .split(/\n|,/)
+                        .map((name) => name.trim())
+                        .filter(Boolean)
+                        .map((name, i) => ({ code: String(min + i), name })),
+                    });
+                  }}
+                  rows={10}
+                  placeholder={
+                    '코드에 맞는 상황 이름을 아래 방식 중 하나로 작성해 주세요.\n\n[예시1] - 콤마로 구분\n상황이름1,상황이름2,상황이름3\n\n[예시2] - 줄바꿈으로 구분\n상황이름1\n상황이름2\n상황이름3'
+                  }
+                />
+              </Field>
+            </div>
+          </MediaCard>
+          <Button
+            className="full media-register"
+            disabled={registered || !!validation}
+            onClick={register}
+          >
+            {registered ? '등록 완료' : '이미지 등록'}
+          </Button>
+          {(error || (!registered && validation && (media.template || names))) && (
+            <p className="danger-text" role="alert">
+              {error || validation}
+            </p>
+          )}
+          <hr />
+          <h3>등록 이미지 확인</h3>
+          {registered ? (
+            <MediaPreview media={media} characters={work.characters} />
+          ) : (
+            <p className="muted">이미지 등록을 먼저 진행해 주세요.</p>
+          )}
+        </>
       )}
     </div>
   );

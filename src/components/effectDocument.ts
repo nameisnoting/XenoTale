@@ -1,7 +1,10 @@
+import { assetUrl } from '../persistence/assets';
+
 const scriptJSON = (value: unknown) => JSON.stringify(value).replaceAll('<', '\\u003c');
 
 /** The authored code only sees this bridge and public play context, never app references or keys. */
 export function effectDocument(content: string, runId: string, resources?: string[]) {
+  content = content.replace(/asset:[a-zA-Z0-9-]+/g, assetUrl);
   const bridge = `(() => {
     'use strict';
     const runId = ${scriptJSON(runId)};
@@ -63,9 +66,10 @@ export function effectDocument(content: string, runId: string, resources?: strin
   const assets = resources
     ? resources.filter((url) => /^https:\/\/[^\s"'<>;]+$/.test(url)).join(' ')
     : 'https:';
+  const local = resources?.some((url) => url.startsWith('asset:')) ? 'blob:' : '';
   return `<!doctype html><html lang="ko"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src ${assets} data:; media-src ${assets} data:; connect-src 'none'; frame-src 'none'; worker-src 'none'; font-src 'none'; object-src 'none'; form-action 'none'; base-uri 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src ${assets} ${local} data:; media-src ${assets} data:; connect-src 'none'; frame-src 'none'; worker-src 'none'; font-src 'none'; object-src 'none'; form-action 'none'; base-uri 'none'">
 <style>html,body{margin:0;min-height:100%;background:transparent;color:#fff;font:16px/1.6 sans-serif}*{box-sizing:border-box}img,video{max-width:100%}button{cursor:pointer}a{color:#5fddce}@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}</style>
 <script>${bridge}</script></head><body>${content}</body></html>`;
 }

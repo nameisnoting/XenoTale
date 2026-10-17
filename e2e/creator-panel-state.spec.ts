@@ -11,6 +11,12 @@ for (const width of [1440, 393]) {
       .click();
     const section = async (name: string) => {
       const navigation = page.locator(width < 800 ? '.editor-mobile-stages' : '.editor-nav');
+      if (
+        !(await navigation
+          .getByRole(width < 800 ? 'tab' : 'button', { name, exact: false })
+          .count())
+      )
+        await navigation.getByRole('button', { name: '추가 요소', exact: false }).click();
       await navigation.getByRole(width < 800 ? 'tab' : 'button', { name, exact: false }).click();
     };
     const form = page.locator('.editor-form');
@@ -28,19 +34,14 @@ for (const width of [1440, 393]) {
       .getByRole('button', { name: '두 번째 인물', exact: true })
       .click();
     await expect(form.getByRole('textbox', { name: /^이름/ })).toHaveValue('두 번째 인물');
-    await section('플레이가이드');
+    await section('작품 개요');
     await form
-      .getByRole('textbox', { name: '내용', exact: true })
-      .fill('## 안내\n미리보기 보존 확인');
-    await form.getByRole('button', { name: '미리보기', exact: true }).click();
-    await expect(form.getByRole('region', { name: '플레이가이드 미리보기' })).toContainText(
-      '미리보기 보존 확인',
-    );
+      .getByRole('textbox', { name: '작품 설명', exact: true })
+      .fill('## 안내\n설명에 합쳐진 플레이 가이드');
     await section('상태창');
-    await section('플레이가이드');
-    await expect(form.getByRole('region', { name: '플레이가이드 미리보기' })).toHaveCount(0);
-    await expect(form.getByRole('textbox', { name: '내용', exact: true })).toHaveValue(
-      '## 안내\n미리보기 보존 확인',
+    await section('작품 개요');
+    await expect(form.getByRole('textbox', { name: '작품 설명', exact: true })).toHaveValue(
+      '## 안내\n설명에 합쳐진 플레이 가이드',
     );
     await section('등장 캐릭터');
     await expect(form.getByRole('textbox', { name: /^이름/ })).toHaveValue('첫 번째 인물');
