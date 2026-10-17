@@ -29,6 +29,9 @@ reasonable creative choices and explain them briefly. Empty images/URLs are fine
 PAGE SEMANTICS AND CONNECTIONS
 overview: title, public description/cover, world prompt, systemMode (default keeps
 the app narrator, custom uses customSystem), quality, and keyword-triggered world lore.
+Lore activation is keyword (default), always, or reference. Reference entries are
+stored lookup data and are not automatically injected into AI requests. group is
+a display category. Preserve these fields in imported lore unless asked to change them.
 defaultUi is novel or visual-novel; it selects the initial room view, which players
 may change later. There is no authored room-layout field. description includes
 public play guidance; there is no separate guide section.

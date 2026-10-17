@@ -13,6 +13,35 @@ const finished = () => {
   return work;
 };
 describe('creation options', () => {
+  it('injects always-active lore and matching keywords, while keeping lookup-only data out of AI context', () => {
+    const work = finished();
+    work.lore = [
+      { id: 'always', name: '기본', keywords: [], prompt: 'ALWAYS_INCLUDED', activation: 'always' },
+      {
+        id: 'lookup',
+        name: 'Aboleth',
+        keywords: ['Aboleth'],
+        prompt: 'LOOKUP_NOT_AUTOMATIC',
+        activation: 'reference',
+      },
+      { id: 'keyword', name: '정원', keywords: ['정원'], prompt: 'MATCHED_KEYWORD' },
+      { id: 'other', name: '서고', keywords: ['서고'], prompt: 'UNMATCHED_KEYWORD' },
+    ];
+    const room = createRoom(work);
+    const text = JSON.stringify(
+      buildMessages(room, room.current, '정원에 Aboleth가 있다', {
+        reroll: false,
+        extra: [],
+        directive: '',
+        canRequest: false,
+        transport: 'json',
+      }),
+    );
+    expect(text).toContain('ALWAYS_INCLUDED');
+    expect(text).toContain('MATCHED_KEYWORD');
+    expect(text).not.toContain('LOOKUP_NOT_AUTOMATIC');
+    expect(text).not.toContain('UNMATCHED_KEYWORD');
+  });
   it('blank character placeholders are optional and excluded from the published conversation and prompt', () => {
     const work = finished(),
       room = createRoom(work);

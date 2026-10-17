@@ -71,7 +71,7 @@
   color: #222;
   border-color: #fff;
 }
-.design-ui .image-upload > button {
+.design-ui .image-upload > button:first-child {
   border: 0;
   border-radius: 6px;
   background: #4e4e4e;
@@ -985,11 +985,11 @@
 .editor-shell .basic-info {
   gap: 24px;
 }
-.editor-shell .basic-info .image-upload > button {
+.editor-shell .basic-info .image-upload > button:first-child {
   width: 180px;
   height: 180px;
 }
-.editor-shell .overview-form .basic-info .image-upload > button {
+.editor-shell .overview-form .basic-info .image-upload > button:first-child {
   height: 240px;
 }
 .editor-shell .basic-info textarea {
@@ -1488,7 +1488,7 @@
   margin: 0 auto 32px;
   width: 100px;
 }
-.profile-page.design-ui .profile-content > .image-upload > button {
+.profile-page.design-ui .profile-content > .image-upload > button:first-child {
   width: 100px;
   height: 100px;
   border-radius: 50%;
@@ -1681,11 +1681,11 @@
   .editor-shell .basic-info {
     gap: 16px;
   }
-  .editor-shell .basic-info .image-upload > button {
+  .editor-shell .basic-info .image-upload > button:first-child {
     width: 110px;
     height: 110px;
   }
-  .editor-shell .overview-form .basic-info .image-upload > button {
+  .editor-shell .overview-form .basic-info .image-upload > button:first-child {
     height: 147px;
   }
   .editor-shell .section-title {

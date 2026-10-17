@@ -90,6 +90,11 @@ it.skipIf(!folder)(
         expect(result.work.openings.length).toBeGreaterThan(0);
         expect(result.assets?.length).toBeGreaterThan(0);
         expect(result.warnings?.length).toBeGreaterThan(0);
+        expect(result.work.importSource?.fileName).toBe(name);
+        const source = result.assets!.find(
+          (a) => `asset:${a.id}` === result.work.importSource?.url,
+        )!;
+        expect(Buffer.from(await source.blob.arrayBuffer()).equals(bytes)).toBe(true);
         await saveAssets(result.assets ?? []);
         const packed = await createPackage({
           kind: 'xenotale.work',
@@ -99,8 +104,20 @@ it.skipIf(!folder)(
         const restored = await readImport(new File([packed], 'Risu.xeno'));
         expect(restored.kind === 'work' && restored.work.lore.length).toBe(result.work.lore.length);
         expect(restored.kind === 'work' && restored.work.prompt).toBe(result.work.prompt);
+        expect(restored.kind === 'work' && restored.work.importSource).toEqual(
+          result.work.importSource,
+        );
         if (name.endsWith('.png')) {
-          expect(result.work.lore).toHaveLength(971);
+          expect(result.work.lore).toHaveLength(966);
+          expect(
+            result.work.lore.some((l) => l.keywords.some((k) => k.startsWith('folder:'))),
+          ).toBe(false);
+          expect(result.work.lore.find((l) => l.name.includes('Aboleth'))).toMatchObject({
+            activation: 'reference',
+            keywords: [],
+            group: '규칙 · 몬스터',
+          });
+          expect(result.work.lore.filter((l) => l.activation === 'always')).toHaveLength(1);
           expect(result.work.displayRules?.length).toBeGreaterThan(0);
         }
       }

@@ -84,7 +84,16 @@ export async function readRisu(file: File): Promise<ImportData> {
       await reader.close();
     }
   }
-  return convertRisu(card, file.name, blobs, warnings);
+  return preserveRisuSource(await convertRisu(card, file.name, blobs, warnings), file);
+}
+
+/** Keep unsupported scripts/modules as original bytes, without running or sending them to AI. */
+export async function preserveRisuSource(result: ImportData, file: File): Promise<ImportData> {
+  if (result.kind !== 'work') return result;
+  const source = await makeAsset(file, file.name);
+  result.work.importSource = { format: 'risu', fileName: file.name, url: `asset:${source.id}` };
+  result.assets = [...(result.assets ?? []), source];
+  return result;
 }
 
 export async function convertRisu(
@@ -136,18 +145,47 @@ export async function convertRisu(
       '원본 카드에 도입부가 없어 시작 안내문을 넣었습니다. 제작 화면에서 도입부를 확인해 주세요.',
     );
   const entries = Array.isArray(d.character_book?.entries) ? d.character_book.entries : [];
+  const isFolder = (entry: any) =>
+    entry.mode === 'folder' ||
+    (!text(entry.content).trim() &&
+      Array.isArray(entry.keys) &&
+      entry.keys.some((key: unknown) => /^folder:/.test(text(key))));
+  const folders = new Map<string, string>();
+  for (const entry of entries.filter(isFolder))
+    for (const key of entry.keys ?? [])
+      folders.set(text(key), text(entry.name) || text(entry.comment));
   work.lore = entries
-    .filter((e: any) => e.enabled !== false)
+    .filter((e: any) => e.enabled !== false && !isFolder(e))
     .slice(0, 10000)
     .map((e: any, i: number) => ({
       id: id(),
       name: text(e.name) || text(e.comment) || `로어북 ${i + 1}`,
-      keywords: Array.isArray(e.keys) ? e.keys.map(text).filter(Boolean) : [],
+      keywords: Array.isArray(e.keys)
+        ? e.keys
+            .map(text)
+            .map((key: string) => key.trim())
+            .filter(Boolean)
+        : [],
       prompt: translate(e.content),
+      activation: e.constant
+        ? 'always'
+        : e.use_regex ||
+            e.selective ||
+            !(Array.isArray(e.keys) && e.keys.some((key: unknown) => text(key).trim()))
+          ? 'reference'
+          : 'keyword',
+      ...(folders.has(text(e.folder)) ? { group: folders.get(text(e.folder)) } : {}),
     }));
-  if (entries.some((e: any) => e.constant || e.use_regex || e.selective || e.extensions))
+  if (folders.size)
+    warnings.push(`로어북 폴더 ${entries.filter(isFolder).length}개는 항목의 분류로 옮겼습니다.`);
+  const references = work.lore.filter((l) => l.activation === 'reference').length;
+  if (references)
     warnings.push(
-      '로어북의 Risu 전용 우선순위·상시 활성·정규식 조건은 XenoTale 키워드 방식과 다를 수 있습니다.',
+      `스크립트 참조용 로어북 ${references}개는 내용을 보관합니다. Lua가 호출하는 기능은 아직 실행되지 않으며 AI에게 자동으로 전부 보내지 않습니다.`,
+    );
+  if (entries.some((e: any) => e.use_regex || e.selective))
+    warnings.push(
+      '정규식·보조 키워드 조건의 로어북은 참조용으로 보관합니다. Risu의 우선순위·토큰 예산은 아직 적용하지 않습니다.',
     );
   const scripts = Array.isArray(r.customScripts) ? r.customScripts : [];
   work.displayRules = scripts

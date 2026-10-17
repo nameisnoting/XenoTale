@@ -170,8 +170,14 @@ export function buildMessages(
   const lore = [
     ...w.lore,
     ...w.characters.filter((c) => loadedIds.includes(c.id)).flatMap((c) => c.lore),
-  ].filter((l) =>
-    l.keywords.some((k) => k.trim() && search.includes(k.normalize('NFKC').toLocaleLowerCase())),
+  ].filter(
+    (l) =>
+      l.prompt.trim() &&
+      (l.activation === 'always' ||
+        (l.activation !== 'reference' &&
+          l.keywords.some(
+            (k) => k.trim() && search.includes(k.normalize('NFKC').toLocaleLowerCase()),
+          ))),
   );
   const chapter = w.chapters.find((c) => c.id === before.runtime.nodeId);
   const eventInterval = ({ 적음: 10, 보통: 5, 빈번: 3 } as Record<string, number>)[

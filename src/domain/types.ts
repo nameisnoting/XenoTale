@@ -32,6 +32,8 @@ export type Lore = {
   name: string;
   keywords: string[];
   prompt: string;
+  activation?: 'keyword' | 'always' | 'reference';
+  group?: string;
 };
 export type Persona = {
   defaultName?: string;
@@ -136,6 +138,7 @@ export type Work = {
   customSystem: string;
   quality: Quality;
   defaultUi?: ChatUiType;
+  importSource?: { format: 'risu'; fileName: string; url: string };
   characters: Character[];
   lore: Lore[];
   openings: Opening[];

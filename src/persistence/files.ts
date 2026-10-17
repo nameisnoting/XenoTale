@@ -42,6 +42,8 @@ const lore = z.object({
   name: short,
   keywords: arr(short),
   prompt: str,
+  activation: z.enum(['keyword', 'always', 'reference']).optional(),
+  group: short.optional(),
 });
 const persona = z.object({
   defaultName: short.optional(),
@@ -161,6 +163,7 @@ export const workSchema = z.object({
   personas: arr(persona),
   guide: str.optional(),
   defaultUi: z.enum(['novel', 'visual-novel']).optional(),
+  importSource: z.object({ format: z.literal('risu'), fileName: short, url: short }).optional(),
   relationsEnabled: z.boolean().optional(),
   innerUnlock: z
     .object({
@@ -430,7 +433,13 @@ const workspace = z.object({
             z
               .object({
                 field: workSchema
-                  .omit({ id: true, version: true, author: true, authorImage: true })
+                  .omit({
+                    id: true,
+                    version: true,
+                    author: true,
+                    authorImage: true,
+                    importSource: true,
+                  })
                   .keyof(),
                 before: z.unknown(),
                 after: z.unknown(),
@@ -669,8 +678,10 @@ export async function readImport(file: File): Promise<ImportData> {
     } catch {
       throw new Error('작품 파일을 읽을 수 없습니다.');
     }
-    if (value.spec === 'chara_card_v2' || value.spec === 'chara_card_v3')
-      return (await import('./risu')).convertRisu(value, file.name);
+    if (value.spec === 'chara_card_v2' || value.spec === 'chara_card_v3') {
+      const risu = await import('./risu');
+      return risu.preserveRisuSource(await risu.convertRisu(value, file.name), file);
+    }
   }
   if (value.schemaVersion !== 2)
     throw new Error('지원하지 않는 파일 버전입니다. 현재 앱에서 내보낸 파일을 사용해 주세요.');
