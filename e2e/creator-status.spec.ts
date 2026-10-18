@@ -11,18 +11,21 @@ for (const width of [1440, 393]) {
     await page
       .getByRole('button', { name: width < 800 ? '만들기' : '작품 만들기', exact: true })
       .click();
-    const section = async () => {
+    const section = async (name = '상태값') => {
       const nav = page.locator(width < 800 ? '.editor-mobile-stages' : '.editor-nav');
       const target = nav.getByRole(width < 800 ? 'tab' : 'button', {
-        name: '상태 규칙',
+        name,
         exact: true,
       });
       if (!(await target.isVisible()))
-        await nav.getByRole('button', { name: '추가 요소', exact: false }).click();
+        await nav.getByRole('button', { name: '고급설정', exact: false }).click();
       await target.click();
     };
     await section();
-    const tab = (name: string) => page.getByRole('tab', { name, exact: true }).click();
+    const tab = async (name: string) => {
+      await section(name === '상태값' ? '상태값' : '상태 규칙');
+      if (name !== '상태값') await page.getByRole('tab', { name, exact: true }).click();
+    };
     const add = page.getByRole('button', { name: '상태값 추가', exact: true });
     const template = page.getByRole('textbox', { name: '문법 입력', exact: true });
     await add.click();
@@ -30,9 +33,7 @@ for (const width of [1440, 393]) {
     await tab('표시할 상태창');
     await expect(template).toHaveValue('{{상태값1}}\n{{상태값2}}');
     await tab('상태값');
-    const cards = page
-      .getByRole('tabpanel', { name: '상태값', exact: true })
-      .locator('.creator-card');
+    const cards = page.locator('.statuses-form .creator-card');
     await cards.first().getByRole('textbox', { name: '이름', exact: true }).fill('체력');
     await cards.first().getByRole('spinbutton', { name: '초기값', exact: true }).fill('37');
     await tab('표시할 상태창');

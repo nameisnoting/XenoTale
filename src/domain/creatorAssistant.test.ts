@@ -23,7 +23,7 @@ function answer(work: Work, patch: Partial<Work>) {
   };
 }
 describe('whole creation assistant', () => {
-  it('proposes shared values, rules and multiple panels through one creation section', () => {
+  it('proposes shared values, rules and multiple panels through linked creation sections', () => {
     const work = exampleWork();
     const hp = work.statuses[0].id;
     const patch: Partial<Work> = {
@@ -43,8 +43,8 @@ describe('whole creation assistant', () => {
       ],
     };
     const request = creatorRequest(work);
-    expect(request.sections.find((s) => s.id === 'statuses')?.name).toBe('상태 규칙');
-    expect(request.sections.some((s) => (s.id as string) === 'actions')).toBe(false);
+    expect(request.sections.find((s) => s.id === 'statuses')?.name).toBe('상태값');
+    expect(request.sections.find((s) => s.id === 'actions')?.name).toBe('상태 규칙');
     const parsed = parseCreatorAnswer(answer(work, patch), work, request);
     expect(parsed.proposal.sections).toHaveLength(1);
     const next = applyCreatorProposal(work, parsed.proposal);
@@ -53,12 +53,12 @@ describe('whole creation assistant', () => {
     expect(next.actions).toEqual(patch.actions);
   });
 
-  it('sends all eleven sections with real field schemas, without managed fields or image bytes', () => {
+  it('sends all twelve sections with real field schemas, without managed fields or image bytes', () => {
     const work = exampleWork();
     work.cover = 'data:image/png;base64,secret-bytes';
     work.characters[0].image = work.cover;
     const request = creatorRequest(work);
-    expect(request.sections).toHaveLength(11);
+    expect(request.sections).toHaveLength(12);
     expect(request.draft.overview.cover).toBe(
       request.draft.characters.characters instanceof Array &&
         request.draft.characters.characters[0].image,

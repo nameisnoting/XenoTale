@@ -12,7 +12,7 @@ for (const width of [1440, 393]) {
     const section = async () => {
       await page
         .locator(width < 800 ? '.editor-mobile-stages' : '.editor-nav')
-        .getByRole('button', { name: '추가 요소', exact: false })
+        .getByRole('button', { name: '고급설정', exact: false })
         .click();
       if (width < 800)
         await page

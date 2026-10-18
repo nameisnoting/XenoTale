@@ -33,7 +33,7 @@ import {
 import { exportWorkspace, exportBackup } from '../persistence/files';
 import { navigate } from '../app/navigation';
 import { EditorPanels } from './EditorPanels';
-import { sections } from './creator/sections';
+import { sections, advancedSections } from './creator/sections';
 import { CreatorSectionList } from './creator/CreatorSectionList';
 import { ImportWorkButton } from './creator/ImportWorkButton';
 import { newWorkspace } from './Library';
@@ -88,7 +88,6 @@ function EditorContent({
     />
   );
   const [work, setWork] = useState(initial.work);
-  const [extrasExpanded, setExtrasExpanded] = useState(false);
   const [testCreativity, setTestCreativity] = useState(
     initial.testCreativity ?? initial.supporterSettings?.testCreativity ?? 2,
   );
@@ -114,12 +113,14 @@ function EditorContent({
   const [section, setSection] = useState(() => {
     try {
       const saved = localStorage.getItem(sectionStorageKey);
-      if (saved === 'actions') return 'statuses';
       return sections.some((item) => item.id === saved) ? saved! : 'overview';
     } catch {
       return 'overview';
     }
   });
+  const [extrasExpanded, setExtrasExpanded] = useState(() =>
+    advancedSections.some((item) => item.id === section),
+  );
   useEffect(() => {
     try {
       localStorage.setItem(sectionStorageKey, section);

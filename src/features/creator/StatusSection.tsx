@@ -13,9 +13,9 @@ import { Field, TextInput, Area, Segmented, NumberInput } from '../../components
 import { RadioOptions, KeywordInput } from '../../components/DesignControls';
 import type { CreatorPanelState } from './useCreatorPanelState';
 
-export function StatusSection(state: CreatorPanelState) {
-  const [tab, setTab] = useState<'values' | 'rules' | 'panels'>('values');
-  const [opened, setOpened] = useState({ values: true, rules: false, panels: false });
+export function StatusRulesSection(state: CreatorPanelState) {
+  const [tab, setTab] = useState<'rules' | 'panels'>('rules');
+  const [panelsOpened, setPanelsOpened] = useState(false);
   return (
     <>
       <h2>상태 규칙</h2>
@@ -24,10 +24,9 @@ export function StatusSection(state: CreatorPanelState) {
         value={tab}
         onChange={(next) => {
           setTab(next);
-          setOpened((previous) => ({ ...previous, [next]: true }));
+          if (next === 'panels') setPanelsOpened(true);
         }}
         items={[
-          { id: 'values', label: '상태값' },
           { id: 'rules', label: '변경 규칙' },
           { id: 'panels', label: '표시할 상태창' },
         ]}
@@ -35,18 +34,10 @@ export function StatusSection(state: CreatorPanelState) {
       <div
         className="status-rule-panel"
         role="tabpanel"
-        aria-label="상태값"
-        hidden={tab !== 'values'}
-      >
-        <StatusValuesEditor {...state} />
-      </div>
-      <div
-        className="status-rule-panel"
-        role="tabpanel"
         aria-label="변경 규칙"
         hidden={tab !== 'rules'}
       >
-        {opened.rules && <ActionsSection {...state} />}
+        <ActionsSection {...state} />
       </div>
       <div
         className="status-rule-panel"
@@ -54,13 +45,13 @@ export function StatusSection(state: CreatorPanelState) {
         aria-label="표시할 상태창"
         hidden={tab !== 'panels'}
       >
-        {opened.panels && <StatusPanelsEditor {...state} />}
+        {panelsOpened && <StatusPanelsEditor {...state} />}
       </div>
     </>
   );
 }
 
-function StatusValuesEditor({
+export function StatusSection({
   work,
   notify,
   updateStatuses,
@@ -68,10 +59,10 @@ function StatusValuesEditor({
 }: Pick<CreatorPanelState, 'work' | 'notify' | 'updateStatuses' | 'changeStatus'>) {
   return (
     <>
-      <h3>상태값 정의</h3>
+      <h2>상태값</h2>
       <p className="muted">
         HP·호감도 같은 값을 만듭니다. 프롬프트와 레벨 구간 설명은 AI가 상황을 판단할 때 읽는
-        지침입니다. 정확한 계산은 변경 규칙에서 설정하세요.
+        지침입니다. 만든 값은 상태 규칙·시나리오·아이템·관계도에서 선택해 연결할 수 있습니다.
       </p>
       {work.statuses.map((s, i) => (
         <DisclosureCard

@@ -26,7 +26,7 @@ async function personas(page: Page, width: number) {
   }
   const nav = page.locator('.editor-nav');
   if (!(await nav.getByRole('button', { name: '추천 페르소나', exact: false }).count()))
-    await nav.getByRole('button', { name: '추가 요소', exact: false }).click();
+    await nav.getByRole('button', { name: '고급설정', exact: false }).click();
   await nav.getByRole('button', { name: '추천 페르소나', exact: false }).click();
 }
 async function seedWorkspace(page: Page) {

@@ -141,7 +141,24 @@ test('Risu 실제 대화방: 원본 UI·게임 요청·응답 후 계산·복원
   await expect(reply.locator('.dnd-panel')).not.toBeVisible();
   await expect.poll(async () => (await check()).current.runtime.risu.dnd_drawer_open).toBe('0');
   const clock = (await check()).current.runtime.risu.__dnd_clock;
-  await page.getByRole('button', { name: '리롤', exact: true }).click();
+  const reroll = page.getByRole('button', { name: '리롤', exact: true });
+  await reroll.scrollIntoViewIfNeeded();
+  // Lua commits before the iframe reports its new height. Wait for the toolbar
+  // position and enabled state to settle before pressing it during that reflow.
+  let previousBox = '',
+    stableFrames = 0;
+  await expect
+    .poll(
+      async () => {
+        const box = JSON.stringify(await reroll.boundingBox());
+        stableFrames = box === previousBox && (await reroll.isEnabled()) ? stableFrames + 1 : 0;
+        previousBox = box;
+        return stableFrames;
+      },
+      { intervals: [100] },
+    )
+    .toBeGreaterThanOrEqual(3);
+  await reroll.click();
   await page.getByRole('button', { name: '다른 응답 생성', exact: true }).click({ timeout: 5000 });
   await expect
     .poll(

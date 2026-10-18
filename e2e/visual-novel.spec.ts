@@ -255,7 +255,7 @@ test('연출 코드 검증 · 실행 오류/외부 통신 거절 · 편집으로
   await start(page);
   await page.getByRole('button', { name: '메인으로', exact: true }).click();
   await page.getByRole('button', { name: '작품 만들기', exact: true }).click();
-  await page.getByRole('button', { name: '추가 요소', exact: false }).click();
+  await page.getByRole('button', { name: '고급설정', exact: false }).click();
   await page.getByRole('button', { name: '연출', exact: true }).click();
   await page.getByRole('button', { name: '연출 추가', exact: true }).click();
   const code = page.getByRole('textbox', { name: '코드 입력', exact: true });

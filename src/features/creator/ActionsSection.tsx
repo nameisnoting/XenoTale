@@ -5,6 +5,7 @@ import { Select } from '../../components/Select';
 import { DisclosureCard } from '../../components/DisclosureCard';
 import { AddButton } from '../../components/AddButton';
 import { DeleteAction } from '../../components/DeleteAction';
+import { ActionValueEditor } from './ActionValueEditor';
 import { ConditionEditor } from './ConditionEditor';
 import type { CreatorPanelState } from './useCreatorPanelState';
 
@@ -16,9 +17,9 @@ export function ActionsSection({ work, update }: Pick<CreatorPanelState, 'work' 
     <>
       <h3>변경 규칙</h3>
       <p className="muted">
-        상태값 탭에서 만든 값을 사용합니다. 언제 실행할지, 어떤 조건인지, 무엇을 바꿀지 순서대로
-        설정하세요. 버튼 규칙은 AI 호출 없이 실행되고, 응답 후 규칙은 AI의 델타를 반영한 뒤
-        실행됩니다. 같은 변경을 AI 지침과 규칙에 중복 지정하지 마세요.
+        고급설정의 상태값에서 만든 값을 선택해 사용합니다. 언제 실행할지, 어떤 조건인지, 무엇을
+        바꿀지 순서대로 설정하세요. 버튼 규칙은 AI 호출 없이 실행되고, 응답 후 규칙은 AI의 델타를
+        반영한 뒤 실행됩니다. 같은 변경을 AI 지침과 규칙에 중복 지정하지 마세요.
       </p>
       {actions.map((action, i) => (
         <DisclosureCard
@@ -155,50 +156,12 @@ export function ActionsSection({ work, update }: Pick<CreatorPanelState, 'work' 
                     />
                   </Field>
                 )}
-                {!['background', 'effect'].includes(step.kind) && (
-                  <Field
-                    label={
-                      step.kind === 'music'
-                        ? '음악 HTTPS 주소 (비우면 끄기)'
-                        : step.kind === 'text'
-                          ? '저장할 내용'
-                          : '값·계산식'
-                    }
-                  >
-                    <TextInput
-                      value={step.value.replace(/\[([^\]]+)\]/g, (token, key) => {
-                        const field = work.statuses.find((s) => s.id === key);
-                        return field ? `[${field.name}]` : token;
-                      })}
-                      onChange={(value) =>
-                        patch({
-                          value: value.replace(/\[([^\]]+)\]/g, (token, name) => {
-                            const fields = work.statuses.filter((s) => s.name === name);
-                            return fields.length === 1 ? `[${fields[0].id}]` : token;
-                          }),
-                        })
-                      }
-                    />
-                  </Field>
-                )}
-                {['add', 'set', 'gain', 'consume'].includes(step.kind) && (
-                  <Select
-                    label="계산식에 상태 넣기"
-                    value=""
-                    onChange={(value) =>
-                      value &&
-                      patch({
-                        value: step.value === '0' ? `[${value}]` : step.value + ` + [${value}]`,
-                      })
-                    }
-                    options={[
-                      { value: '', label: '계산식에 숫자 상태 넣기' },
-                      ...work.statuses
-                        .filter((x) => x.type === 'number')
-                        .map((x) => ({ value: x.id, label: x.name })),
-                    ]}
-                  />
-                )}
+                <ActionValueEditor
+                  key={step.kind}
+                  step={step}
+                  work={work}
+                  onChange={(value) => patch({ value })}
+                />
               </DisclosureCard>
             );
           })}
@@ -239,10 +202,12 @@ export function ActionsSection({ work, update }: Pick<CreatorPanelState, 'work' 
       >
         규칙 추가
       </AddButton>
-      <p className="muted">
-        계산식: + − * / %, 괄호, min·max·floor·ceil·abs를 사용할 수 있습니다. dice(1, 20)은 20면
-        주사위 1개입니다. 작업은 위에서 아래로 실행합니다.
-      </p>
+      <DisclosureCard title="계산식 도움말">
+        <p className="muted">
+          계산식: + − * / %, 괄호, min·max·floor·ceil·abs를 사용할 수 있습니다. dice(1, 20)은 20면
+          주사위 1개입니다. 작업은 위에서 아래로 실행합니다.
+        </p>
+      </DisclosureCard>
       {work.risu && (
         <DisclosureCard className="creator-card" title="가져온 Risu 실행 설정 (고급)">
           <p className="muted">

@@ -117,7 +117,7 @@ for (const width of [1440, 393]) {
     await page.setViewportSize({ width, height: 900 });
     await page
       .locator(width <= 800 ? '.editor-mobile-stages' : '.editor-nav')
-      .getByRole('button', { name: '추가 요소', exact: false })
+      .getByRole('button', { name: '고급설정', exact: false })
       .click();
     if (width <= 800) await page.getByRole('tab', { name: '연출', exact: true }).click();
     else
@@ -280,7 +280,7 @@ test('제작 서포터의 대화 테스트에서도 연출 결과를 임시 방�
   const section = async (name: string) => {
     const nav = page.locator('.editor-nav');
     if (!(await nav.getByRole('button', { name, exact: false }).count()))
-      await nav.getByRole('button', { name: '추가 요소', exact: false }).click();
+      await nav.getByRole('button', { name: '고급설정', exact: false }).click();
     await nav.getByRole('button', { name, exact: false }).click();
   };
   await section('등장 캐릭터');

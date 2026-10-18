@@ -37,18 +37,15 @@ for (const width of [1440, 393])
     await expect(cards).toHaveCount(1);
     const entry = cards.first();
     await expect(entry).toContainText('분류: 규칙 · 몬스터');
-    await expect(
-      entry.getByRole('combobox', { name: '로어북 사용 방식', exact: true }),
-    ).toContainText('참조 자료');
+    await expect(entry).toContainText('가져온 스크립트용 고급 자료');
+    await expect(entry.getByRole('radio', { checked: true })).toHaveCount(0);
     await expect(entry.getByRole('textbox', { name: '프롬프트', exact: true })).not.toHaveValue('');
     await expect(entry.getByRole('textbox', { name: '키워드', exact: true })).toHaveCount(0);
     await entry
       .getByRole('textbox', { name: '프롬프트', exact: true })
       .fill('수정한 몬스터 능력치');
     await search.fill('대조표');
-    await expect(
-      cards.getByRole('combobox', { name: '로어북 사용 방식', exact: true }),
-    ).toContainText('항상 사용');
+    await expect(cards.getByRole('radio', { name: '항상 전달', exact: true })).toBeChecked();
     await search.fill('');
     await expect(cards).toHaveCount(20);
     await page.locator('.pagination').getByRole('button', { name: '다음', exact: true }).click();

@@ -6,8 +6,7 @@ import { SortableList } from '../../components/SortableList';
 import type { Lore } from '../../domain/types';
 import { id } from '../../domain/types';
 import { Field, TextInput, Area, Button } from '../../components/UI';
-import { KeywordInput } from '../../components/DesignControls';
-import { Select } from '../../components/Select';
+import { KeywordInput, RadioOptions } from '../../components/DesignControls';
 import { useState } from 'react';
 
 export function LoreEditor({
@@ -77,18 +76,21 @@ export function LoreEditor({
             </Field>
             {l.group && <p className="muted">분류: {l.group}</p>}
             <Field label="사용 방식">
-              <Select
-                label="로어북 사용 방식"
-                value={l.activation ?? 'keyword'}
-                options={[
-                  { value: 'keyword', label: '키워드로 사용' },
-                  { value: 'always', label: '항상 사용' },
-                  { value: 'reference', label: '참조 자료' },
-                ]}
-                onChange={(activation) =>
+              <RadioOptions
+                value={
+                  l.activation === 'reference'
+                    ? '고급 자료'
+                    : l.activation === 'always'
+                      ? '항상 전달'
+                      : '키워드가 나올 때 전달'
+                }
+                values={['항상 전달', '키워드가 나올 때 전달']}
+                onChange={(mode) =>
                   onChange(
                     entries.map((x) =>
-                      x.id === l.id ? { ...x, activation: activation as Lore['activation'] } : x,
+                      x.id === l.id
+                        ? { ...x, activation: mode === '항상 전달' ? 'always' : 'keyword' }
+                        : x,
                     ),
                   )
                 }
@@ -106,8 +108,8 @@ export function LoreEditor({
             )}
             {l.activation === 'reference' && (
               <p className="muted">
-                AI에게 자동으로 추가하지 않습니다. 가져온 Risu 작품에서는 스크립트가 이름으로 조회할
-                수 있습니다. 자동으로 전달하려면 사용 방식을 변경해 주세요.
+                가져온 스크립트용 고급 자료입니다. 원본 연결을 유지하며 AI에게 자동으로 전달하지
+                않습니다. 위에서 전달 방식을 선택하면 일반 로어북으로 사용할 수 있습니다.
               </p>
             )}
             {l.activation === 'always' && <p className="muted">모든 대화 요청에 포함됩니다.</p>}

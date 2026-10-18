@@ -12,8 +12,8 @@ for (const width of [1440, 393]) {
       .getByRole('button', { name: width < 800 ? '만들기' : '작품 만들기', exact: true })
       .click();
     const nav = page.locator(width < 800 ? '.editor-mobile-stages' : '.editor-nav');
-    await nav.getByRole('button', { name: '추가 요소', exact: false }).click();
-    await nav.getByRole(width < 800 ? 'tab' : 'button', { name: '상태 규칙', exact: true }).click();
+    await nav.getByRole('button', { name: '고급설정', exact: false }).click();
+    await nav.getByRole(width < 800 ? 'tab' : 'button', { name: '상태값', exact: true }).click();
     await expect(
       nav.getByRole(width < 800 ? 'tab' : 'button', { name: '규칙', exact: true }),
     ).toHaveCount(0);
@@ -22,13 +22,11 @@ for (const width of [1440, 393]) {
       [1, 'MP', '10'],
     ] as const) {
       await page.getByRole('button', { name: '상태값 추가', exact: true }).click();
-      const card = page
-        .getByRole('tabpanel', { name: '상태값', exact: true })
-        .locator('.creator-card')
-        .nth(index);
+      const card = page.locator('.statuses-form .creator-card').nth(index);
       await card.getByRole('textbox', { name: '이름', exact: true }).fill(name);
       await card.getByRole('spinbutton', { name: '초기값', exact: true }).fill(value);
     }
+    await nav.getByRole(width < 800 ? 'tab' : 'button', { name: '상태 규칙', exact: true }).click();
     await page.getByRole('tab', { name: '표시할 상태창', exact: true }).click();
     const cards = page.locator('.status-panel-editor');
     await cards.first().getByRole('textbox', { name: '상태창 이름', exact: true }).fill('전투');

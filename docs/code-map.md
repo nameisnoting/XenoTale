@@ -44,8 +44,8 @@ HTML 표시와 Risu 실행 코드는 필요한 화면에서 불러옵니다.
 | 작품 개요·시스템 프롬프트               | [`creator/OverviewSection.tsx`](../src/features/creator/OverviewSection.tsx)                                                                                 |
 | 등장 캐릭터                             | [`creator/CharactersSection.tsx`](../src/features/creator/CharactersSection.tsx)                                                                             |
 | 도입부                                  | [`creator/OpeningsSection.tsx`](../src/features/creator/OpeningsSection.tsx)                                                                                 |
-| 상태 규칙: 상태값·변경 규칙·여러 상태창 | [`creator/StatusSection.tsx`](../src/features/creator/StatusSection.tsx), [`creator/StatusPanelsEditor.tsx`](../src/features/creator/StatusPanelsEditor.tsx) |
-| 제작 메뉴·접힌 추가 요소                | [`creator/CreatorSectionList.tsx`](../src/features/creator/CreatorSectionList.tsx)                                                                           |
+| 상태값·상태 규칙·여러 상태창            | [`creator/StatusSection.tsx`](../src/features/creator/StatusSection.tsx), [`creator/StatusPanelsEditor.tsx`](../src/features/creator/StatusPanelsEditor.tsx) |
+| 제작 메뉴·기본 요소·접힌 고급설정       | [`creator/CreatorSectionList.tsx`](../src/features/creator/CreatorSectionList.tsx)                                                                           |
 | 관계도 사용·내면 해금 조건              | [`creator/RelationsSection.tsx`](../src/features/creator/RelationsSection.tsx), [`creator/ConditionEditor.tsx`](../src/features/creator/ConditionEditor.tsx) |
 | 아이템과 강화 입력 화면                 | [`creator/ItemsSection.tsx`](../src/features/creator/ItemsSection.tsx)                                                                                       |
 | 행동·조건·계산 규칙                     | [`creator/ActionsSection.tsx`](../src/features/creator/ActionsSection.tsx), [`domain/actions.ts`](../src/domain/actions.ts)                                  |

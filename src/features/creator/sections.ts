@@ -4,12 +4,13 @@ export const sections = [
   { id: 'openings', name: '도입부', required: true },
   { id: 'media', name: '미디어' },
   { id: 'personas', name: '추천 페르소나' },
-  { id: 'statuses', name: '상태 규칙' },
-  { id: 'relations', name: '관계도' },
-  { id: 'items', name: '아이템' },
-  { id: 'scenarios', name: '시나리오' },
   { id: 'shortcuts', name: '단축어' },
+  { id: 'statuses', name: '상태값' },
+  { id: 'scenarios', name: '시나리오' },
+  { id: 'items', name: '아이템' },
+  { id: 'relations', name: '관계도' },
+  { id: 'actions', name: '상태 규칙' },
   { id: 'effects', name: '연출' },
 ];
-export const basicSections = sections.slice(0, 4);
-export const extraSections = sections.slice(4);
+export const basicSections = sections.slice(0, 6);
+export const advancedSections = sections.slice(6);

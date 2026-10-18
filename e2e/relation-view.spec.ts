@@ -7,7 +7,7 @@ async function section(page: Page, width: number, name: string) {
     (await nav.count()) &&
     !(await nav.getByRole(width < 800 ? 'tab' : 'button', { name, exact: false }).count())
   )
-    await nav.getByRole('button', { name: '추가 요소', exact: false }).click();
+    await nav.getByRole('button', { name: '고급설정', exact: false }).click();
 
   if (width < 800)
     await page.locator('.editor-mobile-stages').getByRole('tab', { name, exact: false }).click();

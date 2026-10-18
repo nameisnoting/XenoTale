@@ -1,5 +1,5 @@
 import { ChevronDown } from 'lucide-react';
-import { basicSections, extraSections } from './sections';
+import { basicSections, advancedSections } from './sections';
 
 export function CreatorSectionList({
   section,
@@ -34,10 +34,10 @@ export function CreatorSectionList({
     >
       {basicSections.map(render)}
       <button className="creator-extras-toggle" aria-expanded={expanded} onClick={onToggle}>
-        추가 요소{' '}
+        고급설정{' '}
         <ChevronDown size={16} style={{ transform: expanded ? 'rotate(180deg)' : undefined }} />
       </button>
-      {expanded && extraSections.map(render)}
+      {expanded && advancedSections.map(render)}
     </div>
   );
 }

@@ -48,8 +48,11 @@ relationSplit enables inner relations; innerUnlock uses the same all/any conditi
 as chapters. Unmet conditions keep inner values out of the visible relationship view.
 statuses: number initial must be a number within min/max; text initial is a string;
 choice initial must equal an options string. levels describe numeric intervals.
-The statuses section (상태 규칙) also contains actions and statusPanels. These all
-share the SAME statuses; never duplicate state definitions for different panels.
+Basic sections are overview, characters, openings, media, personas and shortcuts.
+Advanced settings begin with statuses (상태값), which defines values used by
+scenarios, items, relations and actions (상태 규칙). The actions section contains
+actions, statusTemplate and statusPanels. These share the SAME statuses; never
+duplicate state definitions for different panels.
 statusPanels is an optional list of {id,name,statusIds?,template}. Omitted statusIds
 means all statuses (including future additions); an explicit list selects the default
 display/example fields. Templates may reference any status via {{STATUS_NAME}} or
@@ -98,6 +101,9 @@ viewpoint must match its schema; optional viewpointActorId/viewpointTargetId use
 registered characters or user and do not give the narrator control over the player.
 
 AUTOMATIC DISPLAY RULES
+The editor offers simple marker/text matching and advanced regex. For a simple
+{{name}} marker, store a regex-escaped literal pattern and flags g. Do not change
+the meaning or flags of imported regex rules just to make them look simpler.
 displayRules contains name, pattern, flags (gimsu), replacement, enabled. A matching
 regular expression replaces only visible message text. Capture groups use $1 etc.
 Use it for inline status displays, HTML/SVG and isolated interactive buttons. Stored

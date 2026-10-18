@@ -74,13 +74,15 @@ export function EffectsSection({
       <h3>수동연출 · 버튼</h3>
       <p className="muted">
         AI가 {'{{이름}}'}을 출력하면 보기 버튼이 나타납니다. 사용자가 누르면 화면 전체에서 연출을
-        실행합니다.
+        실행합니다. 연출을 추가한 뒤 예시를 선택하고 미리보기로 시작할 수 있습니다.
       </p>
-      <p className="muted">
-        버튼을 눌러 실행합니다. XenoTale.background('1/2'), XenoTale.music(주소 또는 null),
-        XenoTale.ui({'{uiType, theme}'})로 화면·음악을 바꿀 수 있습니다. XenoTale.complete 결과와
-        함께 저장됩니다.
-      </p>
+      <DisclosureCard title="코드로 만드는 연출 도움말">
+        <p className="muted">
+          버튼을 눌러 실행합니다. XenoTale.background('1/2'), XenoTale.music(주소 또는 null),
+          XenoTale.ui({'{uiType, theme}'})로 화면·음악을 바꿀 수 있습니다. XenoTale.complete 결과와
+          함께 저장됩니다.
+        </p>
+      </DisclosureCard>
       {work.effects.map((s, i) => (
         <DisclosureCard
           className="creator-card"

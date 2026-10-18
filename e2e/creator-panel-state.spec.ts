@@ -16,7 +16,7 @@ for (const width of [1440, 393]) {
           .getByRole(width < 800 ? 'tab' : 'button', { name, exact: false })
           .count())
       )
-        await navigation.getByRole('button', { name: '추가 요소', exact: false }).click();
+        await navigation.getByRole('button', { name: '고급설정', exact: false }).click();
       await navigation.getByRole(width < 800 ? 'tab' : 'button', { name, exact: false }).click();
     };
     const form = page.locator('.editor-form');
@@ -38,7 +38,7 @@ for (const width of [1440, 393]) {
     await form
       .getByRole('textbox', { name: '작품 설명', exact: true })
       .fill('## 안내\n설명에 합쳐진 플레이 가이드');
-    await section('상태창');
+    await section('상태값');
     await section('작품 개요');
     await expect(form.getByRole('textbox', { name: '작품 설명', exact: true })).toHaveValue(
       '## 안내\n설명에 합쳐진 플레이 가이드',

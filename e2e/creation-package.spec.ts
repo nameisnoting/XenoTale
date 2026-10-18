@@ -14,11 +14,11 @@ async function start(page: Page, width = 1440) {
 async function section(page: Page, width: number, name: string) {
   const nav = page.locator(width < 800 ? '.editor-mobile-stages' : '.editor-nav');
   if (!(await nav.getByRole(width < 800 ? 'tab' : 'button', { name, exact: false }).count()))
-    await nav.getByRole('button', { name: '추가 요소', exact: false }).click();
+    await nav.getByRole('button', { name: '고급설정', exact: false }).click();
   await nav.getByRole(width < 800 ? 'tab' : 'button', { name, exact: false }).click();
 }
 for (const width of [1440, 393])
-  test(`선택 캐릭터·기본 UI·접힌 추가 요소·관계도 토글 ${width}`, async ({ page }) => {
+  test(`선택 캐릭터·기본 UI·접힌 고급설정·관계도 토글 ${width}`, async ({ page }) => {
     await start(page, width);
     const nav = page.locator(width < 800 ? '.editor-mobile-stages' : '.editor-nav');
     await expect(
@@ -26,7 +26,9 @@ for (const width of [1440, 393])
     ).toBeVisible();
     await expect(nav.getByText('대화방 UI', { exact: true })).toHaveCount(0);
     await expect(nav.getByText('플레이가이드', { exact: true })).toHaveCount(0);
-    await expect(nav.getByText('추천 페르소나', { exact: true })).toHaveCount(0);
+    await expect(nav.getByText('추천 페르소나', { exact: true })).toBeVisible();
+    await expect(nav.getByText('단축어', { exact: true })).toBeVisible();
+    await expect(nav.getByText('상태값', { exact: true })).toHaveCount(0);
     await page.getByRole('textbox', { name: /^제목/ }).fill('캐릭터 없는 작품');
     await page
       .getByRole('textbox', { name: /^프롬프트/ })
