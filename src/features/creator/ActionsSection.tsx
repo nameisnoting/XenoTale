@@ -12,7 +12,7 @@ export function ActionsSection({ work, update }: Pick<CreatorPanelState, 'work' 
     update({ actions: actions.map((a, j) => (j === i ? { ...a, ...patch } : a)) });
   return (
     <>
-      <h2>행동·규칙</h2>
+      <h2>규칙</h2>
       <p className="muted">
         언제 실행할지, 어떤 조건인지, 무엇을 바꿀지 순서대로 설정합니다. 한 행동의 변경은 함께
         저장됩니다.

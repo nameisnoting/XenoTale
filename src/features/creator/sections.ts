@@ -7,7 +7,7 @@ export const sections = [
   { id: 'statuses', name: '상태창' },
   { id: 'relations', name: '관계도' },
   { id: 'items', name: '아이템' },
-  { id: 'actions', name: '행동·규칙' },
+  { id: 'actions', name: '규칙' },
   { id: 'scenarios', name: '시나리오' },
   { id: 'shortcuts', name: '단축어' },
   { id: 'effects', name: '연출' },

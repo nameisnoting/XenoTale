@@ -39,7 +39,7 @@ export const creatorSections = [
   },
   { id: 'statuses', name: '상태창', fields: ['statuses', 'statusTemplate'] },
   { id: 'items', name: '아이템', fields: ['items'] },
-  { id: 'actions', name: '행동·규칙', fields: ['actions'] },
+  { id: 'actions', name: '규칙', fields: ['actions'] },
   { id: 'scenarios', name: '시나리오', fields: ['chapters'] },
   { id: 'shortcuts', name: '단축어', fields: ['shortcuts'] },
   { id: 'effects', name: '연출', fields: ['effects', 'displayRules'] },

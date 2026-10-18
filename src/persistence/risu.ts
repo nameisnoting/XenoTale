@@ -238,11 +238,11 @@ export async function convertRisu(
     }));
   if (scripts.length)
     warnings.push(
-      `정규식 ${scripts.length}개를 가져왔습니다. 화면 표시 규칙은 자동연출, 요청·응답 규칙은 행동·규칙의 Risu 설정에서 확인할 수 있습니다.`,
+      `정규식 ${scripts.length}개를 가져왔습니다. 화면 표시 규칙은 자동연출, 요청·응답 규칙은 규칙의 Risu 설정에서 확인할 수 있습니다.`,
     );
   if (r.triggerscript?.length || r.virtualscript || r.defaultVariables || r.backgroundHTML)
     warnings.push(
-      `Lua ${luaScripts.length}개와 원본 화면 스타일을 행동·규칙에 보관합니다. 격리 실행기에서 처리하며 외부 요청·추가 AI 호출 등 일부 Risu API는 지원하지 않습니다.`,
+      `Lua ${luaScripts.length}개와 원본 화면 스타일을 규칙에 보관합니다. 격리 실행기에서 처리하며 외부 요청·추가 AI 호출 등 일부 Risu API는 지원하지 않습니다.`,
     );
   const assets: StoredAsset[] = [];
   work.media.assets = [];
