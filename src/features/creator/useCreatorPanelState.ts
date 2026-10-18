@@ -1,4 +1,4 @@
-import { syncStatusTemplate } from '../../domain/statusTemplate';
+import { syncStatusTemplate, syncStatusPanels } from '../../domain/statusTemplate';
 import { useState } from 'react';
 import type { Work, Profile, Character, StatusDef, Item, Chapter } from '../../domain/types';
 
@@ -34,7 +34,6 @@ export function useCreatorPanelState({
   const [groupFilter, setGroupFilter] = useState('');
   const [saveAs, setSaveAs] = useState<'lore' | 'characters' | null>(null);
   const [saveName, setSaveName] = useState('');
-  const [statusPreview, setStatusPreview] = useState<Work | null>(null);
   const [chapterId, setChapterId] = useState<string | null>(null);
   const [effectPreview, setEffectPreview] = useState<Work['effects'][number] | null>(null);
   const [library, setLibrary] = useState<'lore' | 'characters' | null>(null);
@@ -47,6 +46,9 @@ export function useCreatorPanelState({
     update({
       statuses,
       statusTemplate: syncStatusTemplate(work.statusTemplate, work.statuses, statuses),
+      ...(work.statusPanels
+        ? { statusPanels: syncStatusPanels(work.statusPanels, work.statuses, statuses) }
+        : {}),
     });
   const changeStatus = (index: number, patch: Partial<StatusDef>) =>
     updateStatuses(work.statuses.map((s, i) => (i === index ? { ...s, ...patch } : s)));
@@ -134,8 +136,6 @@ export function useCreatorPanelState({
     setSaveAs,
     saveName,
     setSaveName,
-    statusPreview,
-    setStatusPreview,
     chapterId,
     setChapterId,
     effectPreview,

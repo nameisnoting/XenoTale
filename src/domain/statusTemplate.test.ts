@@ -5,7 +5,15 @@ import { emptyWork } from './defaults';
 import { applyDelta, emptyDelta, initialState } from './engine';
 import { requiresDeleteConfirmation } from './deletion';
 import { workSchema } from '../persistence/files';
-import { nextStatusName, statusTemplateExample, syncStatusTemplate } from './statusTemplate';
+import {
+  nextStatusName,
+  statusTemplateExample,
+  syncStatusTemplate,
+  statusPanels,
+  panelStatuses,
+  syncStatusPanels,
+} from './statusTemplate';
+import { validateWork } from './engine';
 
 const status = (name = '상태값1', id = 'one'): StatusDef => ({
   id,
@@ -97,4 +105,59 @@ it('replaces text and registered choices and rejects mismatched types', () => {
   expect(() =>
     applyDelta(work, before, { ...emptyDelta(), numeric: [{ fieldId: 'mood', amount: 1 }] }),
   ).toThrow();
+});
+
+it('reads legacy single panels without changing saved data and respects explicit removal', () => {
+  const work = emptyWork();
+  work.statusTemplate = '**HP** {{one}}';
+  expect(statusPanels(work)).toEqual([
+    { id: 'legacy-status-panel', name: '상태창', template: work.statusTemplate },
+  ]);
+  expect(work.statusPanels).toBeUndefined();
+  work.statusPanels = [];
+  expect(statusPanels(work)).toEqual([]);
+});
+
+it('keeps panels as references to shared statuses and syncs selected examples without overwriting authored code', () => {
+  const before = [status('체력', 'hp'), status('마력', 'mp')];
+  const after = [{ ...before[0], name: 'HP' }, status('호감도', 'trust')];
+  const panels = [
+    { id: 'all', name: '전체', template: statusTemplateExample(before) },
+    {
+      id: 'combat',
+      name: '전투',
+      statusIds: ['hp', 'mp'],
+      template: statusTemplateExample(before, 'html'),
+    },
+    { id: 'custom', name: '인물', statusIds: ['hp'], template: '<strong>{{hp}}</strong>' },
+  ];
+  const next = syncStatusPanels(panels, before, after);
+  expect(next[0].template).toBe('{{HP}}\n{{호감도}}');
+  expect(next[1].statusIds).toEqual(['hp']);
+  expect(next[1].template).toBe(statusTemplateExample([after[0]], 'html'));
+  expect(next[2].template).toBe('<strong>{{hp}}</strong>');
+  expect(panelStatuses(next[1], after)[0]).toBe(after[0]);
+  expect(panels[1].statusIds).toEqual(['hp', 'mp']);
+});
+
+it('round trips panel selections and rules together and rejects dangling panel references', () => {
+  const work = emptyWork();
+  work.statuses = [status('HP', 'hp')];
+  work.statusPanels = [{ id: 'panel', name: '전투', statusIds: ['hp'], template: '{{hp}}' }];
+  work.actions = [
+    {
+      id: 'heal',
+      name: '회복',
+      trigger: 'button',
+      mode: 'all',
+      conditions: [],
+      steps: [{ kind: 'add', target: 'hp', value: '20' }],
+    },
+  ];
+  const restored = workSchema.parse(JSON.parse(JSON.stringify(work)));
+  expect(restored.statusPanels).toEqual(work.statusPanels);
+  expect(restored.actions).toEqual(work.actions);
+  expect(() => validateWork(restored)).not.toThrow();
+  restored.statusPanels![0].statusIds = ['missing'];
+  expect(() => validateWork(restored)).toThrow('표시할 상태값');
 });

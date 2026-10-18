@@ -7,6 +7,8 @@ import { Area, Field, ImageUpload, TextInput, Markdown, safeUrl } from './UI';
 import './PersonaFields.css';
 import { AuthoredHtml } from './AuthoredHtml';
 import { demoStatusContent } from '../domain/demo';
+import { panelStatuses, statusPanels } from '../domain/statusTemplate';
+import type { StatusPanel } from '../domain/types';
 
 export function RadioOptions<T extends string>({
   value,
@@ -207,7 +209,8 @@ export function AuthoredContent({
 }) {
   // HTML inside a fenced code block is source text, not an HTML preview.
   const outsideCode = content.replace(/^[ \t]*(`{3,}|~{3,})[^\n]*\n[\s\S]*?^[ \t]*\1[ \t]*$/gm, '');
-  if (!/<[a-z][\s\S]*>/i.test(outsideCode)) return <Markdown>{content}</Markdown>;
+  if (!/<[a-z][\s\S]*>/i.test(outsideCode))
+    return <Markdown renderHtml={false}>{content}</Markdown>;
   if (unframed) return <AuthoredHtml content={content} title={title} />;
   const document = `<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data: https:; font-src 'none'; form-action 'none'; base-uri 'none'"><style>body{margin:16px;background:#000;color:#fff;font:14px/1.8 sans-serif;overflow-wrap:anywhere}img{max-width:100%}a{color:#5fddce}</style></head><body>${content}</body></html>`;
   return (
@@ -226,22 +229,62 @@ export function StatusDisplay({
   expanded = true,
   collapsible = true,
   demo = false,
+  panelId,
 }: {
   work: Work;
   runtime: Runtime;
   expanded?: boolean;
   collapsible?: boolean;
   demo?: boolean;
+  panelId?: string;
 }) {
-  if (!work.statuses.length && !work.statusTemplate) return null;
+  return (
+    <>
+      {statusPanels(work)
+        .filter(
+          (panel) =>
+            (!panelId || panel.id === panelId) &&
+            (panel.template.trim() || panelStatuses(panel, work.statuses).length),
+        )
+        .map((panel) => (
+          <StatusPanelDisplay
+            key={panel.id}
+            panel={panel}
+            work={work}
+            runtime={runtime}
+            expanded={expanded}
+            collapsible={collapsible}
+            demo={demo}
+          />
+        ))}
+    </>
+  );
+}
+
+function StatusPanelDisplay({
+  work,
+  runtime,
+  panel,
+  expanded,
+  collapsible,
+  demo,
+}: {
+  work: Work;
+  runtime: Runtime;
+  panel: StatusPanel;
+  expanded: boolean;
+  collapsible: boolean;
+  demo: boolean;
+}) {
+  const statuses = panelStatuses(panel, work.statuses);
   const content = work.statuses.reduce(
     (text, s) =>
       text
         .replaceAll(`{{${s.id}}}`, String(effectiveStatus(work, runtime, s.id)))
         .replaceAll(`{{${s.name}}}`, String(effectiveStatus(work, runtime, s.id))),
-    work.statusTemplate,
+    panel.template,
   );
-  const fallback = work.statuses
+  const fallback = statuses
     .map(
       (s) =>
         `${s.name}: ${effectiveStatus(work, runtime, s.id)}${s.displayMax && s.type === 'number' ? ` / ${s.max}` : ''}${s.unit}`,
@@ -251,25 +294,35 @@ export function StatusDisplay({
     <AuthoredContent
       content={
         demo
-          ? demoStatusContent(work.statuses.length)
+          ? demoStatusContent(statuses.length)
           : content.trim()
             ? content
             : `\`\`\`\n${fallback}\n\`\`\``
       }
-      title="상태창"
+      title={panel.name || '상태창'}
       unframed
     />
   );
   if (!collapsible) return <div className="status-preview">{body}</div>;
   return (
-    <details className="status-display" open={expanded}>
-      <summary aria-label="상태창 접기/펼치기" title="상태창 접기/펼치기">
+    <details
+      className={`status-display ${work.statusPanels ? 'status-display--named' : ''}`}
+      open={expanded}
+    >
+      <summary
+        aria-label={`${panel.name || '상태창'} 접기/펼치기`}
+        title={`${panel.name || '상태창'} 접기/펼치기`}
+      >
         <span className="status-toggle-icon" aria-hidden="true">
           <svg width="16" height="16" viewBox="0 0 16 16">
             <path d="M5 3 L11 8 L5 13 Z" fill="currentColor" />
           </svg>
         </span>
-        <span className="status-expand-label">상태창 펼치기</span>
+        {work.statusPanels ? (
+          <span className="status-panel-name">{panel.name || '상태창'}</span>
+        ) : (
+          <span className="status-expand-label">상태창 펼치기</span>
+        )}
       </summary>
       <div className="status-content">{body}</div>
     </details>

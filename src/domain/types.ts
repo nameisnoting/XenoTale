@@ -67,6 +67,13 @@ export type StatusDef = {
   levels?: { min: number; max: number; prompt: string }[];
   prompt: string;
 };
+export type StatusPanel = {
+  id: string;
+  name: string;
+  // Omitted means all statuses, including ones added later. Values remain in Runtime.status.
+  statusIds?: string[];
+  template: string;
+};
 export type Relation = { id: string; from: string; to: string; label: string; innerLabel?: string };
 export type Item = {
   quantity?: number;
@@ -182,6 +189,7 @@ export type Work = {
     situations: { code: string; name: string }[];
   };
   statusTemplate: string;
+  statusPanels?: StatusPanel[];
   chatUi?: { enabled?: boolean; code: string; resources?: string[]; validation?: CodeValidation };
   characterGroups?: { defaultName?: string; id: string; name: string; prompt: string }[];
   relationPositions?: Record<string, { x: number; y: number }>;

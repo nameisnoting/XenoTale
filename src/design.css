@@ -530,6 +530,19 @@
   margin: 0 0 0 32px;
   min-width: 0;
 }
+.status-display--named > summary {
+  position: static;
+}
+.status-display--named > .status-content {
+  margin-top: 8px;
+}
+.status-panel-name {
+  font-size: 12px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .status-content > .markdown > :first-child,
 .status-preview > .markdown > :first-child {
   margin-top: 0;

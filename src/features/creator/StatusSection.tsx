@@ -1,38 +1,78 @@
 import { AddButton } from '../../components/AddButton';
 import { DeleteAction } from '../../components/DeleteAction';
-import { nextStatusName, statusTemplateExample } from '../../domain/statusTemplate';
+import { nextStatusName } from '../../domain/statusTemplate';
 import { DisclosureCard } from '../../components/DisclosureCard';
 import { requiresDeleteConfirmation, hasText } from '../../domain/deletion';
 import { Select } from '../../components/Select';
-import { Eye } from 'lucide-react';
-import { id, clone } from '../../domain/types';
-import { Field, TextInput, Area, Segmented, Button, NumberInput } from '../../components/UI';
-import { RadioOptions, KeywordInput, StatusDisplay } from '../../components/DesignControls';
-import { initialState } from '../../domain/engine';
+import { useState } from 'react';
+import { id } from '../../domain/types';
+import { Tabs } from '../../components/Tabs';
+import { ActionsSection } from './ActionsSection';
+import { StatusPanelsEditor } from './StatusPanelsEditor';
+import { Field, TextInput, Area, Segmented, NumberInput } from '../../components/UI';
+import { RadioOptions, KeywordInput } from '../../components/DesignControls';
 import type { CreatorPanelState } from './useCreatorPanelState';
 
-export function StatusSection({
-  work,
-  statusPreview,
-  setStatusPreview,
-  notify,
-  update,
-  updateStatuses,
-  changeStatus,
-}: Pick<
-  CreatorPanelState,
-  | 'work'
-  | 'statusPreview'
-  | 'setStatusPreview'
-  | 'notify'
-  | 'update'
-  | 'updateStatuses'
-  | 'changeStatus'
->) {
+export function StatusSection(state: CreatorPanelState) {
+  const [tab, setTab] = useState<'values' | 'rules' | 'panels'>('values');
+  const [opened, setOpened] = useState({ values: true, rules: false, panels: false });
   return (
     <>
-      <h2>상태값 정의</h2>
-      <p className="muted">상태값은 대화와 시나리오 조건에 사용됩니다.</p>
+      <h2>상태 규칙</h2>
+      <Tabs
+        label="상태 규칙 설정"
+        value={tab}
+        onChange={(next) => {
+          setTab(next);
+          setOpened((previous) => ({ ...previous, [next]: true }));
+        }}
+        items={[
+          { id: 'values', label: '상태값' },
+          { id: 'rules', label: '변경 규칙' },
+          { id: 'panels', label: '표시할 상태창' },
+        ]}
+      />
+      <div
+        className="status-rule-panel"
+        role="tabpanel"
+        aria-label="상태값"
+        hidden={tab !== 'values'}
+      >
+        <StatusValuesEditor {...state} />
+      </div>
+      <div
+        className="status-rule-panel"
+        role="tabpanel"
+        aria-label="변경 규칙"
+        hidden={tab !== 'rules'}
+      >
+        {opened.rules && <ActionsSection {...state} />}
+      </div>
+      <div
+        className="status-rule-panel"
+        role="tabpanel"
+        aria-label="표시할 상태창"
+        hidden={tab !== 'panels'}
+      >
+        {opened.panels && <StatusPanelsEditor {...state} />}
+      </div>
+    </>
+  );
+}
+
+function StatusValuesEditor({
+  work,
+  notify,
+  updateStatuses,
+  changeStatus,
+}: Pick<CreatorPanelState, 'work' | 'notify' | 'updateStatuses' | 'changeStatus'>) {
+  return (
+    <>
+      <h3>상태값 정의</h3>
+      <p className="muted">
+        HP·호감도 같은 값을 만듭니다. 프롬프트와 레벨 구간 설명은 AI가 상황을 판단할 때 읽는
+        지침입니다. 정확한 계산은 변경 규칙에서 설정하세요.
+      </p>
       {work.statuses.map((s, i) => (
         <DisclosureCard
           className="creator-card"
@@ -48,9 +88,18 @@ export function StatusSection({
                 const refs =
                   work.items.some(
                     (it) => it.enhancement?.currency === s.id || it.enhancement?.target === s.id,
-                  ) || work.chapters.some((c) => c.conditions.some((k) => k.ref === s.id));
+                  ) ||
+                  work.chapters.some((c) => c.conditions.some((k) => k.ref === s.id)) ||
+                  work.innerUnlock?.conditions.some((k) => k.ref === s.id) ||
+                  work.actions?.some(
+                    (a) =>
+                      a.conditions.some((k) => k.ref === s.id) ||
+                      a.steps.some(
+                        (step) => step.target === s.id || step.value.includes(`[${s.id}]`),
+                      ),
+                  );
                 if (refs) {
-                  notify('아이템 강화나 챕터 조건에서 참조 중입니다. 연결을 먼저 해제해 주세요.');
+                  notify('아이템·시나리오·변경 규칙에서 참조 중입니다. 연결을 먼저 해제해 주세요.');
                   return;
                 }
                 updateStatuses(work.statuses.filter((x) => x.id !== s.id));
@@ -220,42 +269,6 @@ export function StatusSection({
       >
         상태값 추가
       </AddButton>
-      <hr />
-      <h2>상태창 UI</h2>
-      <div className="form-row" role="group" aria-label="상태창 예시">
-        <Button
-          disabled={!work.statuses.length}
-          onClick={() =>
-            update({ statusTemplate: statusTemplateExample(work.statuses, 'markdown') })
-          }
-        >
-          예시 마크다운
-        </Button>
-        <Button
-          disabled={!work.statuses.length}
-          onClick={() => update({ statusTemplate: statusTemplateExample(work.statuses, 'html') })}
-        >
-          예시 html
-        </Button>
-      </div>
-      <Field label="문법 입력" hint="Markdown 또는 HTML. {{상태값 이름}}으로 현재 값을 표시합니다.">
-        <Area
-          value={work.statusTemplate}
-          onChange={(statusTemplate) => update({ statusTemplate })}
-          rows={7}
-        />
-      </Field>
-      <Button disabled={!work.statusTemplate.trim()} onClick={() => setStatusPreview(clone(work))}>
-        <Eye size={15} />
-        미리보기
-      </Button>
-      {statusPreview && (
-        <StatusDisplay
-          work={statusPreview}
-          runtime={initialState(statusPreview, statusPreview.openings[0].id)}
-          collapsible={false}
-        />
-      )}
     </>
   );
 }

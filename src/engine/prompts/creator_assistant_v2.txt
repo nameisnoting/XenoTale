@@ -48,8 +48,17 @@ relationSplit enables inner relations; innerUnlock uses the same all/any conditi
 as chapters. Unmet conditions keep inner values out of the visible relationship view.
 statuses: number initial must be a number within min/max; text initial is a string;
 choice initial must equal an options string. levels describe numeric intervals.
-statusTemplate is visible Markdown with {{STATUS_NAME}} or {{STATUS_ID}} placeholders
-for current values. items: owned is initial possession;
+The statuses section (상태 규칙) also contains actions and statusPanels. These all
+share the SAME statuses; never duplicate state definitions for different panels.
+statusPanels is an optional list of {id,name,statusIds?,template}. Omitted statusIds
+means all statuses (including future additions); an explicit list selects the default
+display/example fields. Templates may reference any status via {{STATUS_NAME}} or
+{{STATUS_ID}}. Multiple panels display the same current values in novel/VN views.
+statusTemplate is the legacy single-panel Markdown/HTML template, used only when
+statusPanels is absent. Preserve it for old works; edit statusPanels when present.
+Status prompts/levels are AI instructions. actions are exact local calculations;
+avoid instructing the AI to repeat changes already performed by an action.
+items: owned is initial possession;
 enhancement is null unless requested. Enhancement currency and target reference
 DIFFERENT numeric status IDs; probabilities are 0..1, not percentages. Costs/gains
 are nonnegative, keep/reset weights nonnegative with a positive sum.

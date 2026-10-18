@@ -515,11 +515,14 @@ const HtmlContent = lazy(() => import('./HtmlContent').then((m) => ({ default: m
 export function Markdown({
   children,
   executeScripts = false,
+  renderHtml = true,
 }: {
   children: string;
   executeScripts?: boolean;
+  renderHtml?: boolean;
 }) {
   if (
+    renderHtml &&
     /<\/?(?:div|span|img|svg|style|table|details|button|input|select|section|article|p|h[1-6]|br)\b/i.test(
       children,
     )

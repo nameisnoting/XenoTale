@@ -23,12 +23,42 @@ function answer(work: Work, patch: Partial<Work>) {
   };
 }
 describe('whole creation assistant', () => {
+  it('proposes shared values, rules and multiple panels through one creation section', () => {
+    const work = exampleWork();
+    const hp = work.statuses[0].id;
+    const patch: Partial<Work> = {
+      statusPanels: [
+        { id: 'combat', name: '전투', statusIds: [hp], template: `HP {{${hp}}}` },
+        { id: 'person', name: '인물', statusIds: [hp], template: `체력 {{${hp}}}` },
+      ],
+      actions: [
+        {
+          id: 'heal',
+          name: '회복',
+          trigger: 'button',
+          mode: 'all',
+          conditions: [],
+          steps: [{ kind: 'add', target: hp, value: '20' }],
+        },
+      ],
+    };
+    const request = creatorRequest(work);
+    expect(request.sections.find((s) => s.id === 'statuses')?.name).toBe('상태 규칙');
+    expect(request.sections.some((s) => (s.id as string) === 'actions')).toBe(false);
+    const parsed = parseCreatorAnswer(answer(work, patch), work, request);
+    expect(parsed.proposal.sections).toHaveLength(1);
+    const next = applyCreatorProposal(work, parsed.proposal);
+    expect(next.statuses).toEqual(work.statuses);
+    expect(next.statusPanels).toEqual(patch.statusPanels);
+    expect(next.actions).toEqual(patch.actions);
+  });
+
   it('sends all eleven sections with real field schemas, without managed fields or image bytes', () => {
     const work = exampleWork();
     work.cover = 'data:image/png;base64,secret-bytes';
     work.characters[0].image = work.cover;
     const request = creatorRequest(work);
-    expect(request.sections).toHaveLength(12);
+    expect(request.sections).toHaveLength(11);
     expect(request.draft.overview.cover).toBe(
       request.draft.characters.characters instanceof Array &&
         request.draft.characters.characters[0].image,

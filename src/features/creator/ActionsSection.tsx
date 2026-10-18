@@ -1,8 +1,10 @@
 import type { WorkAction } from '../../domain/actions';
 import { id } from '../../domain/types';
-import { Field, TextInput, Area, Button } from '../../components/UI';
+import { Field, TextInput, Area } from '../../components/UI';
 import { Select } from '../../components/Select';
 import { DisclosureCard } from '../../components/DisclosureCard';
+import { AddButton } from '../../components/AddButton';
+import { DeleteAction } from '../../components/DeleteAction';
 import { ConditionEditor } from './ConditionEditor';
 import type { CreatorPanelState } from './useCreatorPanelState';
 
@@ -12,29 +14,33 @@ export function ActionsSection({ work, update }: Pick<CreatorPanelState, 'work' 
     update({ actions: actions.map((a, j) => (j === i ? { ...a, ...patch } : a)) });
   return (
     <>
-      <h2>규칙</h2>
+      <h3>변경 규칙</h3>
       <p className="muted">
-        언제 실행할지, 어떤 조건인지, 무엇을 바꿀지 순서대로 설정합니다. 한 행동의 변경은 함께
-        저장됩니다.
+        상태값 탭에서 만든 값을 사용합니다. 언제 실행할지, 어떤 조건인지, 무엇을 바꿀지 순서대로
+        설정하세요. 버튼 규칙은 AI 호출 없이 실행되고, 응답 후 규칙은 AI의 델타를 반영한 뒤
+        실행됩니다. 같은 변경을 AI 지침과 규칙에 중복 지정하지 마세요.
       </p>
       {actions.map((action, i) => (
         <DisclosureCard
           key={action.id}
           expanded
           className="creator-card"
-          title={action.name || `행동 ${i + 1}`}
+          title={action.name || `규칙 ${i + 1}`}
           actions={
-            <Button onClick={() => update({ actions: actions.filter((a) => a.id !== action.id) })}>
-              삭제
-            </Button>
+            <DeleteAction
+              title="규칙 삭제"
+              name={action.name}
+              needsConfirmation={!!action.steps.length || !!action.conditions.length}
+              onDelete={() => update({ actions: actions.filter((a) => a.id !== action.id) })}
+            />
           }
         >
-          <Field label="행동 이름">
+          <Field label="규칙 이름">
             <TextInput value={action.name} onChange={(name) => change(i, { name })} />
           </Field>
           <Field label="언제">
             <Select
-              label="행동 실행 시점"
+              label="규칙 실행 시점"
               value={action.trigger}
               onChange={(trigger) => change(i, { trigger: trigger as WorkAction['trigger'] })}
               options={[
@@ -45,7 +51,7 @@ export function ActionsSection({ work, update }: Pick<CreatorPanelState, 'work' 
           </Field>
           <Field label="실행 조건">
             <Select
-              label="행동 조건 결합"
+              label="규칙 조건 결합"
               value={action.mode}
               onChange={(mode) => change(i, { mode: mode as 'all' | 'any' })}
               options={[
@@ -67,7 +73,7 @@ export function ActionsSection({ work, update }: Pick<CreatorPanelState, 'work' 
               }
             />
           ))}
-          <Button
+          <AddButton
             onClick={() =>
               change(i, {
                 conditions: [
@@ -78,7 +84,7 @@ export function ActionsSection({ work, update }: Pick<CreatorPanelState, 'work' 
             }
           >
             조건 추가
-          </Button>
+          </AddButton>
           <h3>실행할 작업</h3>
           {action.steps.map((step, s) => {
             const patch = (value: Partial<typeof step>) =>
@@ -94,7 +100,19 @@ export function ActionsSection({ work, update }: Pick<CreatorPanelState, 'work' 
                         step.kind === 'text' ? x.type !== 'number' : x.type === 'number',
                       );
             return (
-              <div className="creator-card" key={s}>
+              <DisclosureCard
+                title={`작업 ${s + 1}`}
+                className="creator-card"
+                expanded
+                key={s}
+                actions={
+                  <DeleteAction
+                    title="작업 삭제"
+                    needsConfirmation={false}
+                    onDelete={() => change(i, { steps: action.steps.filter((_, j) => j !== s) })}
+                  />
+                }
+              >
                 <Field label={`작업 ${s + 1}`}>
                   <Select
                     label="작업 종류"
@@ -181,15 +199,10 @@ export function ActionsSection({ work, update }: Pick<CreatorPanelState, 'work' 
                     ]}
                   />
                 )}
-                <Button
-                  onClick={() => change(i, { steps: action.steps.filter((_, j) => j !== s) })}
-                >
-                  작업 삭제
-                </Button>
-              </div>
+              </DisclosureCard>
             );
           })}
-          <Button
+          <AddButton
             onClick={() =>
               change(i, {
                 steps: [
@@ -204,17 +217,17 @@ export function ActionsSection({ work, update }: Pick<CreatorPanelState, 'work' 
             }
           >
             작업 추가
-          </Button>
+          </AddButton>
         </DisclosureCard>
       ))}
-      <Button
+      <AddButton
         onClick={() =>
           update({
             actions: [
               ...actions,
               {
                 id: id(),
-                name: `행동 ${actions.length + 1}`,
+                name: `규칙 ${actions.length + 1}`,
                 trigger: 'button',
                 mode: 'all',
                 conditions: [],
@@ -224,23 +237,24 @@ export function ActionsSection({ work, update }: Pick<CreatorPanelState, 'work' 
           })
         }
       >
-        행동 추가
-      </Button>
+        규칙 추가
+      </AddButton>
       <p className="muted">
         계산식: + − * / %, 괄호, min·max·floor·ceil·abs를 사용할 수 있습니다. dice(1, 20)은 20면
         주사위 1개입니다. 작업은 위에서 아래로 실행합니다.
       </p>
       {work.risu && (
-        <section>
-          <hr />
-          <h3>가져온 Risu 실행 설정</h3>
+        <DisclosureCard className="creator-card" title="가져온 Risu 실행 설정 (고급)">
           <p className="muted">
             원본 계산과 버튼 처리를 보관합니다. 화면 정규식은 연출의 자동연출에서 수정할 수
             있습니다. 스크립트는 격리 실행기에서 동작합니다.
           </p>
           {work.risu.scripts.map((script) => (
-            <details key={script.id} className="creator-card">
-              <summary>{script.name} · Lua 코드</summary>
+            <DisclosureCard
+              key={script.id}
+              className="creator-card"
+              title={`${script.name} · Lua 코드`}
+            >
               <Area
                 rows={12}
                 value={script.code}
@@ -255,18 +269,16 @@ export function ActionsSection({ work, update }: Pick<CreatorPanelState, 'work' 
                   })
                 }
               />
-            </details>
+            </DisclosureCard>
           ))}
-          <details className="creator-card">
-            <summary>원본 화면 스타일</summary>
+          <DisclosureCard className="creator-card" title="원본 화면 스타일">
             <Area
               rows={10}
               value={work.risu.styles}
               onChange={(styles) => update({ risu: { ...work.risu!, styles } })}
             />
-          </details>
-          <details className="creator-card">
-            <summary>요청·응답 처리 규칙</summary>
+          </DisclosureCard>
+          <DisclosureCard className="creator-card" title="요청·응답 처리 규칙">
             {work.risu.rules
               .filter((r) => r.type !== 'editdisplay')
               .map((rule) => (
@@ -307,8 +319,8 @@ export function ActionsSection({ work, update }: Pick<CreatorPanelState, 'work' 
                   </Field>
                 </div>
               ))}
-          </details>
-        </section>
+          </DisclosureCard>
+        </DisclosureCard>
       )}
     </>
   );

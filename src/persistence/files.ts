@@ -225,6 +225,9 @@ export const workSchema = z.object({
     situations: arr(z.object({ code: short, name: short })),
   }),
   statusTemplate: str,
+  statusPanels: arr(
+    z.object({ id: identifier, name: short, statusIds: arr(identifier).optional(), template: str }),
+  ).optional(),
   characterGroups: arr(
     z.object({ defaultName: short.optional(), id: identifier, name: short, prompt: str }),
   ).optional(),

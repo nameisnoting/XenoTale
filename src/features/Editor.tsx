@@ -114,6 +114,7 @@ function EditorContent({
   const [section, setSection] = useState(() => {
     try {
       const saved = localStorage.getItem(sectionStorageKey);
+      if (saved === 'actions') return 'statuses';
       return sections.some((item) => item.id === saved) ? saved! : 'overview';
     } catch {
       return 'overview';

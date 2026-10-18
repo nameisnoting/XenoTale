@@ -135,6 +135,18 @@ export function validateWork(w: Work, publish = false, report?: (issue: WorkIssu
     if (d.type !== 'number' && typeof d.initial !== 'string')
       fail(`${d.name}: 문자 초기값을 입력해 주세요.`);
   }
+  ids(w.statusPanels ?? [], 'statusPanels');
+  for (const [index, panel] of (w.statusPanels ?? []).entries()) {
+    at('statusPanels', index, ['statuses']);
+    if (!panel.id.trim() || (publish && !panel.name.trim()))
+      fail('상태창 이름과 ID를 확인해 주세요.');
+    if (
+      panel.statusIds &&
+      (new Set(panel.statusIds).size !== panel.statusIds.length ||
+        panel.statusIds.some((key) => !w.statuses.some((s) => s.id === key)))
+    )
+      fail(`${panel.name}: 표시할 상태값의 연결을 확인해 주세요.`);
+  }
   const entityIds = new Set(['user', ...w.characters.map((c) => c.id)]);
   at('quality', undefined, ['characters']);
   for (const key of [w.quality.viewpointActorId, w.quality.viewpointTargetId])
@@ -216,12 +228,12 @@ export function validateWork(w: Work, publish = false, report?: (issue: WorkIssu
   for (const [index, action] of (w.actions ?? []).entries()) {
     at('actions', index);
     if (!actionSchema.safeParse(action).success) {
-      fail('행동의 설정 형식을 확인해 주세요.');
+      fail('규칙의 설정 형식을 확인해 주세요.');
       continue;
     }
     if (!publish) continue;
     if (!action.name.trim() || !action.steps.length)
-      fail('행동 이름과 실행할 작업을 입력해 주세요.');
+      fail('규칙 이름과 실행할 작업을 입력해 주세요.');
     const fields = Object.fromEntries(
       w.statuses.filter((s) => s.type === 'number').map((s) => [s.id, 1]),
     );

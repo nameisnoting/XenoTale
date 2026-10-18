@@ -59,6 +59,7 @@ function creatorIssues(work: Work): WorkIssue[] {
     'characters',
     'openings',
     'statuses',
+    'statusPanels',
     'items',
     'relations',
     'chapters',

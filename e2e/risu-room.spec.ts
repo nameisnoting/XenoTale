@@ -139,6 +139,7 @@ test('Risu 실제 대화방: 원본 UI·게임 요청·응답 후 계산·복원
   await expect(reply.locator('.dnd-pane-1')).toBeVisible();
   await reply.locator('[data-risu-trigger="dnd_drawer_close"]').last().click();
   await expect(reply.locator('.dnd-panel')).not.toBeVisible();
+  await expect.poll(async () => (await check()).current.runtime.risu.dnd_drawer_open).toBe('0');
   const clock = (await check()).current.runtime.risu.__dnd_clock;
   await page.getByRole('button', { name: '리롤', exact: true }).click();
   await page.getByRole('button', { name: '다른 응답 생성', exact: true }).click({ timeout: 5000 });
