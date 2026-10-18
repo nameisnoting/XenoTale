@@ -6,23 +6,35 @@ import rehypeRaw from 'rehype-raw';
 import DOMPurify from 'dompurify';
 import { codeProblems } from '../domain/codeValidation';
 import { assetUrl } from '../persistence/assets';
+import frameScript from './htmlFrame.js?raw';
 
 /** Raw message HTML is display-only; registered automatic rules may run isolated scripts. */
 export function HtmlContent({
   children,
   executeScripts = false,
   onRisuButton,
+  preserveState = false,
+  fitContent = false,
 }: {
   children: string;
   executeScripts?: boolean;
   onRisuButton?: (value: string) => void;
+  preserveState?: boolean;
+  fitContent?: boolean;
 }) {
   const frame = useRef<HTMLIFrameElement>(null),
     [height, setHeight] = useState(120);
   const token = useMemo(() => crypto.randomUUID(), []);
+  const persistent = preserveState && !executeScripts;
+  const [ready, setReady] = useState(false);
   const buttonCallback = useRef(onRisuButton);
   buttonCallback.current = onRisuButton;
-  const { document, warning } = useMemo(() => {
+  const {
+    document,
+    warning,
+    markup: safeMarkup,
+    styles: authorStyles,
+  } = useMemo(() => {
     const parsed = new DOMParser().parseFromString(
       children.replace(/asset:[a-zA-Z0-9-]+/g, assetUrl),
       'text/html',
@@ -93,9 +105,19 @@ export function HtmlContent({
     });
     return {
       warning: problems.join(' '),
-      document: `<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'nonce-${token}'; style-src 'unsafe-inline'; img-src https: data: blob:; font-src 'none'; connect-src 'none'; frame-src 'none'; worker-src 'none'; object-src 'none'; form-action 'none'; base-uri 'none'"><style>html,body{margin:0;background:transparent;color:#fff;color-scheme:dark;font:14px/1.8 sans-serif;overflow-wrap:anywhere}*{box-sizing:border-box}img,svg,video{max-width:100%;height:auto}a{color:#5fddce}pre{white-space:pre-wrap}button,input,select{font:inherit}p:first-child{margin-top:0}</style><style>${styles}</style></head><body>${safe}${script}<script nonce="${token}">document.addEventListener('click',e=>{const b=e.target.closest('[data-risu-trigger]');if(b){e.preventDefault();parent.postMessage({type:'xeno-risu-button',token:'${token}',value:b.getAttribute('data-risu-trigger')},'*')}});new ResizeObserver(()=>parent.postMessage({type:'xeno-html-height',token:'${token}',height:Math.ceil(document.body.getBoundingClientRect().height)},'*')).observe(document.body);</script></body></html>`,
+      markup: safe,
+      styles,
+      document: `<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'nonce-${token}'; style-src 'unsafe-inline'; img-src https: data: blob:; font-src 'none'; connect-src 'none'; frame-src 'none'; worker-src 'none'; object-src 'none'; form-action 'none'; base-uri 'none'"><style>html,body{margin:0;background:transparent;color:#fff;color-scheme:dark;font:14px/1.8 sans-serif;overflow-wrap:anywhere}*{box-sizing:border-box}img,svg,video{max-width:100%;height:auto}a{color:#5fddce}pre{white-space:pre-wrap}button,input,select{font:inherit}p:first-child{margin-top:0}${fitContent ? 'html{overflow:hidden!important}body{display:flow-root;overflow:visible!important;height:auto!important;min-height:0!important}' : ''}</style><style data-author-style>${styles}</style></head><body>${safe}${script}<script nonce="${token}" data-token="${token}" data-patch="${persistent}" data-fit="${fitContent}">${frameScript}</script></body></html>`,
     };
-  }, [children, token, executeScripts]);
+  }, [children, token, executeScripts, persistent, fitContent]);
+  const initialDocument = useRef(document);
+  useEffect(() => {
+    if (persistent && ready)
+      frame.current?.contentWindow?.postMessage(
+        { type: 'xeno-html-update', token, markup: safeMarkup, styles: authorStyles },
+        '*',
+      );
+  }, [persistent, ready, token, safeMarkup, authorStyles]);
   useEffect(() => {
     const receive = (event: MessageEvent) => {
       if (
@@ -110,11 +132,12 @@ export function HtmlContent({
         return;
       }
       const next = Number(event.data.height);
-      if (Number.isFinite(next)) setHeight(Math.min(2000, Math.max(36, next)));
+      if (Number.isFinite(next))
+        setHeight(Math.min(fitContent ? 1_000_000 : 2000, Math.max(36, next)));
     };
     window.addEventListener('message', receive);
     return () => window.removeEventListener('message', receive);
-  }, [token]);
+  }, [token, fitContent]);
   return (
     <>
       {' '}
@@ -124,7 +147,9 @@ export function HtmlContent({
         ref={frame}
         sandbox="allow-scripts"
         referrerPolicy="no-referrer"
-        srcDoc={document}
+        onLoad={() => setReady(true)}
+        scrolling={fitContent ? 'no' : undefined}
+        srcDoc={persistent ? initialDocument.current : document}
         style={{ width: '100%', height, border: 0, display: 'block' }}
       />{' '}
       {warning && (

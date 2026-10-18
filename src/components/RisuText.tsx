@@ -116,7 +116,7 @@ function ActiveRisuText({
   };
   return (
     <div className="risu-message" aria-busy={rendered.key !== key}>
-      {rendered.key !== key ? (
+      {!rendered.key ? (
         <p role="status" className="muted">
           작품 화면 준비 중…
         </p>
@@ -124,6 +124,8 @@ function ActiveRisuText({
         <Markdown>{body}</Markdown>
       ) : (
         <HtmlContent
+          preserveState
+          fitContent
           onRisuButton={latest && interactive ? (button) => void click(button) : undefined}
         >
           {command.config.styles + '\n' + rendered.text}

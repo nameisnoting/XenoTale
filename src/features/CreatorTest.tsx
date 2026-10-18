@@ -169,7 +169,7 @@ export function CreatorTest({
               />
             ) : null,
           )}
-          {busy && (
+          {requestBusy && (
             <p role="status" className="muted">
               {phase || '답변 준비 중…'}
             </p>
@@ -222,7 +222,8 @@ export function CreatorTest({
               ›
             </ActionButton>
             <SendButton
-              busy={busy}
+              busy={requestBusy}
+              disabled={scriptBusy}
               label="테스트 전송"
               stopLabel="테스트 생성 중단"
               onSend={() => void send()}

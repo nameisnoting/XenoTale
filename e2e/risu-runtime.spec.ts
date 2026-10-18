@@ -38,10 +38,19 @@ for (const width of [1440, 393])
       'background-color',
       'rgba(0, 0, 0, 0)',
     );
+    await frame.locator('body').evaluate(() => {
+      (window as any).documentMarker = 'original';
+    });
     await frame.getByRole('button', { name: '엘프', exact: true }).click();
     await frame.getByRole('button', { name: '클래스 · 다음 ▶', exact: true }).click();
     await expect(frame.getByText('2/7 · 클래스', { exact: true })).toBeVisible();
     await expect(frame.getByRole('button', { name: '위저드', exact: true })).toBeVisible();
+    expect(await frame.locator('body').evaluate(() => (window as any).documentMarker)).toBe(
+      'original',
+    );
+    await expect
+      .poll(async () => frame.locator('html').evaluate((el) => el.scrollHeight - el.clientHeight))
+      .toBeLessThanOrEqual(1);
     await page.getByText('저장완료', { exact: true }).waitFor();
     await page.reload();
     if (width < 800) {

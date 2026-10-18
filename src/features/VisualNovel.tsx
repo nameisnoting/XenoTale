@@ -23,6 +23,7 @@ import './VisualNovel.css';
 export function VisualNovel({
   room,
   busy,
+  responding = busy,
   submittedInput,
   phase,
   suggestions,
@@ -38,6 +39,7 @@ export function VisualNovel({
 }: {
   room: Room;
   busy: boolean;
+  responding?: boolean;
   submittedInput: string;
   phase: string;
   suggestions: string[];
@@ -200,7 +202,7 @@ export function VisualNovel({
         </div>
       )}
       <div
-        className={`visual-novel-dialogue ${(busy ? persona.name : page?.actor) ? 'has-speaker' : ''}`}
+        className={`visual-novel-dialogue ${(responding ? persona.name : page?.actor) ? 'has-speaker' : ''}`}
       >
         <div className="visual-novel-switches">
           <IconButton title="UI 숨기기" onClick={onHideUI}>
@@ -213,14 +215,14 @@ export function VisualNovel({
             <ScrollText size={18} />
           </IconButton>
         </div>
-        {(busy ? persona.name : page?.actor) && (
-          <div className={`visual-novel-name ${busy || page?.player ? 'is-player' : ''}`}>
-            {busy ? persona.name : page?.actor}
+        {(responding ? persona.name : page?.actor) && (
+          <div className={`visual-novel-name ${responding || page?.player ? 'is-player' : ''}`}>
+            {responding ? persona.name : page?.actor}
           </div>
         )}
         <div className="visual-novel-textbox" onClick={advance}>
           <div className="visual-novel-copy">
-            {room.work.risu && page && !page.player && !busy ? (
+            {room.work.risu && page && !page.player && !responding ? (
               <StoryBody
                 room={room}
                 checkpoint={page.checkpoint}
@@ -230,7 +232,7 @@ export function VisualNovel({
               />
             ) : (
               <DisplayText rules={room.work.displayRules}>
-                {busy
+                {responding
                   ? submittedInput === '[이어서 내용 전개]'
                     ? '이어서 내용 전개'
                     : submittedInput
@@ -261,9 +263,9 @@ export function VisualNovel({
             >
               <ChevronLeft size={24} />
             </IconButton>
-            {busy || !ready ? (
+            {responding || !ready ? (
               <span className="visual-novel-waiting" role="status">
-                {busy ? '응답 중입니다…' : '이미지 준비 중입니다…'}
+                {responding ? '응답 중입니다…' : '이미지 준비 중입니다…'}
                 <span className="sr-only">{phase}</span>
               </span>
             ) : page?.last && !page.player && !effectsPending ? (

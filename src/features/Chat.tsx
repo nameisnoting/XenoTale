@@ -523,6 +523,7 @@ export function ChatContent({
               <VisualNovel
                 room={room}
                 busy={busy}
+                responding={requestBusy}
                 submittedInput={submittedInput}
                 phase={phase}
                 suggestions={suggestions}
@@ -769,7 +770,7 @@ export function ChatContent({
                       </article>
                     ) : null,
                   )}
-                  {busy && (
+                  {requestBusy && (
                     <div className="generation-status" role="status">
                       <span className="pulse" />
                       {phase}
@@ -914,8 +915,8 @@ export function ChatContent({
                     <ChevronDown size={13} />
                   </ActionButton>
                   <SendButton
-                    busy={busy}
-                    disabled={endingLocked}
+                    busy={requestBusy}
+                    disabled={endingLocked || scriptBusy}
                     title={input.trim() ? '전송' : '이어서 내용 전개'}
                     onSend={() => void send()}
                     onStop={cancel}
