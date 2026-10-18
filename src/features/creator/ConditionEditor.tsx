@@ -38,6 +38,7 @@ export function ConditionEditor({
           { value: 'number', label: '숫자 상태' },
           { value: 'choice', label: '객관식 상태' },
           { value: 'item', label: '아이템 보유' },
+          { value: 'quantity', label: '아이템 수량' },
           { value: 'level', label: '강화 단계' },
         ]}
       />
@@ -80,7 +81,7 @@ export function ConditionEditor({
         value={c.op}
         onChange={(op) => onChange({ ...c, op: op as Condition['op'] })}
         options={[
-          ...(['number', 'level'].includes(c.kind)
+          ...(['number', 'level', 'quantity'].includes(c.kind)
             ? [
                 { value: 'gte', label: '이상' },
                 { value: 'lte', label: '이하' },

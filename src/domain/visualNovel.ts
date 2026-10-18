@@ -123,7 +123,11 @@ export function visualNovelPages(
         true,
       );
       add(response.body, { eventId: event.id, candidateId: response.id }, response.checkpoint);
-    } else if (event.kind === 'chapter') add(event.body, { eventId: event.id }, event.after);
+    } else if (
+      event.kind === 'chapter' ||
+      (event.kind === 'action' && (!event.risuEvent || event.risuChat))
+    )
+      add(event.body, { eventId: event.id }, event.after);
   }
   return pages;
 }

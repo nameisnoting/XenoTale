@@ -51,7 +51,20 @@ export function ItemsSection({
                 <RadioOptions
                   value={item.owned ? '소지' : '미소지'}
                   values={['소지', '미소지']}
-                  onChange={(v) => changeItem(i, { owned: v === '소지' })}
+                  onChange={(v) =>
+                    changeItem(i, {
+                      owned: v === '소지',
+                      quantity: v === '소지' ? Math.max(1, item.quantity ?? 1) : 0,
+                    })
+                  }
+                />
+              </Field>
+              <Field label="초기 수량">
+                <NumberInput
+                  value={item.owned ? (item.quantity ?? 1) : 0}
+                  min={0}
+                  max={1000000}
+                  onChange={(quantity) => changeItem(i, { quantity, owned: quantity > 0 })}
                 />
               </Field>
               <Field label="유형">

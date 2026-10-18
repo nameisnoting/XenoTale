@@ -66,5 +66,9 @@ for (const width of [1440, 393])
       activation: 'reference',
     });
     expect(work.importSource).toMatchObject({ format: 'risu', fileName: name });
+    expect(work.risu.scripts).toHaveLength(1);
+    expect(work.risu.scripts[0].code.length).toBeGreaterThan(1_000_000);
+    expect(work.risu.rules).toHaveLength(25);
+    expect(work.risu.styles).toContain('.dnd-intro');
     await page.screenshot({ path: `test-results/risu-lore-${width}.png` });
   });

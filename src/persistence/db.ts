@@ -9,7 +9,7 @@ import { upgradeProvidedSystemPrompt } from '../domain/systemPrompt';
 import { migrateSharedPersonas } from './personas';
 import type { StoredCredential } from './credentials';
 import type { StoredAsset } from './assets';
-import { cleanWork } from '../domain/workContent';
+import { cleanWork, repairLegacyRisuLore } from '../domain/workContent';
 
 export class XenoDatabase extends Dexie {
   workspaces!: Table<Workspace, string>;
@@ -44,8 +44,22 @@ export function initialize() {
       await migrateSharedPersonas(db);
       await migrateProvidedSystemPrompts(db);
       await migrateSharedModels(db);
+      await migrateLegacyRisuLore(db);
     },
   ));
+}
+export async function migrateLegacyRisuLore(database = db) {
+  await database.transaction('rw', database.workspaces, database.works, async () => {
+    for (const entry of await database.workspaces.toArray()) {
+      const work = repairLegacyRisuLore(entry.work);
+      if (work !== entry.work)
+        await database.workspaces.put({ ...entry, work, revision: entry.revision + 1 });
+    }
+    for (const entry of await database.works.toArray()) {
+      const work = repairLegacyRisuLore(entry.work);
+      if (work !== entry.work) await database.works.put({ ...entry, work });
+    }
+  });
 }
 export async function migrateProvidedSystemPrompts(database = db) {
   await database.transaction('rw', database.workspaces, database.works, async () => {

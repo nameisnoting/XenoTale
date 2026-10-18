@@ -1,4 +1,8 @@
 import { MessageInput } from '../components/MessageInput';
+import { RisuContext } from '../components/RisuContext';
+import { commitRisuState, risuChatEntries } from '../domain/risuState';
+import { ActionButtons } from '../components/ActionButtons';
+import { executeAction } from '../domain/actions';
 import { SendButton } from '../components/SendButton';
 import { useMessageDraft } from '../components/useMessageDraft';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -51,7 +55,9 @@ export function CreatorTest({
   const [input, setInput, beginSend] = useMessageDraft(`workspace.${workspaceId}.test`);
   const [picker, setPicker] = useState(false);
   const [openingPicker, setOpeningPicker] = useState(false);
-  const [busy, setBusy] = useState(false);
+  const [requestBusy, setBusy] = useState(false);
+  const [scriptBusy, setScriptBusy] = useState(false);
+  const busy = requestBusy || scriptBusy;
   const [phase, setPhase] = useState('');
   const abort = useRef<AbortController | null>(null);
   const lock = useRef(false);
@@ -74,7 +80,7 @@ export function CreatorTest({
     setEffect(null);
   };
   const send = async () => {
-    if (lock.current) return;
+    if (busy || lock.current) return;
     lock.current = true;
     setBusy(true);
     abort.current = new AbortController();
@@ -92,7 +98,9 @@ export function CreatorTest({
         reroll: false,
         onPhase: setPhase,
       });
-      setRoom(addResponse(next, text, result.result, result.usage));
+      setRoom(
+        addResponse(next, text, result.result, result.usage, { risuState: result.risuState }),
+      );
       draft.complete();
     } catch (e) {
       draft.restore();
@@ -105,24 +113,37 @@ export function CreatorTest({
     }
   };
   return (
-    <div className="creator-test">
-      <div className="test-actions">
-        <Button disabled={busy} onClick={reset}>
-          <RefreshCw size={14} />
-          현재 설정으로 다시 시작
-        </Button>
-      </div>
-      <div className="support-transcript">
-        <StoryBody
-          room={displayRoom}
-          disabled={busy}
-          onEffect={setEffect}
-          source={{ eventId: `opening:${displayRoom.openingId}` }}
-          body={displayRoom.work.openings.find((o) => o.id === displayRoom.openingId)?.body ?? ''}
-        />
-        {room?.timeline.map(
-          (t) =>
-            t.kind === 'turn' && (
+    <RisuContext.Provider
+      value={{
+        busy,
+        setActionBusy: setScriptBusy,
+        commit: async (result, expected) => {
+          const next = commitRisuState(roomRef.current, result, expected.revision);
+          next.revision++;
+          setRoom(next);
+          const last = result.chats.at(-1);
+          if (last?.role === 'user' && result.chats.length > risuChatEntries(expected).length)
+            setInput(last.data);
+        },
+      }}
+    >
+      <div className="creator-test">
+        <div className="test-actions">
+          <Button disabled={busy} onClick={reset}>
+            <RefreshCw size={14} />
+            현재 설정으로 다시 시작
+          </Button>
+        </div>
+        <div className="support-transcript">
+          <StoryBody
+            room={displayRoom}
+            disabled={busy}
+            onEffect={setEffect}
+            source={{ eventId: `opening:${displayRoom.openingId}` }}
+            body={displayRoom.work.openings.find((o) => o.id === displayRoom.openingId)?.body ?? ''}
+          />
+          {room?.timeline.map((t) =>
+            t.kind === 'turn' ? (
               <div key={t.id}>
                 <p className="support-user">
                   {t.input === '[이어서 내용 전개]' ? '이어서 내용 전개' : t.input}
@@ -130,117 +151,142 @@ export function CreatorTest({
                 <StoryBody
                   room={room}
                   body={selected(t).body}
+                  checkpoint={selected(t).checkpoint}
                   disabled={busy}
                   onEffect={setEffect}
                   source={{ eventId: t.id, candidateId: t.selectedId }}
                 />
               </div>
-            ),
+            ) : t.kind === 'action' && (!t.risuEvent || t.risuChat) ? (
+              <StoryBody
+                key={t.id}
+                room={room!}
+                body={t.body}
+                checkpoint={t.after}
+                disabled={busy}
+                onEffect={setEffect}
+                source={{ eventId: t.id }}
+              />
+            ) : null,
+          )}
+          {busy && (
+            <p role="status" className="muted">
+              {phase || '답변 준비 중…'}
+            </p>
+          )}
+        </div>
+        {work.openings.length > 1 && (
+          <Button className="test-opening-change" onClick={() => setOpeningPicker(true)}>
+            <span>도입부 변경</span>
+            <ChevronRight size={20} />
+          </Button>
         )}
-        {busy && (
-          <p role="status" className="muted">
-            {phase || '답변 준비 중…'}
-          </p>
-        )}
-      </div>
-      {work.openings.length > 1 && (
-        <Button className="test-opening-change" onClick={() => setOpeningPicker(true)}>
-          <span>도입부 변경</span>
-          <ChevronRight size={20} />
-        </Button>
-      )}
-      <div className="support-composer">
-        <MessageInput
-          aria-label="테스트 메시지"
-          placeholder="메시지 입력"
-          value={input}
-          disabled={busy}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
-              e.preventDefault();
-              void send();
+        <ActionButtons
+          room={displayRoom}
+          busy={busy}
+          onAction={(id) => {
+            try {
+              const next = executeAction(roomRef.current, id);
+              next.revision++;
+              setRoom(next);
+            } catch (error) {
+              notify((error as Error).message);
             }
           }}
         />
-        <div>
-          <ActionButton
-            className="model-trigger"
-            onClick={() => {
-              refreshModels();
-              setPicker(true);
+        <div className="support-composer">
+          <MessageInput
+            aria-label="테스트 메시지"
+            placeholder="메시지 입력"
+            value={input}
+            disabled={busy}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
+                e.preventDefault();
+                void send();
+              }
             }}
-          >
-            {modelId === 'demo'
-              ? '예시 대화'
-              : (models.find((m) => m.id === modelId)?.name ?? modelId)}{' '}
-            ›
-          </ActionButton>
-          <SendButton
-            busy={busy}
-            label="테스트 전송"
-            stopLabel="테스트 생성 중단"
-            onSend={() => void send()}
-            onStop={() => abort.current?.abort()}
           />
-        </div>
-      </div>
-      {picker && (
-        <ModelPicker
-          models={models}
-          modelId={modelId}
-          creativity={creativity}
-          loading={loadingModels}
-          onRefresh={refreshModels}
-          onClose={() => setPicker(false)}
-          onSelect={onModelChange}
-        />
-      )}
-      {openingPicker && (
-        <Modal title="도입부 변경" onClose={() => setOpeningPicker(false)}>
-          <div className="test-opening-options">
-            {work.openings.map((opening) => (
-              <Button
-                key={opening.id}
-                aria-pressed={opening.id === openingId}
-                onClick={() => {
-                  onOpeningChange(opening.id);
-                  setOpeningPicker(false);
-                }}
-              >
-                {opening.name || '이름 없는 도입부'}
-              </Button>
-            ))}
+          <div>
+            <ActionButton
+              className="model-trigger"
+              onClick={() => {
+                refreshModels();
+                setPicker(true);
+              }}
+            >
+              {modelId === 'demo'
+                ? '예시 대화'
+                : (models.find((m) => m.id === modelId)?.name ?? modelId)}{' '}
+              ›
+            </ActionButton>
+            <SendButton
+              busy={busy}
+              label="테스트 전송"
+              stopLabel="테스트 생성 중단"
+              onSend={() => void send()}
+              onStop={() => abort.current?.abort()}
+            />
           </div>
-        </Modal>
-      )}
-      {effect && displayRoom.work.effects.find((e) => e.id === effect.id) && (
-        <EffectPlayer
-          work={displayRoom.work}
-          effect={displayRoom.work.effects.find((e) => e.id === effect.id)!}
-          context={{
-            personaName: displayRoom.current.context.persona.name,
-            status: displayRoom.current.runtime.status,
-            inventory: displayRoom.current.runtime.inventory,
-            nodeId: displayRoom.current.runtime.nodeId,
-          }}
-          readOnly={!canCompleteEffect(displayRoom, effect.id, effect.source)}
-          onResult={async (result, presentation) => {
-            if (lock.current || !roomRef.current)
-              throw new Error('답변 생성이 끝난 뒤 실행해 주세요.');
-            const next = completeEffect(
-              roomRef.current,
-              effect.id,
-              effect.source,
-              result,
-              presentation,
-            );
-            roomRef.current = next;
-            setRoom(next);
-          }}
-          onClose={() => setEffect(null)}
-        />
-      )}
-    </div>
+        </div>
+        {picker && (
+          <ModelPicker
+            models={models}
+            modelId={modelId}
+            creativity={creativity}
+            loading={loadingModels}
+            onRefresh={refreshModels}
+            onClose={() => setPicker(false)}
+            onSelect={onModelChange}
+          />
+        )}
+        {openingPicker && (
+          <Modal title="도입부 변경" onClose={() => setOpeningPicker(false)}>
+            <div className="test-opening-options">
+              {work.openings.map((opening) => (
+                <Button
+                  key={opening.id}
+                  aria-pressed={opening.id === openingId}
+                  onClick={() => {
+                    onOpeningChange(opening.id);
+                    setOpeningPicker(false);
+                  }}
+                >
+                  {opening.name || '이름 없는 도입부'}
+                </Button>
+              ))}
+            </div>
+          </Modal>
+        )}
+        {effect && displayRoom.work.effects.find((e) => e.id === effect.id) && (
+          <EffectPlayer
+            work={displayRoom.work}
+            effect={displayRoom.work.effects.find((e) => e.id === effect.id)!}
+            context={{
+              personaName: displayRoom.current.context.persona.name,
+              status: displayRoom.current.runtime.status,
+              inventory: displayRoom.current.runtime.inventory,
+              nodeId: displayRoom.current.runtime.nodeId,
+            }}
+            readOnly={!canCompleteEffect(displayRoom, effect.id, effect.source)}
+            onResult={async (result, presentation) => {
+              if (lock.current || !roomRef.current)
+                throw new Error('답변 생성이 끝난 뒤 실행해 주세요.');
+              const next = completeEffect(
+                roomRef.current,
+                effect.id,
+                effect.source,
+                result,
+                presentation,
+              );
+              roomRef.current = next;
+              setRoom(next);
+            }}
+            onClose={() => setEffect(null)}
+          />
+        )}
+      </div>
+    </RisuContext.Provider>
   );
 }

@@ -127,3 +127,12 @@ click in both novel and visual-novel modes. Always complete or close.
 await XenoTale.close(); closes this effect. Parent's close button always exists.
 Respect accessibility/reduced motion and do not hide essential controls. Describe
 game outcomes in prompt so subsequent narration can reflect committed results.
+
+actions defines no-code behaviors: trigger is button or after-response; conditions
+and all/any mode work like chapter conditions. quantity conditions refer to item IDs.
+steps run atomically in order: add/set target a numeric status; text targets text/choice;
+gain/consume target an item and use a positive quantity; effect targets an effect ID;
+background uses an embedded media asset ID in value; music uses an HTTPS URL or empty.
+Numeric value supports arithmetic, [status ID], min/max/floor/ceil/abs and dice(count,sides).
+Use stable IDs in stored formulas. Never place JS in a formula. Imported Risu scripts
+are managed source data and are not editable through assistant proposals.

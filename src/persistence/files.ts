@@ -1,7 +1,9 @@
 import { downloadPackage, readPackage } from './package';
 import { exposeAsset, type StoredAsset } from './assets';
-import { cleanWork } from '../domain/workContent';
+import { cleanWork, repairLegacyRisuLore } from '../domain/workContent';
 import { z } from 'zod';
+import { actionSchema } from '../domain/actions';
+import { risuSchema } from '../engine/risu/schema';
 import { db } from './db';
 import type { Work, Room, Runtime, Workspace } from '../domain/types';
 import { clone, id } from '../domain/types';
@@ -72,6 +74,8 @@ const character = z.object({
   group: short,
 });
 export const workSchema = z.object({
+  actions: z.array(actionSchema).max(1000).optional(),
+  risu: risuSchema.optional(),
   id: identifier,
   version: z.number().int().nonnegative(),
   title: short,
@@ -120,6 +124,7 @@ export const workSchema = z.object({
       name: short,
       image: imageString,
       owned: z.boolean(),
+      quantity: z.number().int().min(0).max(1e6).optional(),
       prompt: str,
       enhancement: z
         .object({
@@ -148,7 +153,7 @@ export const workSchema = z.object({
       conditions: arr(
         z.object({
           id: identifier,
-          kind: z.enum(['number', 'choice', 'item', 'level']),
+          kind: z.enum(['number', 'choice', 'item', 'level', 'quantity']),
           ref: identifier,
           op: z.enum(['gte', 'lte', 'eq', 'ne']),
           value: z.union([str, z.number().finite(), z.boolean()]),
@@ -171,7 +176,7 @@ export const workSchema = z.object({
       conditions: arr(
         z.object({
           id: identifier,
-          kind: z.enum(['number', 'choice', 'item', 'level']),
+          kind: z.enum(['number', 'choice', 'item', 'level', 'quantity']),
           ref: identifier,
           op: z.enum(['gte', 'lte', 'eq', 'ne']),
           value: z.union([z.string(), z.number(), z.boolean()]),
@@ -230,6 +235,7 @@ export const workSchema = z.object({
   relationNodeIds: z.array(identifier).optional(),
 });
 const runtime = z.object({
+  risu: z.record(z.string().max(1000), z.string().max(2_000_000)).optional(),
   presentation: presentationSchema.optional(),
   effectResults: z.array(effectRecordSchema).max(32).optional(),
   status: z.record(identifier, z.union([str, z.number().finite()])),
@@ -239,6 +245,7 @@ const runtime = z.object({
       owned: z.boolean(),
       level: z.number().int().nonnegative(),
       bonus: z.number().finite(),
+      quantity: z.number().int().min(0).max(1e6).optional(),
     }),
   ),
   presence: arr(identifier),
@@ -324,7 +331,9 @@ const event = z.union([
   }),
   z.object({
     id: identifier,
-    kind: z.enum(['chapter', 'enhance', 'effect']),
+    kind: z.enum(['chapter', 'enhance', 'effect', 'action']),
+    risuEvent: z.boolean().optional(),
+    risuChat: z.object({ role: z.string().max(20), data: str }).optional(),
     effectResult: effectRecordSchema.optional(),
     body: str,
     before: checkpoint,
@@ -439,6 +448,7 @@ const workspace = z.object({
                     author: true,
                     authorImage: true,
                     importSource: true,
+                    risu: true,
                   })
                   .keyof(),
                 before: z.unknown(),
@@ -704,6 +714,8 @@ export async function readImport(file: File): Promise<ImportData> {
     }
     if (value.kind === 'xenotale.backup') {
       const data = backup.parse(value);
+      for (const entry of [...data.works, ...data.workspaces])
+        entry.work = repairLegacyRisuLore(entry.work);
       data.works.forEach((w) => validateWork(w.work, true));
       data.rooms.forEach((room) => validateRoom(room));
       data.workspaces.forEach((workspace) => {

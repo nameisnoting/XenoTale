@@ -17,7 +17,7 @@ import { mediaImage } from '../domain/visualNovel';
 import { recordedEffect } from '../domain/effects';
 import { IconButton, safeUrl, Button } from '../components/UI';
 import { StatusDisplay } from '../components/DesignControls';
-import type { EffectRequest } from './StoryBody';
+import { StoryBody, type EffectRequest } from './StoryBody';
 import './VisualNovel.css';
 
 export function VisualNovel({
@@ -220,13 +220,23 @@ export function VisualNovel({
         )}
         <div className="visual-novel-textbox" onClick={advance}>
           <div className="visual-novel-copy">
-            <DisplayText rules={room.work.displayRules}>
-              {busy
-                ? submittedInput === '[이어서 내용 전개]'
-                  ? '이어서 내용 전개'
-                  : submittedInput
-                : page?.text || '이야기를 시작해 주세요.'}
-            </DisplayText>
+            {room.work.risu && page && !page.player && !busy ? (
+              <StoryBody
+                room={room}
+                checkpoint={page.checkpoint}
+                body={page.text}
+                source={page.source}
+                onEffect={onEffect}
+              />
+            ) : (
+              <DisplayText rules={room.work.displayRules}>
+                {busy
+                  ? submittedInput === '[이어서 내용 전개]'
+                    ? '이어서 내용 전개'
+                    : submittedInput
+                  : page?.text || '이야기를 시작해 주세요.'}
+              </DisplayText>
+            )}
             {!busy &&
               page?.effects
                 .filter((e) => room.work.effects.find((x) => x.id === e.id)?.mode !== 'auto')

@@ -1,6 +1,12 @@
 import { DisplayText } from '../components/DisplayText';
+import { risuChatEntries } from '../domain/risuState';
+import { lazy, Suspense } from 'react';
+const RisuText = lazy(() =>
+  import('../components/RisuText').then((m) => ({ default: m.RisuText })),
+);
 import { mediaImage } from '../domain/visualNovel';
 import type { Checkpoint, EffectSource, Room } from '../domain/types';
+import { selected } from '../domain/types';
 import { resolveEffect, storyTokens } from '../domain/effects';
 import { Avatar, Button, Markdown, safeUrl } from '../components/UI';
 
@@ -25,6 +31,36 @@ export function StoryBody({
   disabled?: boolean;
   checkpoint?: Checkpoint;
 }) {
+  if (
+    room.work.risu &&
+    (source.eventId.startsWith('opening:') ||
+      room.timeline.some(
+        (t) =>
+          (t.kind === 'turn' || (t.kind === 'action' && t.risuChat)) && t.id === source.eventId,
+      ))
+  ) {
+    const index = risuChatEntries(room).findIndex(
+      (t) => t.eventId === source.eventId && t.role !== 'user',
+    );
+    const turn = room.timeline.find((t) => t.kind === 'turn' && t.id === source.eventId);
+    const interactive =
+      !turn ||
+      turn.kind !== 'turn' ||
+      !source.candidateId ||
+      selected(turn).id === source.candidateId;
+    return (
+      <Suspense fallback={<p className="muted">작품 화면 준비 중…</p>}>
+        <RisuText
+          room={room}
+          checkpoint={checkpoint}
+          body={body}
+          index={index}
+          interactive={interactive}
+          disabled={disabled}
+        />
+      </Suspense>
+    );
+  }
   // Group ordinary/unknown tags back into one Markdown block, preserving paragraphs and positions.
   const chunks: { text: string; tag?: string; occurrence: number }[] = [];
   for (const token of storyTokens(body)) {

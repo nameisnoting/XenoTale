@@ -83,7 +83,8 @@ export function effectSourceBody(room: Room, source: EffectSource) {
   const event = room.timeline.find((e) => e.id === source.eventId);
   if (event?.kind === 'turn' && source.candidateId === event.selectedId)
     return selected(event).body;
-  if (event?.kind === 'chapter' && !source.candidateId) return event.body;
+  if ((event?.kind === 'chapter' || event?.kind === 'action') && !source.candidateId)
+    return event.body;
 }
 export function canCompleteEffect(room: Room, effectId: string, source: EffectSource) {
   if (recordedEffect(room, effectId, source)) return false;
@@ -93,7 +94,8 @@ export function canCompleteEffect(room: Room, effectId: string, source: EffectSo
   const currentPassage = passage
     ? passage.id === source.eventId
     : source.eventId === `opening:${room.openingId}`;
-  if (!currentPassage || (last && !['turn', 'chapter', 'effect'].includes(last.kind))) return false;
+  if (!currentPassage || (last && !['turn', 'chapter', 'effect', 'action'].includes(last.kind)))
+    return false;
   const token = storyTokens(effectSourceBody(room, source) ?? '').find(
     (t) => t.occurrence === source.occurrence && t.tag,
   );

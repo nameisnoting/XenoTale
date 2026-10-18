@@ -16,6 +16,46 @@ const file = (kind: string, key: string, value: unknown) =>
     'test.json',
   );
 describe('portable files', () => {
+  it('repairs legacy folder markers in native workspaces and backup definitions while keeping room snapshots', async () => {
+    const draft = workspace('작가');
+    draft.work = exampleWork();
+    const lore = { id: 'monster', name: '몬스터', keywords: [], prompt: '원본 내용' };
+    draft.work.lore = [
+      {
+        id: 'folder',
+        name: '분류',
+        keywords: ['folder:260a8a66-141b-4a4c-be04-e5b41973540b'],
+        prompt: '',
+      },
+      lore,
+    ];
+    const imported = await readImport(file('workspace', 'workspace', draft));
+    expect(imported.kind === 'workspace' && imported.workspace.work.lore).toEqual([lore]);
+    const room = createRoom(draft.work);
+    room.work = structuredClone(draft.work);
+    const restored = await readImport(
+      new File(
+        [
+          JSON.stringify({
+            kind: 'xenotale.backup',
+            schemaVersion: 2,
+            profile: defaultProfile(),
+            workspaces: [draft],
+            rooms: [room],
+            works: [
+              { id: draft.work.id, work: draft.work, owned: true, hidden: false, createdAt: 123 },
+            ],
+          }),
+        ],
+        'backup.json',
+      ),
+    );
+    expect(restored.kind).toBe('backup');
+    if (restored.kind !== 'backup') return;
+    expect(restored.data.workspaces[0].work.lore).toEqual([lore]);
+    expect(restored.data.works[0].work.lore).toEqual([lore]);
+    expect(restored.data.rooms[0].work.lore).toEqual(draft.work.lore);
+  });
   it('keeps invalid proposal originals and partial-application diagnostics in portable workspace history', async () => {
     const w = workspace('작가');
     const request = creatorRequest(w.work);

@@ -254,7 +254,15 @@ export async function generate(
     dice?: number;
     onPhase?: (phase: string) => void;
   },
-): Promise<{ result: Envelope; usage: Usage }> {
+): Promise<{ result: Envelope; usage: Usage; risuState?: Record<string, string> }> {
+  if (room.work.risu && model.id !== 'demo') {
+    if (!apiKey.trim()) throw new Error('OpenRouter API 키를 연결해 주세요.');
+    const { generateRisu } = await import('./risu/generate');
+    return generateRisu(room, before, input, model, apiKey, signal, {
+      ...options,
+      reasoning: reasoningFor(model, before.context.settings.creativity),
+    });
+  }
   if (model.id === 'demo') {
     await new Promise<void>((resolve, reject) => {
       const t = setTimeout(resolve, 650);

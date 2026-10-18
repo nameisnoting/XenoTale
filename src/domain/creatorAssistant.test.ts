@@ -28,7 +28,7 @@ describe('whole creation assistant', () => {
     work.cover = 'data:image/png;base64,secret-bytes';
     work.characters[0].image = work.cover;
     const request = creatorRequest(work);
-    expect(request.sections).toHaveLength(11);
+    expect(request.sections).toHaveLength(12);
     expect(request.draft.overview.cover).toBe(
       request.draft.characters.characters instanceof Array &&
         request.draft.characters.characters[0].image,

@@ -2351,3 +2351,14 @@ svg {
   font-size: 11px;
   padding: 8px 5px !important;
 }
+/* Imported document canvases follow the app's dark surface; styles remain inside their iframe. */
+.risu-message iframe {
+  background: #212121;
+  color-scheme: dark;
+}
+.action-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 0;
+}

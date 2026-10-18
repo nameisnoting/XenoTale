@@ -184,7 +184,9 @@ export function ConversationLog({
                       ? '챕터 이동'
                       : event.kind === 'effect'
                         ? '연출 결과'
-                        : '아이템 강화'}
+                        : event.kind === 'action'
+                          ? '행동·설정 변경'
+                          : '아이템 강화'}
                   </strong>
                 )}
               </button>

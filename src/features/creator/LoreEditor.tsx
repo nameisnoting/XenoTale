@@ -106,8 +106,8 @@ export function LoreEditor({
             )}
             {l.activation === 'reference' && (
               <p className="muted">
-                자동으로 대화에 추가하지 않는 참조 자료입니다. Risu 스크립트·조건과의 연결은 아직
-                지원하지 않습니다.
+                AI에게 자동으로 추가하지 않습니다. 가져온 Risu 작품에서는 스크립트가 이름으로 조회할
+                수 있습니다. 자동으로 전달하려면 사용 방식을 변경해 주세요.
               </p>
             )}
             {l.activation === 'always' && <p className="muted">모든 대화 요청에 포함됩니다.</p>}

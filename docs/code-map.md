@@ -2,8 +2,9 @@
 
 앱의 구조를 공부하거나 특정 기능을 고칠 때 시작할 파일을 찾기 위한 문서입니다.
 기능과 디자인을 유지하면서 제작 화면, 대화 저장 처리, 공통 입력 카드 스타일을 정리했습니다.
-서버와 별도의 전역 상태 관리 도구는 사용하지 않습니다. 파일 압축과 HTML 표시에만
-zip.js·DOMPurify·rehype-raw를 사용하며, 필요한 화면에서 불러옵니다.
+서버와 별도의 전역 상태 관리 도구는 사용하지 않습니다. 파일 압축과 HTML 표시에
+zip.js·DOMPurify·rehype-raw를, 가져온 Risu Lua 실행에 Wasmoon을 사용합니다.
+HTML 표시와 Risu 실행 코드는 필요한 화면에서 불러옵니다.
 
 ## 먼저 알아둘 네 가지 영역
 
@@ -47,6 +48,7 @@ zip.js·DOMPurify·rehype-raw를 사용하며, 필요한 화면에서 불러옵�
 | 제작 메뉴·접힌 추가 요소                | [`creator/CreatorSectionList.tsx`](../src/features/creator/CreatorSectionList.tsx)                                                                           |
 | 관계도 사용·내면 해금 조건              | [`creator/RelationsSection.tsx`](../src/features/creator/RelationsSection.tsx), [`creator/ConditionEditor.tsx`](../src/features/creator/ConditionEditor.tsx) |
 | 아이템과 강화 입력 화면                 | [`creator/ItemsSection.tsx`](../src/features/creator/ItemsSection.tsx)                                                                                       |
+| 행동·조건·계산 규칙                     | [`creator/ActionsSection.tsx`](../src/features/creator/ActionsSection.tsx), [`domain/actions.ts`](../src/domain/actions.ts)                                  |
 | 챕터·엔딩과 조건 입력 화면              | [`creator/ScenarioSection.tsx`](../src/features/creator/ScenarioSection.tsx)                                                                                 |
 | 단축어·수동연출·추천 페르소나           | [`creator/ExtraSections.tsx`](../src/features/creator/ExtraSections.tsx)                                                                                     |
 | 로어북 입력 카드                        | [`creator/LoreEditor.tsx`](../src/features/creator/LoreEditor.tsx)                                                                                           |
@@ -57,6 +59,18 @@ zip.js·DOMPurify·rehype-raw를 사용하며, 필요한 화면에서 불러옵�
 
 짧은 섹션까지 각각 독립된 폴더나 복잡한 등록 시스템으로 만들지 않았습니다.
 `ExtraSections.tsx` 안에서는 해당 이름의 함수로 바로 이동하면 됩니다.
+
+### 행동과 가져온 Risu 작품
+
+새 작품의 행동은 `domain/actions.ts`에서 처리하며 `domain/conditions.ts`의 공통 조건을
+사용합니다. 화면은 함수를 호출하고 기존 저장 순서를 따릅니다. 별도 상태 저장소가 없습니다.
+
+Risu 파일 읽기는 `persistence/risu.ts`, 실행은 `engine/risu/`에 모았습니다.
+`client.ts → worker.ts → lua.ts`가 JSON으로만 통신하며, `cbs.ts`는 표시 문법과 정규식,
+`lore.ts`는 요청에 넣을 로어북을 처리합니다. `generate.ts`는 가져온 작품의 AI 요청과
+응답 후 계산을 연결합니다. 일반 작품의 AI 요청 경로는 기존대로 유지합니다.
+`components/RisuText.tsx`가 원본 화면을 격리해 표시하고 `domain/risuState.ts`가 버튼 결과를
+대화 기록에 반영합니다. 자세한 흐름과 한계는 [행동·Risu 실행](actions-and-risu.md)에 있습니다.
 
 ### 입력값이 저장되는 예시
 

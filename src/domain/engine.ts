@@ -1,19 +1,22 @@
+import { conditionsMet } from './conditions';
+export { effectiveStatus, conditionMet, conditionsMet } from './conditions';
 import { displayRuleProblem } from './displayRules';
 import { effectiveSystemPrompt } from './systemPrompt';
 import { z } from 'zod';
-import type { Work, Runtime, Checkpoint, Room, Candidate, Turn, Usage, Condition } from './types';
+import type { Work, Runtime, Checkpoint, Room, Candidate, Turn, Usage } from './types';
 import { id, clone, after } from './types';
 import { defaultPersona, settings } from './defaults';
 import { validMemories, repairMemoryActivity } from './memory';
 import { runtimeRelations } from './relations';
 import { cleanWork, relationsEnabled } from './workContent';
+import { applyAction, actionAvailable, actionSchema, calculate } from './actions';
 
 const changes = <T extends z.ZodType>(schema: T) => z.array(schema).max(100);
 export const envelopeSchema = z
   .object({
     kind: z.enum(['turn', 'need_context']),
     requestedCharacterIds: z.array(z.string()).max(10),
-    body: z.string().max(20000),
+    body: z.string().max(200000),
     choices: z.array(z.string().max(300)).max(3),
     delta: z
       .object({
@@ -177,7 +180,8 @@ export function validateWork(w: Work, publish = false, report?: (issue: WorkIssu
       if (
         (condition.kind === 'number' && d?.type !== 'number') ||
         (condition.kind === 'choice' && d?.type !== 'choice') ||
-        (['item', 'level'].includes(condition.kind) && !w.items.some((i) => i.id === condition.ref))
+        (['item', 'level', 'quantity'].includes(condition.kind) &&
+          !w.items.some((i) => i.id === condition.ref))
       )
         fail(`${c.name}: 조건의 참조가 올바르지 않습니다.`);
       if (
@@ -191,7 +195,7 @@ export function validateWork(w: Work, publish = false, report?: (issue: WorkIssu
       )
         fail(`${c.name}: 아이템 조건을 확인해 주세요.`);
       if (
-        ['number', 'level'].includes(condition.kind) &&
+        ['number', 'level', 'quantity'].includes(condition.kind) &&
         (typeof condition.value !== 'number' || !Number.isFinite(condition.value))
       )
         fail(`${c.name}: 숫자 조건을 확인해 주세요.`);
@@ -202,8 +206,77 @@ export function validateWork(w: Work, publish = false, report?: (issue: WorkIssu
   for (const [index, rule] of (w.displayRules ?? []).entries()) {
     at('displayRules', index);
     if (rule.enabled) {
-      const error = displayRuleProblem(rule.pattern, rule.flags);
+      const error = w.risu?.rules.some((r) => r.id === rule.id && r.cbs)
+        ? ''
+        : displayRuleProblem(rule.pattern, rule.flags);
       if (error) fail(`${rule.name}: ${error}`);
+    }
+  }
+  ids(w.actions ?? [], 'actions');
+  for (const [index, action] of (w.actions ?? []).entries()) {
+    at('actions', index);
+    if (!actionSchema.safeParse(action).success) {
+      fail('행동의 설정 형식을 확인해 주세요.');
+      continue;
+    }
+    if (!publish) continue;
+    if (!action.name.trim() || !action.steps.length)
+      fail('행동 이름과 실행할 작업을 입력해 주세요.');
+    const fields = Object.fromEntries(
+      w.statuses.filter((s) => s.type === 'number').map((s) => [s.id, 1]),
+    );
+    for (const condition of action.conditions) {
+      const target = ['item', 'quantity', 'level'].includes(condition.kind) ? w.items : w.statuses;
+      if (!target.some((t) => t.id === condition.ref))
+        fail(`${action.name}: 실행 조건의 연결을 확인해 주세요.`);
+      const field = w.statuses.find((s) => s.id === condition.ref);
+      if (condition.kind === 'number' && field?.type !== 'number')
+        fail(`${action.name}: 숫자 상태 조건을 선택해 주세요.`);
+      if (
+        condition.kind === 'choice' &&
+        (field?.type !== 'choice' || !field.options.includes(String(condition.value)))
+      )
+        fail(`${action.name}: 객관식 조건의 선택지를 확인해 주세요.`);
+      if (
+        condition.kind === 'item' &&
+        (typeof condition.value !== 'boolean' || !['eq', 'ne'].includes(condition.op))
+      )
+        fail(`${action.name}: 소지 여부 조건을 확인해 주세요.`);
+      if (
+        ['number', 'quantity', 'level'].includes(condition.kind) &&
+        typeof condition.value !== 'number'
+      )
+        fail(`${action.name}: 조건에 숫자를 입력해 주세요.`);
+    }
+    for (const step of action.steps) {
+      const target =
+        step.kind === 'effect'
+          ? w.effects
+          : ['gain', 'consume'].includes(step.kind)
+            ? w.items
+            : w.statuses;
+      if (!['background', 'music'].includes(step.kind) && !target.some((t) => t.id === step.target))
+        fail(`${action.name}: 작업 대상의 연결을 확인해 주세요.`);
+      const field = w.statuses.find((s) => s.id === step.target);
+      if (['add', 'set'].includes(step.kind) && field?.type !== 'number')
+        fail(`${action.name}: 숫자 상태를 선택해 주세요.`);
+      if (
+        step.kind === 'text' &&
+        (!field ||
+          field.type === 'number' ||
+          (field.type === 'choice' && !field.options.includes(step.value)))
+      )
+        fail(`${action.name}: 문자·객관식 상태의 값을 확인해 주세요.`);
+      if (step.kind === 'background' && !w.media.assets?.some((a) => a.id === step.value))
+        fail(`${action.name}: 등록된 이미지를 선택해 주세요.`);
+      if (step.kind === 'music' && step.value && !/^https:\/\//.test(step.value))
+        fail(`${action.name}: 음악에는 HTTPS 주소를 입력해 주세요.`);
+      if (['add', 'set', 'gain', 'consume'].includes(step.kind))
+        try {
+          calculate(step.value, fields, () => 0.5);
+        } catch (error) {
+          fail(`${action.name}: ${(error as Error).message}`);
+        }
     }
   }
   at('media');
@@ -261,7 +334,15 @@ export function initialState(w: Work, openingId: string): Runtime {
   return {
     status: Object.fromEntries(w.statuses.map((s) => [s.id, s.initial])),
     inventory: Object.fromEntries(
-      w.items.map((i) => [i.id, { owned: i.owned, level: 0, bonus: 0 }]),
+      w.items.map((i) => [
+        i.id,
+        {
+          owned: i.owned,
+          level: 0,
+          bonus: 0,
+          ...(i.quantity !== undefined ? { quantity: i.owned ? i.quantity : 0 } : {}),
+        },
+      ]),
     ),
     presence: [...opening.presence],
     relationships: Object.fromEntries(w.relations.map((r) => [r.id, r.label])),
@@ -356,6 +437,10 @@ export function applyDelta(work: Work, before: Runtime, delta: Envelope['delta']
     if (next.inventory[d.itemId].owned !== d.owned)
       log.push(`${item.name} ${d.owned ? '획득' : '유실'}`);
     next.inventory[d.itemId].owned = d.owned;
+    if (next.inventory[d.itemId].quantity !== undefined)
+      next.inventory[d.itemId].quantity = d.owned
+        ? Math.max(1, next.inventory[d.itemId].quantity!)
+        : 0;
   }
   for (const d of delta.presence) {
     const c = work.characters.find((c) => c.id === d.characterId);
@@ -399,49 +484,6 @@ export function applyDelta(work: Work, before: Runtime, delta: Envelope['delta']
   next.turnCount += 1;
   return { state: next, log };
 }
-export function effectiveStatus(work: Work, state: Runtime, fieldId: string) {
-  const base = state.status[fieldId];
-  if (typeof base !== 'number') return base;
-  const bonus = work.items.reduce(
-    (sum, item) =>
-      sum +
-      (item.enhancement?.target === fieldId && state.inventory[item.id]?.owned
-        ? state.inventory[item.id].bonus
-        : 0),
-    0,
-  );
-  const def = work.statuses.find((s) => s.id === fieldId)!;
-  return Math.max(def.min, Math.min(def.max, base + bonus));
-}
-export function conditionMet(work: Work, state: Runtime, condition: Condition) {
-  const v =
-    condition.kind === 'item'
-      ? state.inventory[condition.ref]?.owned
-      : condition.kind === 'level'
-        ? state.inventory[condition.ref]?.owned
-          ? state.inventory[condition.ref]?.level
-          : -1
-        : effectiveStatus(work, state, condition.ref);
-  if (v === undefined) return false;
-  if (condition.op === 'eq') return v === condition.value;
-  if (condition.op === 'ne') return v !== condition.value;
-  return condition.op === 'gte'
-    ? Number(v) >= Number(condition.value)
-    : Number(v) <= Number(condition.value);
-}
-export function conditionsMet(
-  work: Work,
-  state: Runtime,
-  conditions: Condition[],
-  mode: 'all' | 'any',
-) {
-  return (
-    !conditions.length ||
-    (mode === 'all'
-      ? conditions.every((c) => conditionMet(work, state, c))
-      : conditions.some((c) => conditionMet(work, state, c)))
-  );
-}
 export function availableChapters(work: Work, state: Runtime) {
   if (state.ending) return [];
   return work.chapters.filter(
@@ -453,7 +495,7 @@ export function addResponse(
   input: string,
   raw: unknown,
   usage: Usage,
-  options: { reroll?: boolean; dice?: number } = {},
+  options: { reroll?: boolean; dice?: number; risuState?: Record<string, string> } = {},
 ): Room {
   if (room.current.runtime.ending && !room.current.runtime.ending.allowAfterstory)
     fail('이 이야기는 끝났습니다. 이전 대화에서 분기할 수 있습니다.');
@@ -465,6 +507,19 @@ export function addResponse(
   if (options.reroll && last?.kind !== 'turn') fail('가장 최근 대화에서만 리롤할 수 있습니다.');
   const before = options.reroll ? clone((last as Turn).before) : clone(next.current);
   const { state, log } = applyDelta(next.work, before.runtime, result.delta);
+  if (options.risuState) state.risu = clone(options.risuState);
+  for (const action of next.work.actions ?? []) {
+    if (action.trigger === 'after-response' && actionAvailable(next.work, state, action)) {
+      try {
+        Object.assign(state, applyAction(next.work, state, action));
+        log.push(action.name);
+        for (const step of action.steps)
+          if (step.kind === 'effect') result.body += `\n{{effect:${step.target}}}`;
+      } catch (error) {
+        log.push(`${action.name} 실행 보류: ${(error as Error).message}`);
+      }
+    }
+  }
   const context = clone(next.current.context);
   context.memories = repairMemoryActivity(
     validMemories(next, context.memories, next.timeline.slice(0, options.reroll ? -1 : undefined)),
@@ -582,9 +637,10 @@ export function editableLastTurn(room: Room): Turn | undefined {
     .slice(index + 1)
     .every(
       (event) =>
-        event.kind === 'effect' &&
-        event.effectResult?.source.eventId === turn.id &&
-        event.effectResult.source.candidateId === turn.selectedId,
+        (event.kind === 'action' && event.risuEvent) ||
+        (event.kind === 'effect' &&
+          event.effectResult?.source.eventId === turn.id &&
+          event.effectResult.source.candidateId === turn.selectedId),
     )
     ? turn
     : undefined;
@@ -596,6 +652,8 @@ export function rewindResponseEffects(room: Room): Room {
   const index = next.timeline.findIndex((event) => event.id === turn.id);
   next.timeline = next.timeline.slice(0, index + 1);
   next.current = { runtime: clone(after(turn).runtime), context: clone(room.current.context) };
+  if (room.work.risu && room.current.runtime.risu)
+    next.current.runtime.risu = clone(room.current.runtime.risu);
   return next;
 }
 function preserveUi(room: Room, next: Room) {

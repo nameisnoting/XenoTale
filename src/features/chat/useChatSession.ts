@@ -150,7 +150,11 @@ export function useChatSession({
         },
       );
       let saved = await commitRoom(
-        addResponse(snapshot, text, result.result, result.usage, { reroll: isReroll, dice }),
+        addResponse(snapshot, text, result.result, result.usage, {
+          reroll: isReroll,
+          dice,
+          risuState: result.risuState,
+        }),
         snapshot.revision,
       );
       current.current = saved;

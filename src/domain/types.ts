@@ -1,4 +1,6 @@
 import type { CreatorMessage } from './creatorAssistant';
+import type { WorkAction } from './actions';
+import type { RisuConfig, RisuState } from '../engine/risu/types';
 export type ChatUiType = 'novel' | 'visual-novel';
 export type CodeValidation = { fingerprint: string; policy: number };
 export type Presentation = {
@@ -67,6 +69,7 @@ export type StatusDef = {
 };
 export type Relation = { id: string; from: string; to: string; label: string; innerLabel?: string };
 export type Item = {
+  quantity?: number;
   id: string;
   name: string;
   image: string;
@@ -86,7 +89,7 @@ export type Item = {
 };
 export type Condition = {
   id: string;
-  kind: 'number' | 'choice' | 'item' | 'level';
+  kind: 'number' | 'choice' | 'item' | 'level' | 'quantity';
   ref: string;
   op: 'gte' | 'lte' | 'eq' | 'ne';
   value: string | number | boolean;
@@ -139,6 +142,8 @@ export type Work = {
   quality: Quality;
   defaultUi?: ChatUiType;
   importSource?: { format: 'risu'; fileName: string; url: string };
+  actions?: WorkAction[];
+  risu?: RisuConfig;
   characters: Character[];
   lore: Lore[];
   openings: Opening[];
@@ -211,10 +216,11 @@ export type PublishedWork = {
   createdAt: number;
 };
 export type Runtime = {
+  risu?: RisuState;
   presentation?: Presentation;
   effectResults?: EffectRecord[];
   status: Record<string, string | number>;
-  inventory: Record<string, { owned: boolean; level: number; bonus: number }>;
+  inventory: Record<string, { owned: boolean; level: number; bonus: number; quantity?: number }>;
   presence: string[];
   relationships: Record<string, string>;
   innerRelationships?: Record<string, string>;
@@ -296,8 +302,10 @@ export type Turn = {
   dice?: number;
 };
 export type LocalEvent = {
+  risuEvent?: boolean;
+  risuChat?: { role: string; data: string };
   id: string;
-  kind: 'chapter' | 'enhance' | 'effect';
+  kind: 'chapter' | 'enhance' | 'effect' | 'action';
   effectResult?: EffectRecord;
   body: string;
   before: Checkpoint;

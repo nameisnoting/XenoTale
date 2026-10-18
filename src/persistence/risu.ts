@@ -1,4 +1,3 @@
-import { displayRuleProblem } from '../domain/displayRules';
 import { BlobReader, BlobWriter, TextWriter, ZipReader } from '@zip.js/zip.js';
 import { emptyWork } from '../domain/defaults';
 import { id } from '../domain/types';
@@ -118,11 +117,13 @@ export async function convertRisu(
       .replace(/\{\{(?:img|image|asset)::([^{}]+)\}\}/g, '{{$1}}');
   work.description = translate(d.creator_notes);
   work.prompt =
-    [d.description, d.personality, d.scenario, d.mes_example, d.post_history_instructions]
-      .map(translate)
-      .filter(Boolean)
-      .join('\n\n') || '이 작품의 설정에 맞춰 대화를 진행합니다.';
+    [d.description, d.personality, d.scenario].map(translate).filter(Boolean).join('\n\n') ||
+    '이 작품의 설정에 맞춰 대화를 진행합니다.';
   if (text(d.system_prompt).trim()) work.customSystem = translate(d.system_prompt);
+  work.systemMode = 'custom';
+  work.customSystem =
+    translate(d.system_prompt) ||
+    '작품의 설정과 대화 맥락에 맞춰 응답합니다. 요청에 게임 상태와 규칙이 있으면 그 값을 따릅니다.';
   work.characters = [];
   const greetings = [
     d.first_mes,
@@ -181,32 +182,67 @@ export async function convertRisu(
   const references = work.lore.filter((l) => l.activation === 'reference').length;
   if (references)
     warnings.push(
-      `스크립트 참조용 로어북 ${references}개는 내용을 보관합니다. Lua가 호출하는 기능은 아직 실행되지 않으며 AI에게 자동으로 전부 보내지 않습니다.`,
+      `참조용 로어북 ${references}개는 스크립트가 필요할 때 조회합니다. AI에게 자동으로 전부 보내지 않습니다.`,
     );
   if (entries.some((e: any) => e.use_regex || e.selective))
     warnings.push(
-      '정규식·보조 키워드 조건의 로어북은 참조용으로 보관합니다. Risu의 우선순위·토큰 예산은 아직 적용하지 않습니다.',
+      '정규식·보조 키워드 조건의 로어북은 참조용으로 보관합니다. 복합 조건·원본 우선순위·정확한 토큰 예산은 동일하게 지원하지 않습니다.',
     );
   const scripts = Array.isArray(r.customScripts) ? r.customScripts : [];
+  const rules = scripts
+    .filter((s: any) => ['editdisplay', 'editprocess', 'editinput', 'editoutput'].includes(s.type))
+    .map((s: any, i: number) => ({
+      id: id(),
+      name: text(s.comment) || `Risu 규칙 ${i + 1}`,
+      type: s.type,
+      pattern: text(s.in),
+      replacement: text(s.out),
+      flags: s.ableFlag ? text(s.flag) || 'g' : 'g',
+      cbs: text(s.flag).includes('<cbs>'),
+    }));
+  const luaScripts = (r.triggerscript ?? []).flatMap((trigger: any, index: number) =>
+    (trigger.effect ?? [])
+      .filter((e: any) => e.type === 'triggerlua')
+      .map((e: any) => ({
+        id: id(),
+        name: text(trigger.comment) || `가져온 Lua ${index + 1}`,
+        code: text(e.code),
+      })),
+  );
+  work.risu = {
+    version: 1,
+    scripts: luaScripts,
+    styles: text(r.backgroundHTML),
+    rules,
+    variables: text(r.defaultVariables),
+    postHistory: translate(d.post_history_instructions),
+    examples: translate(d.mes_example),
+    loreSettings: {
+      scanDepth: Number(d.character_book?.scan_depth ?? 5),
+      tokenBudget: Number(d.character_book?.token_budget ?? 800),
+      recursive: d.character_book?.recursive_scanning ?? true,
+    },
+  };
   work.displayRules = scripts
     .filter((s: any) => s.type === 'editdisplay')
     .map((s: any, i: number) => ({
-      id: id(),
+      id: rules.filter((r: any) => r.type === 'editdisplay')[i].id,
       name: text(s.comment) || `Risu 표시 규칙 ${i + 1}`,
       pattern: text(s.in),
-      flags: text(s.flag).replace(/[^gimsu]/g, ''),
+      flags:
+        text(s.flag)
+          .replace(/<[^>]*>/g, '')
+          .replace(/[^gimsu]/g, '') || 'g',
       replacement: translate(s.out),
-      enabled:
-        !displayRuleProblem(text(s.in), text(s.flag).replace(/[^gimsu]/g, '')) &&
-        !/\{\{(?:getvar|setvar|button|trigger|calc|if|each|random|roll|run)::/i.test(text(s.out)),
+      enabled: true,
     }));
   if (scripts.length)
     warnings.push(
-      `정규식 ${scripts.length}개 중 화면 표시 규칙 ${work.displayRules!.length}개를 가져왔습니다. 호환되는 규칙은 자동으로 켜고, Risu 전용 변수·명령이 필요한 규칙은 끈 상태로 보관합니다.`,
+      `정규식 ${scripts.length}개를 가져왔습니다. 화면 표시 규칙은 자동연출, 요청·응답 규칙은 행동·규칙의 Risu 설정에서 확인할 수 있습니다.`,
     );
   if (r.triggerscript?.length || r.virtualscript || r.defaultVariables || r.backgroundHTML)
     warnings.push(
-      'Risu의 변수·트리거·배경 HTML은 자동 변환하거나 실행하지 않습니다. TRPG 설정 버튼 등의 호환은 별도 변환이 필요합니다.',
+      `Lua ${luaScripts.length}개와 원본 화면 스타일을 행동·규칙에 보관합니다. 격리 실행기에서 처리하며 외부 요청·추가 AI 호출 등 일부 Risu API는 지원하지 않습니다.`,
     );
   const assets: StoredAsset[] = [];
   work.media.assets = [];

@@ -367,7 +367,11 @@ export function ChatPanel({
                       {item.name}
                     </span>
                     <small className={held?.owned ? 'owned' : ''}>
-                      {held?.owned ? '소지 중' : '미소지'}
+                      {held?.owned
+                        ? held.quantity !== undefined
+                          ? `${held.quantity}개 소지`
+                          : '소지 중'
+                        : '미소지'}
                     </small>
                     {item.enhancement && held?.owned && <em>강화</em>}
                   </button>

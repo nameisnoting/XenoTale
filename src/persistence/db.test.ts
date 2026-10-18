@@ -10,6 +10,7 @@ import {
   lastWorkspace,
   migrateProvidedSystemPrompts,
   migrateSharedModels,
+  migrateLegacyRisuLore,
   changeProfile,
 } from './db';
 import { workspace, defaultProfile } from '../domain/defaults';
@@ -28,6 +29,47 @@ beforeEach(async () => {
 });
 afterAll(() => db.close());
 describe('revision transactions', () => {
+  it('repairs old Risu folder cards once without replacing edited lore, history or room snapshots', async () => {
+    const draft = workspace('작가');
+    draft.work = exampleWork();
+    const folderKey = 'folder:260a8a66-141b-4a4c-be04-e5b41973540b';
+    const folder = { id: 'folder', name: '규칙 · 몬스터', keywords: [folderKey], prompt: '' };
+    const retained = [
+      { ...folder, id: 'edited', prompt: '직접 추가한 규칙' },
+      { ...folder, id: 'explicit', activation: 'always' as const },
+      { ...folder, id: 'mixed', keywords: [folderKey, '몬스터'] },
+      { ...folder, id: 'ordinary', keywords: ['folder:일반 키워드'] },
+      { id: 'lookup', name: '몬스터: Aboleth', keywords: [''], prompt: '능력치' },
+    ];
+    draft.work.lore = [folder, ...retained];
+    draft.assistantHistory = [{ id: 'question', role: 'user', text: '기존 질문' }];
+    const unchanged = workspace('작가');
+    const room = createRoom(draft.work);
+    room.work = structuredClone(draft.work);
+    const published = {
+      id: draft.work.id,
+      work: draft.work,
+      owned: true,
+      hidden: false,
+      createdAt: 123,
+    };
+    await db.workspaces.bulkAdd([draft, unchanged]);
+    await db.works.add(published);
+    await db.rooms.add(room);
+    await migrateLegacyRisuLore();
+    const repaired = {
+      ...draft,
+      work: { ...draft.work, lore: retained },
+      revision: draft.revision + 1,
+    };
+    expect(await db.workspaces.get(draft.id)).toEqual(repaired);
+    expect(await db.workspaces.get(unchanged.id)).toEqual(unchanged);
+    expect(await db.works.get(published.id)).toEqual({ ...published, work: repaired.work });
+    expect(await db.rooms.get(room.id)).toEqual(room);
+    await expect(saveWorkspace(draft, draft.revision)).rejects.toThrow();
+    await migrateLegacyRisuLore();
+    expect(await db.workspaces.get(draft.id)).toEqual(repaired);
+  });
   it('migrates the most recent legacy choices once, keeping room and workspace history unchanged', async () => {
     const profile = defaultProfile();
     delete profile.creatorTestModel;
