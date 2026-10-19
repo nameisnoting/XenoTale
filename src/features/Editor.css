@@ -357,3 +357,25 @@
 .rule-help {
   margin-top: 16px;
 }
+.code-actions {
+  gap: 12px;
+}
+.code-actions > .code-validation {
+  display: flex;
+  flex: 0 1 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+.code-validation > [role='status'] {
+  white-space: nowrap;
+}
+.code-validation > [role='alert'] {
+  flex-basis: 100%;
+  margin: 0;
+}
+@media (max-width: 600px) {
+  .code-actions > .button {
+    flex-basis: 100%;
+  }
+}

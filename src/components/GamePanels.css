@@ -94,12 +94,11 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 .game-panel .game-buttons > .button {
-  position: relative;
   min-width: 0;
   white-space: normal;
   overflow-wrap: anywhere;
   min-height: 44px;
-  padding: 10px 30px;
+  padding: 10px 14px;
   border: 1px solid #52676d;
   border-radius: 3px;
   background: linear-gradient(110deg, #33444c60, #26313950);
@@ -132,12 +131,6 @@
   color: #86989e;
   box-shadow: none;
 }
-.game-button-check {
-  position: absolute;
-  right: 9px;
-  top: calc(50% - 8px);
-  pointer-events: none;
-}
 .game-panel > [role='alert'] {
   margin: 16px 0 0;
   color: #ffb7ba;
@@ -165,12 +158,6 @@
 @media (max-width: 600px) {
   .game-panel {
     padding: 16px;
-  }
-  .game-panel .game-buttons > .button {
-    padding-inline: 22px;
-  }
-  .game-button-check {
-    right: 4px;
   }
   .game-block-editor .game-button-editor {
     grid-template-columns: minmax(0, 1fr) auto;

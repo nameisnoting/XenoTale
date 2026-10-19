@@ -176,7 +176,7 @@ function ManualEffectsEditor({
             />
           </Field>
           <div className="form-row code-actions">
-            <Button onClick={() => setEffectPreview(s)}>
+            <Button className="primary" onClick={() => setEffectPreview(s)}>
               <Eye size={15} />
               미리보기
             </Button>

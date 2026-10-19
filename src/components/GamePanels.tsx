@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Check } from 'lucide-react';
 import type { Work, Runtime, StatusPanel } from '../domain/types';
 import { conditionsMet } from '../domain/conditions';
 import { actionAvailable } from '../domain/actions';
@@ -88,10 +87,7 @@ function GamePanel({
                       }
                     }}
                   >
-                    <span>{button.label || action?.name || '규칙 실행'}</span>
-                    {selected && (
-                      <Check className="game-button-check" size={16} aria-hidden="true" />
-                    )}
+                    {button.label || action?.name || '규칙 실행'}
                   </Button>
                 );
               })}
