@@ -323,6 +323,7 @@
 }
 .inner-unlock-settings {
   margin-top: 24px;
+  border-radius: 5px;
 }
 .inner-unlock-settings .edit-card-section {
   gap: 8px;
