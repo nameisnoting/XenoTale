@@ -33,7 +33,7 @@ import {
 import { exportWorkspace, exportBackup } from '../persistence/files';
 import { navigate } from '../app/navigation';
 import { EditorPanels } from './EditorPanels';
-import { sections, advancedSections } from './creator/sections';
+import { sections } from './creator/sections';
 import { CreatorSectionList } from './creator/CreatorSectionList';
 import { ImportWorkButton } from './creator/ImportWorkButton';
 import { newWorkspace } from './Library';
@@ -136,9 +136,21 @@ function EditorContent({
       return 'overview';
     }
   });
-  const [extrasExpanded, setExtrasExpanded] = useState(() =>
-    advancedSections.some((item) => item.id === section),
-  );
+  const extrasStorageKey = `xenotale.editor-extras-expanded.${initial.id}`;
+  const [extrasExpanded, setExtrasExpanded] = useState(() => {
+    try {
+      return localStorage.getItem(extrasStorageKey) === 'true';
+    } catch {
+      return false;
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem(extrasStorageKey, String(extrasExpanded));
+    } catch {
+      // The toggle still works when browser preference storage is unavailable.
+    }
+  }, [extrasStorageKey, extrasExpanded]);
   useEffect(() => {
     try {
       localStorage.setItem(sectionStorageKey, section);
