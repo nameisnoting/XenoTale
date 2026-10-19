@@ -6,8 +6,8 @@ export const sections = [
   { id: 'personas', name: '추천 페르소나' },
   { id: 'shortcuts', name: '단축어' },
   { id: 'statuses', name: '상태값' },
-  { id: 'scenarios', name: '시나리오' },
   { id: 'items', name: '아이템' },
+  { id: 'scenarios', name: '시나리오' },
   { id: 'relations', name: '관계도' },
   { id: 'effects', name: '연출' },
 ];
