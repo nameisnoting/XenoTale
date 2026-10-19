@@ -6,7 +6,9 @@ for (const width of [1440, 393])
   }) => {
     test.setTimeout(60000);
     await page.setViewportSize({ width, height: 1000 });
-    let calls = 0;
+    let calls = 0,
+      allowResponse = false;
+    const requests: any[] = [];
     await page.route('https://openrouter.ai/**', async (route) => {
       const url = route.request().url();
       if (url.endsWith('/models'))
@@ -17,13 +19,42 @@ for (const width of [1440, 393])
                 id: 'google/gemini-3.8-flash',
                 name: 'Gemini 3.8 Flash',
                 context_length: 1000000,
-                supported_parameters: ['structured_outputs'],
+                supported_parameters: ['structured_outputs', 'response_format', 'reasoning'],
+                reasoning: { supported_efforts: ['high', 'medium', 'low'] },
               },
             ],
           },
         });
       if (url.endsWith('/chat/completions')) {
         calls++;
+        const request = route.request().postDataJSON();
+        requests.push(request);
+        if (allowResponse && request.response_format?.type === 'json_object')
+          return route.fulfill({
+            json: {
+              choices: [
+                {
+                  finish_reason: 'stop',
+                  message: {
+                    content: JSON.stringify({
+                      kind: 'turn',
+                      requestedCharacterIds: [],
+                      body: '*이제 정상적으로 장면이 이어집니다.*',
+                      choices: ['주변을 살펴본다.'],
+                      delta: {
+                        numeric: [],
+                        text: [],
+                        choice: [],
+                        inventory: [],
+                        presence: [],
+                        relationships: [],
+                      },
+                    }),
+                  },
+                },
+              ],
+            },
+          });
         return route.fulfill({
           status: 400,
           json: {
@@ -82,4 +113,14 @@ for (const width of [1440, 393])
       true,
     );
     await page.screenshot({ path: `docs/screenshots/provider-error-${width}.png` });
+    allowResponse = true;
+    await page.getByRole('button', { name: '전송', exact: true }).click();
+    await expect(page.locator('.chat-scroll')).toContainText('이제 정상적으로 장면이 이어집니다.');
+    await expect(composer).toHaveValue('');
+    expect(calls).toBe(2);
+    for (const request of requests) {
+      expect(request.model).toBe('google/gemini-3.8-flash');
+      expect(request.response_format).toEqual({ type: 'json_object' });
+      expect(request.reasoning).toEqual({ effort: 'medium', exclude: true });
+    }
   });

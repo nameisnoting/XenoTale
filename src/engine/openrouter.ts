@@ -334,10 +334,15 @@ export async function generate(
     };
     if (reasoning) payload.reasoning = reasoning;
     if (transport === 'json')
-      payload.response_format = {
-        type: 'json_schema',
-        json_schema: { name: 'xenotale_turn', strict: true, schema: responseSchema },
-      };
+      // Gemini may reject complex schemas at the provider boundary. Keep the same
+      // schema in the prompt and all local structural/semantic checks in JSON mode.
+      payload.response_format =
+        /^google\/gemini-/.test(model.id) && supported.includes('response_format')
+          ? { type: 'json_object' }
+          : {
+              type: 'json_schema',
+              json_schema: { name: 'xenotale_turn', strict: true, schema: responseSchema },
+            };
     if (transport === 'tool') {
       payload.tools = [
         {

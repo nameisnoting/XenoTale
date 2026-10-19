@@ -316,3 +316,9 @@ npm run test:e2e
 
 - `engine/providerError.ts`: HTTP 오류와 HTTP 200 내부 오류에서 OpenRouter 메시지 및 JSON 형태의 공급자 오류 설명만 읽습니다. API 키를 가리고 길이를 제한하며 원본 요청 전체를 표시하거나 기록하지 않습니다.
 - 일반 대화·Risu 대화·서포터·요약·서포터 스트림이 같은 처리를 사용합니다. 실패한 요청을 자동 재전송하거나 모델/출력 형식을 임의로 바꾸지 않습니다.
+
+## Gemini 일반 대화 출력
+
+- `engine/openrouter.ts`: Gemini가 `response_format`을 지원하면 일반 대화는 `json_object`로 요청합니다. 중첩·분기 스키마를 공급자의 강제 디코더에 넘기지 않으며, 동일한 TurnEnvelope 스키마를 프롬프트에 전달하고 기존 구조·ID·상태 변화 검사를 통과한 완성 응답만 반환합니다.
+- 다른 모델의 strict JSON Schema, 도구 호출, 프레임 출력과 Risu의 일반 텍스트 경로는 유지합니다. 이 변경은 JSON 스키마 거절 가능성에 대한 호환 조치이며, Google이 항목을 명시하지 않은 모든 400 오류의 원인을 확인했다는 뜻은 아닙니다.
+- 근거: [Google 구조화 출력 제한](https://ai.google.dev/gemini-api/docs/structured-output#limitations), [OpenRouter 응답 형식](https://openrouter.ai/docs/api/reference/parameters).

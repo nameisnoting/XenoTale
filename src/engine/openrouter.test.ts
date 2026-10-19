@@ -31,6 +31,83 @@ const reply = (value: unknown, finish = 'stop') =>
   );
 afterEach(() => vi.unstubAllGlobals());
 describe('provider contract', () => {
+  it('uses Gemini JSON mode with the full local contract and the advertised thinking level', async () => {
+    let sent: any;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (_url, init) => {
+        sent = JSON.parse(init.body);
+        return reply(envelope());
+      }),
+    );
+    const room = createRoom(exampleWork());
+    const gemini: Model = {
+      id: 'google/gemini-3.8-flash',
+      name: 'Gemini 3.8 Flash',
+      context_length: 1048576,
+      supported_parameters: ['structured_outputs', 'response_format', 'reasoning'],
+      reasoning: { supported_efforts: ['high', 'medium', 'low'] },
+      top_provider: { max_completion_tokens: 65536 },
+    };
+    const result = await generate(
+      room,
+      room.current,
+      '안녕',
+      gemini,
+      'fake',
+      new AbortController().signal,
+      { reroll: false },
+    );
+    expect(sent.model).toBe(gemini.id);
+    expect(sent.response_format).toEqual({ type: 'json_object' });
+    expect(sent.tools).toBeUndefined();
+    expect(sent.reasoning).toEqual({ effort: 'medium', exclude: true });
+    expect(sent.max_tokens).toBe(16384);
+    expect(sent.messages[0].content).toContain('OUTPUT SCHEMA');
+    expect(sent.messages[0].content).toContain('relationships');
+    expect(result.result).toEqual(envelope());
+    expect(room.timeline).toEqual([]);
+  });
+  it('Gemini JSON mode still rejects invalid references and never commits malformed responses', async () => {
+    const invalid = envelope();
+    invalid.delta.numeric.push({ fieldId: 'unregistered', amount: 1000 });
+    const fetch = vi.fn(async (_url: unknown, _init: RequestInit) => reply(invalid));
+    vi.stubGlobal('fetch', fetch);
+    const room = createRoom(exampleWork()),
+      before = structuredClone(room);
+    const gemini = {
+      ...model,
+      id: 'google/gemini-3.8-flash',
+      supported_parameters: ['structured_outputs', 'response_format'],
+    };
+    await expect(
+      generate(room, room.current, '안녕', gemini, 'fake', new AbortController().signal, {
+        reroll: false,
+      }),
+    ).rejects.toThrow('응답 형식');
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(room).toEqual(before);
+    for (const call of fetch.mock.calls)
+      expect(JSON.parse((call[1] as RequestInit).body as string).response_format).toEqual({
+        type: 'json_object',
+      });
+  });
+  it('non-Gemini structured-output models keep strict JSON schema requests', async () => {
+    let sent: any;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (_url, init) => {
+        sent = JSON.parse(init.body);
+        return reply(envelope());
+      }),
+    );
+    const room = createRoom(exampleWork());
+    await generate(room, room.current, '안녕', model, 'fake', new AbortController().signal, {
+      reroll: false,
+    });
+    expect(sent.response_format.type).toBe('json_schema');
+    expect(sent.response_format.json_schema.strict).toBe(true);
+  });
   it('demo replies keep custom characters, avoid provider requests and never invent state changes', async () => {
     const fetch = vi.fn();
     vi.stubGlobal('fetch', fetch);
