@@ -1095,7 +1095,7 @@
   padding: 16px;
   border-radius: 4px;
 }
-.design-ui .support-composer textarea {
+.design-ui .support-composer > textarea.message-input {
   border: 0;
   background: transparent;
   padding: 0;
