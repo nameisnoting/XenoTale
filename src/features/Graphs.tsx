@@ -22,7 +22,7 @@ import {
 import { ArrowLeftRight, Expand, Eye, EyeOff, Plus } from 'lucide-react';
 import type { Work } from '../domain/types';
 import { id } from '../domain/types';
-import { Button, IconButton, Modal, Toggle, safeUrl } from '../components/UI';
+import { Button, IconButton, Modal, Toggle, safeUrl, useNotify } from '../components/UI';
 
 export type GraphView = { x: number; y: number; scale: number };
 export type GraphViewProps = {
@@ -99,6 +99,7 @@ function RelationshipCanvas({
   Required<GraphViewProps> &
   RelationInteraction & { expand?: () => void }) {
   const marker = useId().replaceAll(':', '');
+  const notify = useNotify();
   const svg = useRef<SVGSVGElement>(null);
   const toolbar = useRef<HTMLDivElement>(null);
   const source = selection?.kind === 'node' ? selection.id : null;
@@ -140,6 +141,18 @@ function RelationshipCanvas({
   const selectedEdge = work.relations.find((r) => r.id === edge);
   const removeSelection = () => {
     if (!onChange) return;
+    if (
+      selectedEdge &&
+      !source &&
+      work.actions?.some((a) =>
+        a.steps.some(
+          (s) => ['relation', 'inner-relation'].includes(s.kind) && s.target === selectedEdge.id,
+        ),
+      )
+    ) {
+      notify('이벤트에서 사용하는 관계입니다. 연결을 먼저 해제해 주세요.');
+      return;
+    }
     if (source) onChange({ ...work, relationNodeIds: visibleIds.filter((key) => key !== source) });
     else if (selectedEdge)
       onChange({ ...work, relations: work.relations.filter((r) => r.id !== selectedEdge.id) });

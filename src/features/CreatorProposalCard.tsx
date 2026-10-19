@@ -24,7 +24,7 @@ const labels: Record<string, string> = {
   statuses: '상태값',
   statusTemplate: '상태창 템플릿',
   statusPanels: '상태창',
-  actions: '세부규칙',
+  actions: '이벤트',
   items: '아이템',
   chapters: '챕터·엔딩',
   shortcuts: '단축어',

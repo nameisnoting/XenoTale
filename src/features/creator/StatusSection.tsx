@@ -4,51 +4,12 @@ import { nextStatusName } from '../../domain/statusTemplate';
 import { DisclosureCard } from '../../components/DisclosureCard';
 import { requiresDeleteConfirmation, hasText } from '../../domain/deletion';
 import { Select } from '../../components/Select';
-import { useState } from 'react';
 import { id } from '../../domain/types';
-import { CreatorTabs, useCreatorTab } from './CreatorTabs';
-import { ActionsSection } from './ActionsSection';
-import { StatusPanelsEditor } from './StatusPanelsEditor';
 import { Field, TextInput, Area, Segmented, NumberInput } from '../../components/UI';
 import { RadioOptions, KeywordInput } from '../../components/DesignControls';
 import type { CreatorPanelState } from './useCreatorPanelState';
 
-export function StatusSection(state: CreatorPanelState) {
-  const [tab, setTab] = useCreatorTab(state.work.id, 'statuses', [
-    'values',
-    'rules',
-    'panels',
-  ] as const);
-  const [visited, setVisited] = useState(() => new Set(['values', tab]));
-  return (
-    <>
-      <CreatorTabs
-        label="상태값 설정"
-        value={tab}
-        onChange={(next) => {
-          setTab(next);
-          setVisited((previous) => new Set([...previous, next]));
-        }}
-        items={[
-          { id: 'values', label: '상태값' },
-          { id: 'rules', label: '세부규칙' },
-          { id: 'panels', label: '상태창' },
-        ]}
-      />
-      <div role="tabpanel" aria-label="상태값" hidden={tab !== 'values'}>
-        <StatusValuesEditor {...state} />
-      </div>
-      <div role="tabpanel" aria-label="세부규칙" hidden={tab !== 'rules'}>
-        {visited.has('rules') && <ActionsSection {...state} />}
-      </div>
-      <div role="tabpanel" aria-label="상태창" hidden={tab !== 'panels'}>
-        {visited.has('panels') && <StatusPanelsEditor {...state} />}
-      </div>
-    </>
-  );
-}
-
-function StatusValuesEditor({
+export function StatusValuesEditor({
   work,
   notify,
   updateStatuses,
@@ -82,13 +43,14 @@ function StatusValuesEditor({
                   ) ||
                   work.actions?.some(
                     (a) =>
+                      a.triggerRef === s.id ||
                       a.conditions.some((k) => k.ref === s.id) ||
                       a.steps.some(
                         (step) => step.target === s.id || step.value.includes(`[${s.id}]`),
                       ),
                   );
                 if (refs) {
-                  notify('아이템·시나리오·변경 규칙에서 참조 중입니다. 연결을 먼저 해제해 주세요.');
+                  notify('아이템·시나리오·이벤트에서 참조 중입니다. 연결을 먼저 해제해 주세요.');
                   return;
                 }
                 updateStatuses(work.statuses.filter((x) => x.id !== s.id));

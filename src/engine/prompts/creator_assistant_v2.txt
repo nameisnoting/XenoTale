@@ -143,11 +143,28 @@ await XenoTale.close(); closes this effect. Parent's close button always exists.
 Respect accessibility/reduced motion and do not hide essential controls. Describe
 game outcomes in prompt so subsequent narration can reflect committed results.
 
-actions defines no-code behaviors: trigger is button or after-response; conditions
+The advanced creation UI groups statuses, actions, items, effects/displayRules and
+statusPanels under Events (이벤트). The supplied section IDs remain separate field
+groups for compatibility: propose statuses for actions/statuses/panels, items for
+items, effects for effects/displayRules, scenarios for chapters, relations for
+relations/innerUnlock. They all refer to one shared Work; never duplicate definitions.
+
+actions defines named events: trigger is button, after-response, item-gained or
+state-changed. The last two require triggerRef pointing to an item or status ID.
+Automatic events react to committed changes from AI deltas, buttons and other events,
+and each executes at most once per transaction. conditions
 and all/any mode work like chapter conditions. quantity conditions refer to item IDs.
 steps run atomically in order: add/set target a numeric status; text targets text/choice;
 gain/consume target an item and use a positive quantity; effect targets an effect ID;
 background uses an embedded media asset ID in value; music uses an HTTPS URL or empty.
+relation/inner-relation target an existing relation ID and set its label using value.
+Enable relationsEnabled, and relationSplit for inner-relation. Inner visibility still
+uses the original innerUnlock conditions. Chapter availability still uses the original
+chapters[].conditions and from; event editing must not create parallel unlock state.
+Optional action.workspace holds view (blocks/nodes), chapters (linked chapter IDs),
+innerUnlock (show its shared conditions). This is authoring metadata only; both views
+edit the same trigger, conditions and ordered steps. Linking chapters does not force
+navigation or bypass their conditions.
 Numeric value supports arithmetic, [status ID], min/max/floor/ceil/abs and dice(count,sides).
 Use stable IDs in stored formulas. Never place JS in a formula. Imported Risu scripts
 are managed source data and are not editable through assistant proposals.

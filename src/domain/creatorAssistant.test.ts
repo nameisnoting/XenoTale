@@ -43,7 +43,7 @@ describe('whole creation assistant', () => {
       ],
     };
     const request = creatorRequest(work);
-    expect(request.sections.find((s) => s.id === 'statuses')?.name).toBe('상태값');
+    expect(request.sections.find((s) => s.id === 'statuses')?.name).toBe('이벤트 · 상태값·상태창');
     expect(request.draftSchema.statuses).toBeDefined();
     const parsed = parseCreatorAnswer(answer(work, patch), work, request);
     expect(parsed.proposal.sections).toHaveLength(1);

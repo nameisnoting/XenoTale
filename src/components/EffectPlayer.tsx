@@ -1,4 +1,4 @@
-import { applyAction } from '../domain/actions';
+import { runAction } from '../domain/actions';
 import { initialState } from '../domain/engine';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -155,7 +155,7 @@ export function EffectPlayer({
                     initialState(work, work.openings[0].id).inventory),
                 },
               };
-              previewRuntime.current = applyAction(work, previewRuntime.current, action);
+              previewRuntime.current = runAction(work, previewRuntime.current, action).state;
               next = previewRuntime.current;
             } else {
               if (!callbacks.current.onAction) throw new Error('규칙을 실행할 수 없습니다.');

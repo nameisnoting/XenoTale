@@ -291,3 +291,12 @@ npm run test:e2e
 - [`app/pwa.tsx`](../src/app/pwa.tsx): 웹앱 설치 안내와 파일 실행 연결.
 
 지원 범위와 예시 파일 분석은 [제작·가져오기 안내](creation-and-import.md)를 참고하세요.
+
+## 통합 이벤트 제작
+
+- `domain/events.ts`: 이벤트 생성·작업 순서·공유 조건 연결을 해석하는 편집 모델.
+- `domain/actions.ts`: 기존 행동과 같은 데이터로 직접 실행 및 자동 이벤트를 한 체크포인트에서 처리.
+- `features/creator/EventsSection.tsx`: 이벤트·상태값·아이템·연출·상태창 통합 진입점.
+- `features/creator/EventEditor.tsx`, `EventGraph.tsx`, `EventParts.tsx`: 노드형/블록형이 같은 조건과 순차 작업을 편집.
+- `features/creator/EventConnections.tsx`: 시나리오·내면 해금 조건 원본을 참조하고 편집.
+- `features/creator/EventTest.tsx`: 실제 데이터를 쓰지 않는 초기값 기반 미리보기 실행.

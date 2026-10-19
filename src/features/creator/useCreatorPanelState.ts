@@ -15,6 +15,7 @@ export type CreatorPanelProps = {
   selectedPersonaId: string;
   onPersonaSelect: (id: string) => void;
   relationView?: GraphViewProps;
+  onSectionSelect?: (section: string) => void;
 };
 
 // Local selections and previews follow EditorPanels' lifetime (keyed by section).
@@ -28,6 +29,7 @@ export function useCreatorPanelState({
   selectedPersonaId,
   onPersonaSelect,
   relationView,
+  onSectionSelect,
 }: CreatorPanelProps) {
   const [tab, setTab] = useState(0);
   const [grouping, setGrouping] = useState(false);
@@ -69,6 +71,19 @@ export function useCreatorPanelState({
     ),
   ];
   const deleteCharacter = (target: Character) => {
+    const relations = new Set(
+      work.relations.filter((r) => r.from === target.id || r.to === target.id).map((r) => r.id),
+    );
+    if (
+      work.actions?.some((a) =>
+        a.steps.some(
+          (s) => ['relation', 'inner-relation'].includes(s.kind) && relations.has(s.target),
+        ),
+      )
+    ) {
+      notify('이벤트에서 사용하는 관계의 인물입니다. 이벤트 연결을 먼저 해제해 주세요.');
+      return;
+    }
     const characters = work.characters.filter((c) => c.id !== target.id);
     update({
       characters,
@@ -119,6 +134,7 @@ export function useCreatorPanelState({
     });
   return {
     section,
+    onSectionSelect,
     work,
     onChange,
     profile,

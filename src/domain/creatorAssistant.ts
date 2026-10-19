@@ -39,13 +39,13 @@ export const creatorSections = [
   },
   {
     id: 'statuses',
-    name: '상태값',
+    name: '이벤트 · 상태값·상태창',
     fields: ['statuses', 'actions', 'statusTemplate', 'statusPanels'],
   },
-  { id: 'items', name: '아이템', fields: ['items'] },
+  { id: 'items', name: '이벤트 · 아이템', fields: ['items'] },
   { id: 'scenarios', name: '시나리오', fields: ['chapters'] },
   { id: 'shortcuts', name: '단축어', fields: ['shortcuts'] },
-  { id: 'effects', name: '연출', fields: ['effects', 'displayRules'] },
+  { id: 'effects', name: '이벤트 · 연출', fields: ['effects', 'displayRules'] },
 ] as const;
 type SectionId = (typeof creatorSections)[number]['id'];
 type EditableField = (typeof creatorSections)[number]['fields'][number] | 'guide';

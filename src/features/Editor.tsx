@@ -127,9 +127,23 @@ function EditorContent({
   const [section, setSection] = useState(() => {
     try {
       const saved = localStorage.getItem(sectionStorageKey);
-      if (saved === 'actions') {
-        localStorage.setItem(`xenotale.creator-tab.${initial.work.id}.statuses`, 'rules');
-        return 'statuses';
+      if (['actions', 'statuses', 'items', 'effects'].includes(saved ?? '')) {
+        const previous =
+          saved === 'statuses'
+            ? localStorage.getItem(`xenotale.creator-tab.${initial.work.id}.statuses`)
+            : null;
+        const tab =
+          saved === 'items'
+            ? 'items'
+            : saved === 'effects'
+              ? 'effects'
+              : previous === 'panels'
+                ? 'panels'
+                : saved === 'actions' || previous === 'rules'
+                  ? 'events'
+                  : 'values';
+        localStorage.setItem(`xenotale.creator-tab.${initial.work.id}.events`, tab);
+        return 'events';
       }
       return sections.some((item) => item.id === saved) ? saved! : 'overview';
     } catch {
@@ -692,6 +706,7 @@ function EditorContent({
           <EditorPanels
             key={section}
             section={section}
+            onSectionSelect={setSection}
             work={work}
             onChange={change}
             profile={profile}

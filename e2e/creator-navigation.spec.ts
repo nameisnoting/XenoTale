@@ -42,7 +42,7 @@ for (const width of [1440, 393]) {
 
     await page.reload();
     await expect(toggle).toHaveAttribute('aria-expanded', 'true');
-    await nav.getByRole(role, { name: '상태값', exact: true }).click();
+    await nav.getByRole(role, { name: '이벤트', exact: true }).click();
     await toggle.click();
     await page.reload();
     await expect(toggle).toHaveAttribute('aria-expanded', 'false');
@@ -50,6 +50,6 @@ for (const width of [1440, 393]) {
     await page.goto(originalURL);
     await expect(toggle).toHaveAttribute('aria-expanded', 'false');
     await toggle.click();
-    await expect(nav.getByRole(role, { name: '상태값', exact: true })).toBeVisible();
+    await expect(nav.getByRole(role, { name: '이벤트', exact: true })).toBeVisible();
   });
 }

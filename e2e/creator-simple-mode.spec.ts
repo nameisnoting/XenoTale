@@ -1,3 +1,4 @@
+import { creatorSection } from './helpers/creator';
 import { test, expect } from '@playwright/test';
 
 for (const width of [1440, 393]) {
@@ -22,14 +23,14 @@ for (const width of [1440, 393]) {
     await lore.getByRole('radio', { name: '항상 전달', exact: true }).click();
     await expect(lore.getByPlaceholder('키워드 입력 후 Enter')).toHaveCount(0);
     await nav.getByRole('button', { name: '고급설정', exact: true }).click();
-    await nav.getByRole(role, { name: '상태값', exact: true }).click();
+    await creatorSection(page, width, '상태값');
     await page.getByRole('button', { name: '상태값 추가', exact: true }).click();
     await page.getByRole('textbox', { name: '이름', exact: true }).fill('HP');
     await page
       .locator('.creator-sticky-tabs')
-      .getByRole('tab', { name: '세부규칙', exact: true })
+      .getByRole('tab', { name: '이벤트', exact: true })
       .click();
-    await page.getByRole('button', { name: '규칙 추가', exact: true }).click();
+    await page.getByRole('button', { name: '이벤트 추가', exact: true }).click();
     await page.getByRole('button', { name: '작업 추가', exact: true }).click();
     await expect(page.getByRole('radio', { name: '숫자 입력', exact: true })).toBeChecked();
     await page.getByRole('spinbutton', { name: '변경할 값', exact: true }).fill('20');
@@ -47,7 +48,7 @@ for (const width of [1440, 393]) {
     );
     await page.getByRole('radio', { name: '숫자 입력', exact: true }).click();
     await expect(page.getByRole('spinbutton', { name: '변경할 값', exact: true })).toHaveValue('0');
-    await nav.getByRole(role, { name: '연출', exact: true }).click();
+    await creatorSection(page, width, '연출');
     await page.getByRole('button', { name: '자동연출 추가', exact: true }).click();
     await expect(page.getByRole('radio', { name: '표식 찾기', exact: true })).toBeChecked();
     await expect(page.getByRole('textbox', { name: '옵션', exact: true })).toHaveCount(0);

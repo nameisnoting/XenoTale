@@ -1,3 +1,4 @@
+import { creatorSection } from './helpers/creator';
 import { test, expect, type Page } from '@playwright/test';
 import fs from 'node:fs/promises';
 
@@ -119,9 +120,7 @@ for (const width of [1440, 393]) {
       .locator(width <= 800 ? '.editor-mobile-stages' : '.editor-nav')
       .getByRole('button', { name: '고급설정', exact: false })
       .click();
-    if (width <= 800) await page.getByRole('tab', { name: '연출', exact: true }).click();
-    else
-      await page.locator('.editor-nav').getByRole('button', { name: '연출', exact: true }).click();
+    await creatorSection(page, width, '연출');
     await page.getByRole('tab', { name: '수동연출', exact: true }).click();
     await page.getByRole('button', { name: '연출 추가', exact: true }).click();
     await page.getByRole('button', { name: '열쇠 퍼즐 예시', exact: true }).click();
@@ -291,7 +290,7 @@ test('제작 서포터의 대화 테스트에서도 연출 결과를 임시 방�
     .fill('문을 지키는 안내인');
   await section('도입부');
   await page.getByRole('textbox', { name: '내용', exact: false }).fill('{{레일건}}');
-  await section('연출');
+  await creatorSection(page, 1440, '연출');
   await page.getByRole('tab', { name: '수동연출', exact: true }).click();
   await page.getByRole('button', { name: '연출 추가', exact: true }).click();
   await page.getByRole('textbox', { name: '이름', exact: true }).fill('레일건');

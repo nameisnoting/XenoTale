@@ -9,6 +9,7 @@ import { requiresDeleteConfirmation } from '../../domain/deletion';
 import { ShortcutFields } from '../../components/ShortcutFields';
 import { useRef, useState } from 'react';
 import { CreatorTabs, useCreatorTab } from './CreatorTabs';
+import { Tabs } from '../../components/Tabs';
 import { Eye } from 'lucide-react';
 import type { Work } from '../../domain/types';
 import { id } from '../../domain/types';
@@ -62,13 +63,16 @@ export function ShortcutsSection({ work, update }: Pick<CreatorPanelState, 'work
 }
 
 export function EffectsSection(
-  state: Pick<CreatorPanelState, 'work' | 'setEffectPreview' | 'update'>,
+  state: Pick<CreatorPanelState, 'work' | 'setEffectPreview' | 'update' | 'notify'> & {
+    embedded?: boolean;
+  },
 ) {
   const [tab, setTab] = useCreatorTab(state.work.id, 'effects', ['auto', 'manual'] as const);
   const [manualOpened, setManualOpened] = useState(tab === 'manual');
+  const TabBar = state.embedded ? Tabs : CreatorTabs;
   return (
     <>
-      <CreatorTabs
+      <TabBar
         label="연출 설정"
         value={tab}
         onChange={(next) => {
@@ -97,7 +101,8 @@ function ManualEffectsEditor({
   work,
   setEffectPreview,
   update,
-}: Pick<CreatorPanelState, 'work' | 'setEffectPreview' | 'update'>) {
+  notify,
+}: Pick<CreatorPanelState, 'work' | 'setEffectPreview' | 'update' | 'notify'>) {
   return (
     <>
       <p className="muted">
@@ -122,7 +127,17 @@ function ManualEffectsEditor({
               title="연출 삭제"
               name={s.name}
               needsConfirmation={requiresDeleteConfirmation('effect', s)}
-              onDelete={() => update({ effects: work.effects.filter((x) => x.id !== s.id) })}
+              onDelete={() => {
+                if (
+                  work.actions?.some((a) =>
+                    a.steps.some((step) => step.kind === 'effect' && step.target === s.id),
+                  )
+                ) {
+                  notify('이벤트에서 사용하는 연출입니다. 연결을 먼저 해제해 주세요.');
+                  return;
+                }
+                update({ effects: work.effects.filter((x) => x.id !== s.id) });
+              }}
             />
           }
         >
@@ -249,10 +264,10 @@ function EffectCodeEditor({
         </div>
       )}
       <Field
-        label="연결할 세부규칙"
-        hint="선택한 규칙만 이 연출에서 실행할 수 있습니다. 아래에서 실행 버튼 코드를 넣을 수 있습니다."
+        label="연결할 이벤트"
+        hint="선택한 이벤트만 이 연출에서 실행할 수 있습니다. 아래에서 실행 버튼 코드를 넣을 수 있습니다."
       >
-        <div className="tab-pills" role="group" aria-label="연출에 연결할 규칙">
+        <div className="tab-pills" role="group" aria-label="연출에 연결할 이벤트">
           {(work.actions ?? [])
             .filter((a) => a.trigger === 'button')
             .map((action) => (
@@ -271,10 +286,10 @@ function EffectCodeEditor({
             ))}
         </div>
         <Select
-          label="규칙 실행 버튼 넣기"
+          label="이벤트 실행 버튼 넣기"
           value=""
           options={[
-            { value: '', label: '실행 버튼을 넣을 규칙 선택' },
+            { value: '', label: '실행 버튼을 넣을 이벤트 선택' },
             ...(work.actions ?? [])
               .filter((a) => a.trigger === 'button')
               .map((a) => ({ value: a.id, label: a.name })),

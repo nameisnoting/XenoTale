@@ -10,7 +10,7 @@ import { defaultPersona, settings } from './defaults';
 import { validMemories, repairMemoryActivity } from './memory';
 import { runtimeRelations } from './relations';
 import { cleanWork, hasPersonaContent, relationsEnabled } from './workContent';
-import { applyAction, actionAvailable, actionSchema, calculate } from './actions';
+import { resolveAutomaticActions, actionEffectTags, actionSchema, calculate } from './actions';
 
 const changes = <T extends z.ZodType>(schema: T) => z.array(schema).max(100);
 export const envelopeSchema = z
@@ -242,6 +242,12 @@ export function validateWork(w: Work, publish = false, report?: (issue: WorkIssu
       continue;
     }
     if (!publish) continue;
+    if (action.workspace?.chapters?.some((key) => !w.chapters.some((c) => c.id === key)))
+      fail(`${action.name}: 연결된 시나리오를 확인해 주세요.`);
+    if (action.trigger === 'item-gained' && !w.items.some((item) => item.id === action.triggerRef))
+      fail(`${action.name}: 획득을 확인할 아이템을 선택해 주세요.`);
+    if (action.trigger === 'state-changed' && !w.statuses.some((s) => s.id === action.triggerRef))
+      fail(`${action.name}: 변경을 확인할 상태값을 선택해 주세요.`);
     if (!action.name.trim() || !action.steps.length)
       fail('규칙 이름과 실행할 작업을 입력해 주세요.');
     const fields = Object.fromEntries(
@@ -274,9 +280,11 @@ export function validateWork(w: Work, publish = false, report?: (issue: WorkIssu
       const target =
         step.kind === 'effect'
           ? w.effects
-          : ['gain', 'consume'].includes(step.kind)
-            ? w.items
-            : w.statuses;
+          : ['relation', 'inner-relation'].includes(step.kind)
+            ? w.relations
+            : ['gain', 'consume'].includes(step.kind)
+              ? w.items
+              : w.statuses;
       if (!['background', 'music'].includes(step.kind) && !target.some((t) => t.id === step.target))
         fail(`${action.name}: 작업 대상의 연결을 확인해 주세요.`);
       const field = w.statuses.find((s) => s.id === step.target);
@@ -293,6 +301,12 @@ export function validateWork(w: Work, publish = false, report?: (issue: WorkIssu
         fail(`${action.name}: 등록된 이미지를 선택해 주세요.`);
       if (step.kind === 'music' && step.value && !/^https:\/\//.test(step.value))
         fail(`${action.name}: 음악에는 HTTPS 주소를 입력해 주세요.`);
+      if (['relation', 'inner-relation'].includes(step.kind) && !relationsEnabled(w))
+        fail(`${action.name}: 관계도 사용을 켜 주세요.`);
+      if (step.kind === 'inner-relation' && !w.relationSplit)
+        fail(`${action.name}: 관계도에서 표면 / 내면 분리를 켜 주세요.`);
+      if (['relation', 'inner-relation'].includes(step.kind) && step.value.length > 1000)
+        fail(`${action.name}: 관계 내용은 1,000자 이내로 입력해 주세요.`);
       if (['add', 'set', 'gain', 'consume'].includes(step.kind))
         try {
           calculate(step.value, fields, () => 0.5);
@@ -532,18 +546,10 @@ export function addResponse(
   const before = options.reroll ? clone((last as Turn).before) : clone(next.current);
   const { state, log } = applyDelta(next.work, before.runtime, result.delta);
   if (options.risuState) state.risu = clone(options.risuState);
-  for (const action of next.work.actions ?? []) {
-    if (action.trigger === 'after-response' && actionAvailable(next.work, state, action)) {
-      try {
-        Object.assign(state, applyAction(next.work, state, action));
-        log.push(action.name);
-        for (const step of action.steps)
-          if (step.kind === 'effect') result.body += `\n{{effect:${step.target}}}`;
-      } catch (error) {
-        log.push(`${action.name} 실행 보류: ${(error as Error).message}`);
-      }
-    }
-  }
+  const automatic = resolveAutomaticActions(next.work, before.runtime, state, true);
+  Object.assign(state, automatic.state);
+  log.push(...automatic.performed.map((a) => a.name), ...automatic.problems);
+  for (const tag of actionEffectTags(automatic.performed)) result.body += `\n${tag}`;
   const context = clone(next.current.context);
   context.memories = repairMemoryActivity(
     validMemories(next, context.memories, next.timeline.slice(0, options.reroll ? -1 : undefined)),
@@ -748,13 +754,20 @@ export function enhance(room: Room, itemId: string, random = Math.random()): Roo
     outcome = '강화 실패 · 단계 초기화';
   }
   const msg = `${item.name} ${outcome}`;
+  const automatic = resolveAutomaticActions(next.work, before.runtime, next.current.runtime);
+  next.current.runtime = automatic.state;
   next.timeline.push({
     id: id(),
     kind: 'enhance',
-    body: msg,
+    body: [msg, ...actionEffectTags(automatic.performed)].join('\n'),
     before,
     after: clone(next.current),
-    changes: [msg, `재화 ${cost} 소모`],
+    changes: [
+      msg,
+      `재화 ${cost} 소모`,
+      ...automatic.performed.map((a) => a.name),
+      ...automatic.problems,
+    ],
     createdAt: Date.now(),
   });
   return next;

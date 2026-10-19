@@ -1,3 +1,4 @@
+import { creatorSection } from './helpers/creator';
 import { test, expect } from '@playwright/test';
 
 for (const width of [1440, 393]) {
@@ -23,15 +24,23 @@ for (const width of [1440, 393]) {
     await expect(page.locator('.characters-form .selection-pill')).toHaveCount(0);
     await nav.getByRole('button', { name: '고급설정', exact: true }).click();
     await expect(nav.getByRole(role, { name: '상태 규칙', exact: true })).toHaveCount(0);
-    await nav.getByRole(role, { name: '상태값', exact: true }).click();
+    await creatorSection(page, width, '상태값');
     const tabs = page.locator('.creator-sticky-tabs');
-    await expect(tabs.getByRole('tab')).toHaveText(['상태값', '세부규칙', '상태창']);
+    await expect(tabs.getByRole('tab')).toHaveText([
+      '이벤트',
+      '상태값',
+      '아이템',
+      '연출',
+      '상태창',
+    ]);
     await page.getByRole('button', { name: '상태값 추가', exact: true }).click();
-    await expect(page.locator('.statuses-form .disclosure-title').first()).toHaveText(
-      '{{상태값1}}',
-    );
+    await expect(
+      page.locator('[role=tabpanel][aria-label=상태값] .disclosure-title').first(),
+    ).toHaveText('{{상태값1}}');
     await page.getByRole('textbox', { name: '이름', exact: true }).fill('HP');
-    await expect(page.locator('.statuses-form .disclosure-title').first()).toHaveText('{{HP}}');
+    await expect(
+      page.locator('[role=tabpanel][aria-label=상태값] .disclosure-title').first(),
+    ).toHaveText('{{HP}}');
     await page.getByRole('button', { name: '상태값 추가', exact: true }).click();
     const scroller = page.locator(width < 800 ? '.editor-fieldset' : '.editor-main');
     await scroller.evaluate((el) => {
@@ -42,12 +51,12 @@ for (const width of [1440, 393]) {
     await expect
       .poll(async () => (await tabs.boundingBox())!.y)
       .toBeCloseTo(width < 800 ? viewport.y : viewport.y + header.height, 0);
-    await tabs.getByRole('tab', { name: '세부규칙', exact: true }).click();
-    await page.getByRole('button', { name: '규칙 추가', exact: true }).click();
-    const rule = page.getByRole('tabpanel', { name: '세부규칙', exact: true });
-    await expect(rule.locator('.disclosure-title').first()).toHaveText('{{규칙1}}');
-    await rule.getByRole('textbox', { name: '규칙 이름', exact: true }).fill('회복');
-    await expect(rule.locator('.disclosure-title').first()).toHaveText('{{회복}}');
+    await tabs.getByRole('tab', { name: '이벤트', exact: true }).click();
+    await page.getByRole('button', { name: '이벤트 추가', exact: true }).click();
+    const rule = page.getByRole('tabpanel', { name: '이벤트', exact: true });
+    await expect(rule.locator('.disclosure-title').first()).toHaveText('이벤트1');
+    await rule.getByRole('textbox', { name: '이벤트 이름', exact: true }).fill('회복');
+    await expect(rule.locator('.disclosure-title').first()).toHaveText('회복');
     await expect(rule.locator('.rule-button-hint')).toContainText('대화 입력창 위');
     await tabs.getByRole('tab', { name: '상태창', exact: true }).click();
     await expect(page.getByRole('heading', { name: '표시할 상태창', exact: true })).toHaveCount(0);
@@ -75,9 +84,14 @@ for (const width of [1440, 393]) {
     await expect(page.locator('.optional-feature')).toHaveCount(0);
     await toggle.click();
     await expect(unlock.getByRole('button', { name: '조건 삭제', exact: true })).toHaveCount(1);
-    await nav.getByRole(role, { name: '연출', exact: true }).click();
-    await expect(tabs.getByRole('tab')).toHaveText(['자동연출', '수동연출']);
-    await tabs.getByRole('tab', { name: '수동연출', exact: true }).click();
+    await creatorSection(page, width, '연출');
+    await expect(
+      page.getByRole('tablist', { name: '연출 설정', exact: true }).getByRole('tab'),
+    ).toHaveText(['자동연출', '수동연출']);
+    await page
+      .getByRole('tablist', { name: '연출 설정', exact: true })
+      .getByRole('tab', { name: '수동연출', exact: true })
+      .click();
     await expect(page.getByRole('button', { name: '연출 추가', exact: true })).toBeVisible();
     await page.screenshot({
       path: `docs/screenshots/creator-adjustments-${width}.png`,

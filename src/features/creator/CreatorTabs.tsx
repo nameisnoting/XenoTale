@@ -35,6 +35,7 @@ export function CreatorTabs<T extends string>(props: {
   items: { id: T; label: string }[];
   value: T;
   onChange: (value: T) => void;
+  scrollable?: boolean;
 }) {
   return (
     <div className="creator-sticky-tabs">

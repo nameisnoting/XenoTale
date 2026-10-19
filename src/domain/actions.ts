@@ -2,14 +2,22 @@ import { z } from 'zod';
 import type { Work, Runtime, Room, Condition, EffectSource } from './types';
 import { canCompleteEffect } from './effects';
 import { clone, id } from './types';
-import { conditionsMet } from './conditions';
+import { conditionsMet, effectiveStatus } from './conditions';
 
 const key = z.string().min(1).max(1000);
 export const actionSchema = z.object({
   id: key,
   name: z.string().max(1000),
-  trigger: z.enum(['button', 'after-response']),
+  trigger: z.enum(['button', 'after-response', 'item-gained', 'state-changed']),
+  triggerRef: z.string().max(1000).optional(),
   buttonLocation: z.enum(['composer', 'screen']).optional(),
+  workspace: z
+    .object({
+      view: z.enum(['blocks', 'nodes']),
+      chapters: z.array(key).max(100).optional(),
+      innerUnlock: z.boolean().optional(),
+    })
+    .optional(),
   mode: z.enum(['all', 'any']),
   conditions: z
     .array(
@@ -25,7 +33,18 @@ export const actionSchema = z.object({
   steps: z
     .array(
       z.object({
-        kind: z.enum(['add', 'set', 'text', 'gain', 'consume', 'background', 'music', 'effect']),
+        kind: z.enum([
+          'add',
+          'set',
+          'text',
+          'gain',
+          'consume',
+          'background',
+          'music',
+          'effect',
+          'relation',
+          'inner-relation',
+        ]),
         target: z.string().max(1000),
         value: z.string().max(2000),
       }),
@@ -106,7 +125,7 @@ export const actionAvailable = (work: Work, state: Runtime, action: WorkAction) 
 export function applyAction(work: Work, state: Runtime, action: WorkAction): Runtime {
   actionSchema.parse(action);
   if (!actionAvailable(work, state, action))
-    throw new Error('행동의 실행 조건을 충족하지 않았습니다.');
+    throw new Error('이벤트의 실행 조건을 충족하지 않았습니다.');
   const next = clone(state);
   for (const step of action.steps) {
     const field = work.statuses.find((s) => s.id === step.target),
@@ -146,6 +165,14 @@ export function applyAction(work: Work, state: Runtime, action: WorkAction): Run
         owned: total > 0,
         quantity: total,
       };
+    } else if (step.kind === 'relation' || step.kind === 'inner-relation') {
+      if (step.value.length > 1000) throw new Error('관계 내용은 1,000자 이내로 입력해 주세요.');
+      if (work.relationsEnabled === false || !work.relations.some((r) => r.id === step.target))
+        throw new Error('관계도의 연결을 확인해 주세요.');
+      if (step.kind === 'inner-relation') {
+        if (!work.relationSplit) throw new Error('관계도에서 표면 / 내면 분리를 켜 주세요.');
+        next.innerRelationships = { ...next.innerRelationships, [step.target]: step.value };
+      } else next.relationships[step.target] = step.value;
     } else if (step.kind === 'effect') {
       if (!work.effects.some((e) => e.id === step.target))
         throw new Error('연출의 연결을 확인해 주세요.');
@@ -165,6 +192,71 @@ export function applyAction(work: Work, state: Runtime, action: WorkAction): Run
   }
   return next;
 }
+
+/** One bounded dispatch per transaction. Each automatic event runs at most once;
+ * follow-on changes share the same checkpoint and never start another engine. */
+export function resolveAutomaticActions(
+  work: Work,
+  before: Runtime,
+  after: Runtime,
+  afterResponse = false,
+  skip: string[] = [],
+) {
+  let state = after;
+  const performed: WorkAction[] = [],
+    problems: string[] = [];
+  const done = new Set<string>(skip);
+  const actions = work.actions ?? [];
+  const watchers = actions.filter(
+    (a) => a.triggerRef && ['item-gained', 'state-changed'].includes(a.trigger),
+  );
+  const quantity = (runtime: Runtime, key: string) => {
+    const held = runtime.inventory[key];
+    return held?.quantity ?? (held?.owned ? 1 : 0);
+  };
+  const matching = (previous: Runtime, next: Runtime) =>
+    watchers.filter(
+      (action) =>
+        !done.has(action.id) &&
+        (action.trigger === 'item-gained'
+          ? quantity(next, action.triggerRef!) > quantity(previous, action.triggerRef!)
+          : effectiveStatus(work, previous, action.triggerRef!) !==
+            effectiveStatus(work, next, action.triggerRef!)),
+    );
+  // Keep only matching event references, not a full Runtime snapshot per change.
+  const changes = [matching(before, after)];
+  const run = (action: WorkAction) => {
+    done.add(action.id);
+    if (!actionAvailable(work, state, action)) return;
+    try {
+      const previous = state;
+      state = applyAction(work, state, action);
+      performed.push(action);
+      changes.push(matching(previous, state));
+    } catch (error) {
+      problems.push(`${action.name} 실행 보류: ${(error as Error).message}`);
+    }
+  };
+  if (afterResponse)
+    for (const action of actions)
+      if (action.trigger === 'after-response' && !done.has(action.id)) run(action);
+  for (const change of changes) {
+    for (const action of change) if (!done.has(action.id)) run(action);
+  }
+  return { state, performed, problems };
+}
+
+export const actionEffectTags = (actions: WorkAction[]) =>
+  actions.flatMap((action) =>
+    action.steps.filter((s) => s.kind === 'effect').map((s) => `{{effect:${s.target}}}`),
+  );
+
+export function runAction(work: Work, before: Runtime, action: WorkAction) {
+  const resolved = resolveAutomaticActions(work, before, applyAction(work, before, action), false, [
+    action.id,
+  ]);
+  return { ...resolved, performed: [action, ...resolved.performed] };
+}
 export function executeAction(
   room: Room,
   actionId: string,
@@ -177,14 +269,12 @@ export function executeAction(
   )
     throw new Error('이 연출에서 실행할 수 없는 규칙이거나 이전 장면입니다.');
   const action = room.work.actions?.find((a) => a.id === actionId);
-  if (!action || action.trigger !== 'button') throw new Error('실행할 행동을 찾을 수 없습니다.');
+  if (!action || action.trigger !== 'button') throw new Error('실행할 이벤트를 찾을 수 없습니다.');
   const next = clone(room),
     before = clone(next.current);
-  next.current.runtime = applyAction(next.work, next.current.runtime, action);
-  const body = [
-    action.name,
-    ...action.steps.filter((s) => s.kind === 'effect').map((s) => `{{effect:${s.target}}}`),
-  ].join('\n');
+  const resolved = runAction(next.work, before.runtime, action);
+  next.current.runtime = resolved.state;
+  const body = [action.name, ...actionEffectTags(resolved.performed)].join('\n');
   next.timeline.push({
     id: id(),
     kind: 'action',
@@ -192,7 +282,7 @@ export function executeAction(
     body,
     before,
     after: clone(next.current),
-    changes: [action.name],
+    changes: [...resolved.performed.map((a) => a.name), ...resolved.problems],
     createdAt: Date.now(),
   });
   return next;

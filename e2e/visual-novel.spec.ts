@@ -1,3 +1,4 @@
+import { creatorSection } from './helpers/creator';
 import { test, expect, type Page } from '@playwright/test';
 import { codeApproval } from '../src/domain/codeValidation';
 test.use({ hasTouch: true });
@@ -256,7 +257,7 @@ test('연출 코드 검증 · 실행 오류/외부 통신 거절 · 편집으로
   await page.getByRole('button', { name: '메인으로', exact: true }).click();
   await page.getByRole('button', { name: '작품 만들기', exact: true }).click();
   await page.getByRole('button', { name: '고급설정', exact: false }).click();
-  await page.getByRole('button', { name: '연출', exact: true }).click();
+  await creatorSection(page, 1440, '연출');
   await page.getByRole('tab', { name: '수동연출', exact: true }).click();
   await page.getByRole('button', { name: '연출 추가', exact: true }).click();
   const code = page.getByRole('textbox', { name: '코드 입력', exact: true });

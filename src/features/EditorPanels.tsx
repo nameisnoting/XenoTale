@@ -6,10 +6,9 @@ import { RelationsSection } from './creator/RelationsSection';
 import { OverviewSection } from './creator/OverviewSection';
 import { CharactersSection } from './creator/CharactersSection';
 import { OpeningsSection } from './creator/OpeningsSection';
-import { StatusSection } from './creator/StatusSection';
-import { ItemsSection } from './creator/ItemsSection';
+import { EventsSection } from './creator/EventsSection';
 import { ScenarioSection } from './creator/ScenarioSection';
-import { ShortcutsSection, EffectsSection, PersonasSection } from './creator/ExtraSections';
+import { ShortcutsSection, PersonasSection } from './creator/ExtraSections';
 import { CreatorPanelDialogs } from './creator/CreatorPanelDialogs';
 import { useCreatorPanelState, type CreatorPanelProps } from './creator/useCreatorPanelState';
 
@@ -21,11 +20,9 @@ export function EditorPanels(props: CreatorPanelProps) {
       {section === 'overview' && <OverviewSection {...state} />}
       {section === 'characters' && <CharactersSection {...state} />}
       {section === 'openings' && <OpeningsSection {...state} />}
-      {section === 'statuses' && <StatusSection {...state} />}
-      {section === 'items' && <ItemsSection {...state} />}
+      {section === 'events' && <EventsSection {...state} />}
       {section === 'scenarios' && <ScenarioSection {...state} />}
       {section === 'shortcuts' && <ShortcutsSection {...state} />}
-      {section === 'effects' && <EffectsSection {...state} />}
       {section === 'personas' && <PersonasSection {...state} />}
       {section === 'media' && <MediaEditor work={work} onChange={onChange} />}
       {section === 'relations' && (

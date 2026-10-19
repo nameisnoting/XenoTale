@@ -5,9 +5,7 @@ export const sections = [
   { id: 'media', name: '미디어' },
   { id: 'personas', name: '추천 페르소나' },
   { id: 'shortcuts', name: '단축어' },
-  { id: 'statuses', name: '상태값' },
-  { id: 'effects', name: '연출' },
-  { id: 'items', name: '아이템' },
+  { id: 'events', name: '이벤트' },
   { id: 'scenarios', name: '시나리오' },
   { id: 'relations', name: '관계도' },
 ];

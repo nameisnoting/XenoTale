@@ -17,7 +17,24 @@ export function ActionValueEditor({
   const [formulaMode, setFormula] = useState(() => !/^-?\d+(?:\.\d+)?$/.test(step.value));
   const formula = formulaMode || !/^-?\d+(?:\.\d+)?$/.test(step.value);
   if (['background', 'effect'].includes(step.kind)) return null;
-  if (step.kind === 'music' || step.kind === 'text')
+  const choice =
+    step.kind === 'text'
+      ? work.statuses.find((s) => s.id === step.target && s.type === 'choice')
+      : undefined;
+  if (choice)
+    return (
+      <Field label="저장할 선택지">
+        <Select
+          value={step.value}
+          onChange={onChange}
+          options={[
+            { value: '', label: '선택하세요' },
+            ...choice.options.map((value) => ({ value, label: value })),
+          ]}
+        />
+      </Field>
+    );
+  if (['music', 'text', 'relation', 'inner-relation'].includes(step.kind))
     return (
       <Field label={step.kind === 'music' ? '음악 HTTPS 주소 (비우면 끄기)' : '저장할 내용'}>
         <TextInput value={step.value} onChange={onChange} />

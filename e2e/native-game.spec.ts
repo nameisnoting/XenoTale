@@ -1,3 +1,4 @@
+import { creatorSection } from './helpers/creator';
 import { test, expect, type Page } from '@playwright/test';
 
 async function start(page: Page, width: number) {
@@ -19,12 +20,8 @@ async function start(page: Page, width: number) {
   await nav.getByRole(role, { name: '도입부', exact: false }).click();
   await page.getByRole('textbox', { name: /^내용/ }).fill('캐릭터를 만들고 모험을 시작하세요.');
   await nav.getByRole('button', { name: '고급설정', exact: true }).click();
-  await nav.getByRole(role, { name: '상태값', exact: true }).click();
-  await page
-    .locator('.creator-sticky-tabs')
-    .getByRole('tab', { name: '세부규칙', exact: true })
-    .click();
-  const add = page.getByRole('button', { name: '규칙 추가', exact: true });
+  await creatorSection(page, width, '세부규칙');
+  const add = page.getByRole('button', { name: '이벤트 추가', exact: true });
   const help = page.locator('details.rule-help');
   const a = (await add.boundingBox())!,
     b = (await help.boundingBox())!;
@@ -41,11 +38,11 @@ test('수동연출의 규칙 버튼 삽입·격리 실행·연속 실행·결과
   const { nav, role } = await start(page, 1440);
   await nav.getByRole(role, { name: '도입부', exact: false }).click();
   await page.getByRole('textbox', { name: /^내용/ }).fill('{{종족 선택}}');
-  await nav.getByRole(role, { name: '연출', exact: true }).click();
+  await creatorSection(page, 1440, '연출');
   await page.getByRole('tab', { name: '수동연출', exact: true }).click();
   await page.getByRole('button', { name: '연출 추가', exact: true }).click();
   await page.getByRole('textbox', { name: '이름', exact: true }).fill('종족 선택');
-  await page.getByRole('combobox', { name: '규칙 실행 버튼 넣기', exact: true }).click();
+  await page.getByRole('combobox', { name: '이벤트 실행 버튼 넣기', exact: true }).click();
   await page.getByRole('option', { name: '엘프', exact: true }).click();
   const code = page.getByRole('textbox', { name: '코드 입력', exact: true });
   const inserted = await code.inputValue();

@@ -1,246 +1,45 @@
-import type { WorkAction } from '../../domain/actions';
-import { id } from '../../domain/types';
-import { Field, TextInput, Area } from '../../components/UI';
-import { RadioOptions } from '../../components/DesignControls';
-import { Select } from '../../components/Select';
-import { DisclosureCard } from '../../components/DisclosureCard';
+import { useState } from 'react';
+import { newEvent } from '../../domain/events';
+import { EventEditor } from './EventEditor';
+import type { EventLibrary } from './EventParts';
 import { AddButton } from '../../components/AddButton';
-import { DeleteAction } from '../../components/DeleteAction';
-import { ActionValueEditor } from './ActionValueEditor';
-import { ConditionEditor } from './ConditionEditor';
+import { DisclosureCard } from '../../components/DisclosureCard';
+import { Field, Area } from '../../components/UI';
 import type { CreatorPanelState } from './useCreatorPanelState';
 
 export function ActionsSection({
   work,
   update,
   notify,
-}: Pick<CreatorPanelState, 'work' | 'update' | 'notify'>) {
-  const actions = work.actions ?? [];
-  const change = (i: number, patch: Partial<WorkAction>) =>
-    update({ actions: actions.map((a, j) => (j === i ? { ...a, ...patch } : a)) });
+  onSectionSelect,
+  onOpenLibrary,
+}: Pick<CreatorPanelState, 'work' | 'update' | 'notify' | 'onSectionSelect'> & {
+  onOpenLibrary: (tab: EventLibrary) => void;
+}) {
+  const [created, setCreated] = useState('');
   return (
     <>
       <p className="muted">
-        상태값의 변경 조건을 상세하게 규정합니다. 규정하지 않으면 프롬프트에 따라 AI가 직접 증감을
-        판단합니다.
+        이벤트에 이름을 붙이고 시작 시점, 조건, 실행할 작업을 조립합니다. 상태값·아이템·연출은 작품
+        전체에서 공유하며 시나리오·관계도의 조건도 같은 데이터로 연결됩니다.
       </p>
-      {actions.map((action, i) => (
-        <DisclosureCard
+      {(work.actions ?? []).map((action, index) => (
+        <EventEditor
           key={action.id}
-          expanded
-          className="creator-card"
-          title={`{{${action.name || `규칙${i + 1}`}}}`}
-          actions={
-            <DeleteAction
-              title="규칙 삭제"
-              name={action.name}
-              needsConfirmation={!!action.steps.length || !!action.conditions.length}
-              onDelete={() => {
-                if (
-                  work.statusPanels?.some((p) =>
-                    p.blocks?.some((b) =>
-                      b.buttons.some((button) => button.actionId === action.id),
-                    ),
-                  ) ||
-                  work.effects.some((e) => e.actionIds?.includes(action.id))
-                ) {
-                  notify(
-                    '게임 화면 또는 연출에서 사용하는 규칙입니다. 버튼 연결을 먼저 해제해 주세요.',
-                  );
-                  return;
-                }
-                update({ actions: actions.filter((a) => a.id !== action.id) });
-              }}
-            />
-          }
-        >
-          <Field label="규칙 이름">
-            <TextInput value={action.name} onChange={(name) => change(i, { name })} />
-          </Field>
-          <Field label="언제">
-            <Select
-              label="규칙 실행 시점"
-              value={action.trigger}
-              onChange={(trigger) => change(i, { trigger: trigger as WorkAction['trigger'] })}
-              options={[
-                { value: 'button', label: '플레이어가 버튼을 누르면' },
-                { value: 'after-response', label: 'AI 응답이 완료되면' },
-              ]}
-            />
-          </Field>
-          {action.trigger === 'button' && (
-            <Field label="기본 실행 버튼">
-              <RadioOptions
-                value={action.buttonLocation === 'screen' ? '화면 안에서 연결' : '입력창 위에 표시'}
-                values={['입력창 위에 표시', '화면 안에서 연결']}
-                onChange={(value) =>
-                  change(i, {
-                    buttonLocation: value === '화면 안에서 연결' ? 'screen' : 'composer',
-                  })
-                }
-              />
-              <p className="muted rule-button-hint">
-                {action.buttonLocation === 'screen'
-                  ? '상태창의 게임 화면에서 버튼에 이 규칙을 연결하세요. 코드 연출에서는 XenoTale.action(규칙 ID)로 실행할 수 있습니다.'
-                  : `대화 입력창 위에 ‘${action.name || '규칙'}’ 버튼이 자동으로 표시됩니다.`}
-                버튼을 누르면 아래 조건을 확인한 뒤 작업을 실행합니다. 대화 테스트에서도 사용할 수
-                있습니다.
-              </p>
-            </Field>
-          )}
-          <Field label="실행 조건">
-            <Select
-              label="규칙 조건 결합"
-              value={action.mode}
-              onChange={(mode) => change(i, { mode: mode as 'all' | 'any' })}
-              options={[
-                { value: 'all', label: '조건을 모두 충족' },
-                { value: 'any', label: '하나 이상 충족' },
-              ]}
-            />
-          </Field>
-          {action.conditions.map((condition, c) => (
-            <ConditionEditor
-              key={condition.id}
-              value={condition}
-              work={work}
-              onChange={(value) =>
-                change(i, { conditions: action.conditions.map((x, j) => (j === c ? value : x)) })
-              }
-              onDelete={() =>
-                change(i, { conditions: action.conditions.filter((x) => x.id !== condition.id) })
-              }
-            />
-          ))}
-          <AddButton
-            onClick={() =>
-              change(i, {
-                conditions: [
-                  ...action.conditions,
-                  { id: id(), kind: 'number', ref: '', op: 'gte', value: 0 },
-                ],
-              })
-            }
-          >
-            조건 추가
-          </AddButton>
-          <h3>실행할 작업</h3>
-          {action.steps.map((step, s) => {
-            const patch = (value: Partial<typeof step>) =>
-              change(i, { steps: action.steps.map((x, j) => (j === s ? { ...x, ...value } : x)) });
-            const refs =
-              step.kind === 'effect'
-                ? work.effects
-                : ['gain', 'consume'].includes(step.kind)
-                  ? work.items
-                  : step.kind === 'background'
-                    ? (work.media.assets ?? [])
-                    : work.statuses.filter((x) =>
-                        step.kind === 'text' ? x.type !== 'number' : x.type === 'number',
-                      );
-            return (
-              <DisclosureCard
-                title={`작업 ${s + 1}`}
-                className="creator-card"
-                expanded
-                key={s}
-                actions={
-                  <DeleteAction
-                    title="작업 삭제"
-                    needsConfirmation={false}
-                    onDelete={() => change(i, { steps: action.steps.filter((_, j) => j !== s) })}
-                  />
-                }
-              >
-                <Field label={`작업 ${s + 1}`}>
-                  <Select
-                    label="작업 종류"
-                    value={step.kind}
-                    onChange={(kind) =>
-                      patch({
-                        kind: kind as typeof step.kind,
-                        target: '',
-                        value: ['gain', 'consume'].includes(kind)
-                          ? '1'
-                          : kind === 'text' || kind === 'music' || kind === 'background'
-                            ? ''
-                            : '0',
-                      })
-                    }
-                    options={[
-                      { value: 'add', label: '숫자 상태 증감' },
-                      { value: 'set', label: '숫자 상태 설정' },
-                      { value: 'text', label: '문자·객관식 상태 설정' },
-                      { value: 'gain', label: '아이템 획득' },
-                      { value: 'consume', label: '아이템 소비' },
-                      { value: 'background', label: '배경 이미지 변경' },
-                      { value: 'music', label: '음악 변경' },
-                      { value: 'effect', label: '연출 보기 버튼 추가' },
-                    ]}
-                  />
-                </Field>
-                {step.kind !== 'music' && (
-                  <Field label="대상">
-                    <Select
-                      label="작업 대상"
-                      value={step.kind === 'background' ? step.value : step.target}
-                      onChange={(target) =>
-                        patch(step.kind === 'background' ? { value: target } : { target })
-                      }
-                      options={[
-                        { value: '', label: '선택하세요' },
-                        ...refs.map((x) => ({ value: x.id, label: x.name })),
-                      ]}
-                    />
-                  </Field>
-                )}
-                <ActionValueEditor
-                  key={step.kind}
-                  step={step}
-                  work={work}
-                  onChange={(value) => patch({ value })}
-                />
-              </DisclosureCard>
-            );
-          })}
-          <AddButton
-            onClick={() =>
-              change(i, {
-                steps: [
-                  ...action.steps,
-                  {
-                    kind: 'add',
-                    target: work.statuses.find((s) => s.type === 'number')?.id ?? '',
-                    value: '0',
-                  },
-                ],
-              })
-            }
-          >
-            작업 추가
-          </AddButton>
-        </DisclosureCard>
+          {...{ work, action, update, notify }}
+          expanded={index === 0 || action.id === created}
+          onLibrary={onOpenLibrary}
+          onNavigate={onSectionSelect}
+        />
       ))}
       <AddButton
         onClick={() => {
-          let number = 1;
-          while (actions.some((action) => action.name === `규칙${number}`)) number++;
-          update({
-            actions: [
-              ...actions,
-              {
-                id: id(),
-                name: `규칙${number}`,
-                trigger: 'button',
-                mode: 'all',
-                conditions: [],
-                steps: [],
-              },
-            ],
-          });
+          const action = newEvent(work.actions);
+          update({ actions: [...(work.actions ?? []), action] });
+          setCreated(action.id);
         }}
       >
-        규칙 추가
+        이벤트 추가
       </AddButton>
       <DisclosureCard className="rule-help" title="계산식 도움말">
         <p className="muted">

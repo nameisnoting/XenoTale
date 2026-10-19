@@ -166,6 +166,17 @@ export function ScenarioSection({
                 }
                 onDelete={() => {
                   update({
+                    actions: work.actions?.map((a) =>
+                      a.workspace?.chapters?.includes(c.id)
+                        ? {
+                            ...a,
+                            workspace: {
+                              ...a.workspace,
+                              chapters: a.workspace.chapters.filter((key) => key !== c.id),
+                            },
+                          }
+                        : a,
+                    ),
                     chapters: work.chapters
                       .filter((x) => x.id !== c.id)
                       .map((x) => (x.from === c.id ? { ...x, from: c.from } : x)),

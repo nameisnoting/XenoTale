@@ -87,7 +87,7 @@ function GamePanel({
                       }
                     }}
                   >
-                    {button.label || action?.name || '규칙 실행'}
+                    {button.label || action?.name || '이벤트 실행'}
                   </Button>
                 );
               })}

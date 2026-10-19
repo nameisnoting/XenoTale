@@ -30,7 +30,7 @@ export function GameBlocksEditor({
     <div className="game-block-editor">
       <h3>게임 화면 · 버튼 연결</h3>
       <p className="muted">
-        영역마다 표시 조건을 정하고 버튼에 세부규칙을 연결합니다. 선택 표시와 단계 전환은 같은
+        영역마다 표시 조건을 정하고 버튼에 이벤트를 연결합니다. 선택 표시와 단계 전환은 같은
         상태값을 사용합니다.
       </p>
       {blocks.map((block, i) => (
@@ -119,9 +119,9 @@ export function GameBlocksEditor({
                   }
                 />
               </Field>
-              <Field label="실행할 규칙">
+              <Field label="실행할 이벤트">
                 <Select
-                  label="버튼에 연결할 규칙"
+                  label="버튼에 연결할 이벤트"
                   value={button.actionId}
                   onChange={(actionId) =>
                     patch(i, {
@@ -129,10 +129,10 @@ export function GameBlocksEditor({
                     })
                   }
                   options={[
-                    { value: '', label: '규칙 선택' },
+                    { value: '', label: '이벤트 선택' },
                     ...(work.actions ?? [])
                       .filter((a) => a.trigger === 'button')
-                      .map((a) => ({ value: a.id, label: a.name || '이름 없는 규칙' })),
+                      .map((a) => ({ value: a.id, label: a.name || '이름 없는 이벤트' })),
                   ]}
                 />
               </Field>

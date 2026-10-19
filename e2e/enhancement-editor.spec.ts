@@ -1,17 +1,5 @@
-import { test, expect, type Page } from '@playwright/test';
-
-async function section(page: Page, width: number, name: string) {
-  const nav = page.locator(width < 800 ? '.editor-mobile-stages' : '.editor-nav');
-  if (
-    (await nav.count()) &&
-    !(await nav.getByRole(width < 800 ? 'tab' : 'button', { name, exact: false }).count())
-  )
-    await nav.getByRole('button', { name: '고급설정', exact: false }).click();
-
-  if (width < 800)
-    await page.locator('.editor-mobile-stages').getByRole('tab', { name, exact: false }).click();
-  else await page.locator('.editor-nav').getByRole('button', { name, exact: false }).click();
-}
+import { creatorSection as section } from './helpers/creator';
+import { test, expect } from '@playwright/test';
 
 for (const width of [1440, 393]) {
   test(`compact enhancement rates, percentage bounds and failure ratio guidance (${width})`, async ({
@@ -27,7 +15,7 @@ for (const width of [1440, 393]) {
       .getByRole('button', { name: width < 800 ? '만들기' : '작품 만들기', exact: true })
       .click();
     await expect(page).toHaveURL(/#\/create\/[^/]+$/);
-    await section(page, width, '상태창');
+    await section(page, width, '상태값');
     for (const name of ['골드', '공격력']) {
       await page.getByRole('button', { name: '상태값 추가', exact: true }).click();
       await page.getByRole('textbox', { name: '이름', exact: true }).last().fill(name);

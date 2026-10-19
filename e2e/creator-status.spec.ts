@@ -1,3 +1,4 @@
+import { creatorSection } from './helpers/creator';
 import { test, expect } from '@playwright/test';
 
 for (const width of [1440, 393]) {
@@ -11,16 +12,7 @@ for (const width of [1440, 393]) {
     await page
       .getByRole('button', { name: width < 800 ? '만들기' : '작품 만들기', exact: true })
       .click();
-    const section = async (name = '상태값') => {
-      const nav = page.locator(width < 800 ? '.editor-mobile-stages' : '.editor-nav');
-      const target = nav.getByRole(width < 800 ? 'tab' : 'button', {
-        name,
-        exact: true,
-      });
-      if (!(await target.isVisible()))
-        await nav.getByRole('button', { name: '고급설정', exact: false }).click();
-      await target.click();
-    };
+    const section = async (name = '상태값') => creatorSection(page, width, name);
     await section();
     const tab = async (name: string) => {
       await section(name === '상태값' ? '상태값' : '상태값');

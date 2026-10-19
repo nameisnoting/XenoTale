@@ -1,7 +1,7 @@
 import { GameBlocksEditor } from './GameBlocksEditor';
 import { GamePanels } from '../../components/GamePanels';
 import { addCharacterSetup } from '../../domain/gamePanels';
-import { applyAction } from '../../domain/actions';
+import { runAction } from '../../domain/actions';
 import type { Runtime } from '../../domain/types';
 import { useState } from 'react';
 import { Eye } from 'lucide-react';
@@ -171,7 +171,7 @@ function StatusPanelEditor({
             panelId={panel.id}
             onAction={(actionId) => {
               const action = preview.actions?.find((a) => a.id === actionId);
-              if (action) setPreviewRuntime(applyAction(preview, previewRuntime, action));
+              if (action) setPreviewRuntime(runAction(preview, previewRuntime, action).state);
             }}
           />
           <StatusDisplay

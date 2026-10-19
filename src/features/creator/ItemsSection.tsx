@@ -30,8 +30,24 @@ export function ItemsSection({
               name={item.name}
               needsConfirmation={requiresDeleteConfirmation('item', item)}
               onDelete={() => {
-                if (work.chapters.some((c) => c.conditions.some((k) => k.ref === item.id))) {
-                  notify('챕터 조건의 참조를 먼저 해제해 주세요.');
+                if (
+                  work.chapters.some((c) => c.conditions.some((k) => k.ref === item.id)) ||
+                  work.innerUnlock?.conditions.some((c) => c.ref === item.id) ||
+                  work.actions?.some(
+                    (a) =>
+                      a.triggerRef === item.id ||
+                      a.conditions.some((c) => c.ref === item.id) ||
+                      a.steps.some(
+                        (s) => ['gain', 'consume'].includes(s.kind) && s.target === item.id,
+                      ),
+                  ) ||
+                  work.statusPanels?.some((p) =>
+                    p.blocks?.some((b) => b.conditions.some((c) => c.ref === item.id)),
+                  )
+                ) {
+                  notify(
+                    '이벤트·시나리오·관계도·게임 화면에서 사용 중입니다. 연결을 먼저 해제해 주세요.',
+                  );
                   return;
                 }
                 update({ items: work.items.filter((x) => x.id !== item.id) });

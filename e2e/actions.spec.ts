@@ -1,3 +1,4 @@
+import { creatorSection } from './helpers/creator';
 import { test, expect } from '@playwright/test';
 for (const width of [1440, 393])
   test(`행동 편집·수량 소비·회복·저장 복원 ${width}`, async ({ page }) => {
@@ -78,9 +79,8 @@ for (const width of [1440, 393])
     await page.getByRole('button', { name: '작업 공간으로 불러오기', exact: true }).click();
     const nav = page.locator(width < 800 ? '.editor-mobile-stages' : '.editor-nav');
     await nav.getByRole('button', { name: '고급설정', exact: false }).click();
-    await nav.getByRole(width < 800 ? 'tab' : 'button', { name: '상태값', exact: true }).click();
-    await page.getByRole('tab', { name: '세부규칙', exact: true }).click();
-    await expect(page.getByRole('textbox', { name: '규칙 이름', exact: true })).toHaveValue(
+    await creatorSection(page, width, '세부규칙');
+    await expect(page.getByRole('textbox', { name: '이벤트 이름', exact: true })).toHaveValue(
       '회복약 사용',
     );
     await page.getByRole('spinbutton', { name: '변경할 값', exact: true }).fill('25');
