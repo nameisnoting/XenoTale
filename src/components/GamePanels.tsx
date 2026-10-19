@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Check } from 'lucide-react';
 import type { Work, Runtime, StatusPanel } from '../domain/types';
 import { conditionsMet } from '../domain/conditions';
 import { actionAvailable } from '../domain/actions';
@@ -62,10 +63,11 @@ function GamePanel({
                 const action = work.actions?.find(
                   (a) => a.id === button.actionId && a.trigger === 'button',
                 );
+                const selected = action ? actionSelected(action, runtime) : false;
                 return (
                   <Button
                     key={button.id}
-                    aria-pressed={action ? actionSelected(action, runtime) : false}
+                    aria-pressed={selected}
                     disabled={
                       !onAction ||
                       busy ||
@@ -86,7 +88,10 @@ function GamePanel({
                       }
                     }}
                   >
-                    {button.label || action?.name || '규칙 실행'}
+                    <span>{button.label || action?.name || '규칙 실행'}</span>
+                    {selected && (
+                      <Check className="game-button-check" size={16} aria-hidden="true" />
+                    )}
                   </Button>
                 );
               })}
