@@ -67,7 +67,7 @@ test('제작 자동저장 · 작업내역 · 시점 · 작품 반영', async ({ 
   await page.screenshot({ path: 'test-results/editor-desktop.png', fullPage: true });
   await page.getByRole('button', { name: '대화방 UI', exact: false }).click();
   await page.getByRole('button', { name: '유효성 검사', exact: true }).click();
-  await expect(page.locator('.code-validation')).toContainText('검사 통과');
+  await expect(page.locator('.code-validation')).toContainText('검사 완료');
   await page.getByRole('button', { name: '제작완료', exact: true }).click();
   await expect(page.getByRole('status').filter({ hasText: '작품 v1' })).toBeVisible();
   await page.getByRole('button', { name: '메인으로', exact: true }).click();

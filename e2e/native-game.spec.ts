@@ -55,7 +55,7 @@ test('수동연출의 규칙 버튼 삽입·격리 실행·연속 실행·결과
       `<p id="clicks">0</p><button id="finish">확정</button><script>{let clicks=0;document.querySelector('button').addEventListener('click',()=>document.getElementById('clicks').textContent=String(++clicks));document.getElementById('finish').onclick=()=>XenoTale.complete({summary:'엘프 선택 완료'});}</script>`,
   );
   await page.getByRole('button', { name: '유효성 검사', exact: true }).click();
-  await expect(page.locator('.code-validation')).toContainText('검사 통과');
+  await expect(page.locator('.code-validation')).toContainText('검사 완료');
   await page.getByRole('button', { name: '미리보기', exact: true }).click();
   const previewFrame = page.frameLocator('iframe.effect-frame');
   await previewFrame.getByRole('button', { name: '엘프', exact: true }).click();

@@ -29,14 +29,28 @@ export function CodeValidationButton({
     };
   }, []);
   latest.current = { code, resources, onValidated };
-  const [pending, setPending] = useState(false),
+  const [pendingSource, setPendingSource] = useState<string | null>(null),
     [errors, setErrors] = useState<string[]>([]);
   const [checkedSource, setCheckedSource] = useState('');
+  const source = codeApproval(code, resources).fingerprint;
+  const hasCode = !!code.trim();
+  const pending = pendingSource !== null;
+  const checking = pendingSource === source;
   const checked = codeChecked(code, validation, resources);
+  const invalid = hasCode && !checking && !checked && checkedSource === source && errors.length > 0;
+  const status = !hasCode
+    ? '코드 없음'
+    : checking
+      ? '검사 중…'
+      : checked
+        ? '검사 완료'
+        : invalid
+          ? '유효하지 않음'
+          : '검사 필요';
   const inspect = async () => {
-    setPending(true);
+    if (!hasCode || pending) return;
+    setPendingSource(source);
     setErrors([]);
-    const source = codeApproval(code, resources).fingerprint;
     if (validation) onValidated(undefined);
     try {
       const problems = await inspectCode(code, kind, work, resources);
@@ -48,22 +62,27 @@ export function CodeValidationButton({
       if (!problems.length) latest.current.onValidated(codeApproval(code, resources));
     } catch (error) {
       if (!mounted.current) return;
+      if (source !== codeApproval(latest.current.code, latest.current.resources).fingerprint)
+        return;
       setCheckedSource(source);
       setErrors([error instanceof Error ? error.message : '검사에 실패했습니다.']);
     } finally {
-      if (mounted.current) setPending(false);
+      if (mounted.current) setPendingSource(null);
     }
   };
   return (
     <div className="code-validation">
-      <Button disabled={pending} onClick={() => void inspect()}>
+      <Button disabled={!hasCode || pending} onClick={() => void inspect()}>
         <ShieldCheck size={15} />
-        {pending ? '검사 중…' : '유효성 검사'}
+        유효성 검사
       </Button>
-      <span className={checked ? 'code-validation-pass' : 'muted'} role="status">
-        {checked ? '검사 통과' : !pending ? '검사 필요' : ''}
+      <span
+        className={invalid ? 'danger-text' : checked && hasCode ? 'code-validation-pass' : 'muted'}
+        role="status"
+      >
+        {status}
       </span>
-      {checkedSource === codeApproval(code, resources).fingerprint && errors.length > 0 && (
+      {invalid && (
         <ul className="danger-text" role="alert">
           {errors.map((error) => (
             <li key={error}>{error}</li>

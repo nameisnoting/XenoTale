@@ -105,7 +105,7 @@ for (const width of [1440, 393]) {
     await expect(publish).toBeDisabled();
     await section('대화방 UI');
     await page.getByRole('button', { name: '유효성 검사', exact: true }).click();
-    await expect(page.locator('.code-validation')).toContainText('검사 통과');
+    await expect(page.locator('.code-validation')).toContainText('검사 완료');
     await expect(publish).toBeEnabled();
     expect(await publish.evaluate((e) => getComputedStyle(e).fontWeight)).toBe('700');
     await section('작품 개요');

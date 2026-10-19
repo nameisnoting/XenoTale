@@ -370,6 +370,9 @@
 .code-validation > [role='status'] {
   white-space: nowrap;
 }
+.code-validation-pass {
+  color: var(--pneuma-emerald);
+}
 .code-validation > [role='alert'] {
   flex-basis: 100%;
   margin: 0;
