@@ -1,6 +1,7 @@
 import type { CreatorMessage } from './creatorAssistant';
 import type { WorkAction } from './actions';
 import type { RisuConfig, RisuState } from '../engine/risu/types';
+import type { GameBlock } from './gamePanels';
 export type ChatUiType = 'novel' | 'visual-novel';
 export type CodeValidation = { fingerprint: string; policy: number };
 export type Presentation = {
@@ -73,6 +74,7 @@ export type StatusPanel = {
   // Omitted means all statuses, including ones added later. Values remain in Runtime.status.
   statusIds?: string[];
   template: string;
+  blocks?: GameBlock[];
 };
 export type Relation = { id: string; from: string; to: string; label: string; innerLabel?: string };
 export type Item = {
@@ -169,6 +171,7 @@ export type Work = {
     resources?: string[];
     validation?: CodeValidation;
     mode?: 'manual' | 'auto';
+    actionIds?: string[];
   }[];
   displayRules?: {
     id: string;
@@ -315,6 +318,7 @@ export type LocalEvent = {
   id: string;
   kind: 'chapter' | 'enhance' | 'effect' | 'action';
   effectResult?: EffectRecord;
+  effectOrigin?: { effectId: string; source: EffectSource };
   body: string;
   before: Checkpoint;
   after: Checkpoint;

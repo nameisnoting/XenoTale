@@ -1,3 +1,5 @@
+import { applyAction } from '../domain/actions';
+import { initialState } from '../domain/engine';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
@@ -20,6 +22,7 @@ export function EffectPlayer({
   work,
   autoClose = false,
   onPresentation,
+  onAction,
 }: {
   effect: Effect;
   context?: {
@@ -33,6 +36,9 @@ export function EffectPlayer({
   work?: Work;
   autoClose?: boolean;
   onPresentation?: (presentation: Presentation) => void;
+  onAction?: (
+    id: string,
+  ) => Promise<{ status: Runtime['status']; inventory: Runtime['inventory']; nodeId: string }>;
   onResult?: (result: EffectResult, presentation?: Presentation) => Promise<unknown>;
   onClose: () => void;
 }) {
@@ -44,8 +50,9 @@ export function EffectPlayer({
   const completed = useRef(false);
   const screenTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const presentation = useRef<Presentation>({});
-  const callbacks = useRef({ onResult, onClose, context, readOnly, onPresentation });
-  callbacks.current = { onResult, onClose, context, readOnly, onPresentation };
+  const previewRuntime = useRef<Runtime | null>(null);
+  const callbacks = useRef({ onResult, onClose, context, readOnly, onPresentation, onAction });
+  callbacks.current = { onResult, onClose, context, readOnly, onPresentation, onAction };
   const [message, setMessage] = useState(readOnly ? '다시 보기 · 결과는 변경되지 않습니다.' : '');
   const [pending, setPending] = useState(false);
   const runId = useMemo(() => crypto.randomUUID(), []);
@@ -116,7 +123,50 @@ export function EffectPlayer({
         channel.port1.postMessage({ requestId: data.requestId, ok, result, error });
       try {
         if (JSON.stringify(data).length > 16000) throw new Error('연출 결과가 너무 큽니다.');
-        if (data.type === 'presentation') {
+        if (data.type === 'action') {
+          if (
+            saving.current ||
+            completed.current ||
+            callbacks.current.readOnly ||
+            !work ||
+            typeof data.payload !== 'string' ||
+            !effect.actionIds?.includes(data.payload)
+          )
+            throw new Error('이 연출에서 실행할 수 없는 규칙입니다.');
+          if (!preview && !codeChecked(effect.content, effect.validation, effect.resources))
+            throw new Error('유효성 검사를 통과한 연출에서 사용할 수 있습니다.');
+          saving.current = true;
+          setPending(true);
+          try {
+            let next;
+            if (preview) {
+              const action = work.actions?.find(
+                (a) => a.id === data.payload && a.trigger === 'button',
+              );
+              if (!action) throw new Error('연결한 규칙을 찾을 수 없습니다.');
+              previewRuntime.current ??= {
+                ...initialState(work, work.openings[0].id),
+                status: {
+                  ...(callbacks.current.context?.status ??
+                    initialState(work, work.openings[0].id).status),
+                },
+                inventory: {
+                  ...(callbacks.current.context?.inventory ??
+                    initialState(work, work.openings[0].id).inventory),
+                },
+              };
+              previewRuntime.current = applyAction(work, previewRuntime.current, action);
+              next = previewRuntime.current;
+            } else {
+              if (!callbacks.current.onAction) throw new Error('규칙을 실행할 수 없습니다.');
+              next = await callbacks.current.onAction(data.payload);
+            }
+            reply(true, { status: next.status, inventory: next.inventory, nodeId: next.nodeId });
+          } finally {
+            saving.current = false;
+            setPending(false);
+          }
+        } else if (data.type === 'presentation') {
           if (
             !work ||
             (!preview && !codeChecked(effect.content, effect.validation, effect.resources))

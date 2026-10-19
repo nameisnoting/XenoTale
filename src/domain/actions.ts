@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import type { Work, Runtime, Room, Condition } from './types';
+import type { Work, Runtime, Room, Condition, EffectSource } from './types';
+import { canCompleteEffect } from './effects';
 import { clone, id } from './types';
 import { conditionsMet } from './conditions';
 
@@ -8,6 +9,7 @@ export const actionSchema = z.object({
   id: key,
   name: z.string().max(1000),
   trigger: z.enum(['button', 'after-response']),
+  buttonLocation: z.enum(['composer', 'screen']).optional(),
   mode: z.enum(['all', 'any']),
   conditions: z
     .array(
@@ -163,7 +165,17 @@ export function applyAction(work: Work, state: Runtime, action: WorkAction): Run
   }
   return next;
 }
-export function executeAction(room: Room, actionId: string) {
+export function executeAction(
+  room: Room,
+  actionId: string,
+  effectOrigin?: { effectId: string; source: EffectSource },
+) {
+  if (
+    effectOrigin &&
+    (!canCompleteEffect(room, effectOrigin.effectId, effectOrigin.source) ||
+      !room.work.effects.find((e) => e.id === effectOrigin.effectId)?.actionIds?.includes(actionId))
+  )
+    throw new Error('이 연출에서 실행할 수 없는 규칙이거나 이전 장면입니다.');
   const action = room.work.actions?.find((a) => a.id === actionId);
   if (!action || action.trigger !== 'button') throw new Error('실행할 행동을 찾을 수 없습니다.');
   const next = clone(room),
@@ -176,6 +188,7 @@ export function executeAction(room: Room, actionId: string) {
   next.timeline.push({
     id: id(),
     kind: 'action',
+    ...(effectOrigin ? { effectOrigin: clone(effectOrigin) } : {}),
     body,
     before,
     after: clone(next.current),

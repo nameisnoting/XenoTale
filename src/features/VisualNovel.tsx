@@ -16,6 +16,7 @@ import { latestNovelStart, visualNovelPages, type NovelPage } from '../domain/vi
 import { mediaImage } from '../domain/visualNovel';
 import { recordedEffect } from '../domain/effects';
 import { IconButton, safeUrl, Button } from '../components/UI';
+import { GamePanels } from '../components/GamePanels';
 import { StatusDisplay } from '../components/DesignControls';
 import { StoryBody, type EffectRequest } from './StoryBody';
 import './VisualNovel.css';
@@ -36,6 +37,7 @@ export function VisualNovel({
   jump,
   background,
   onHideUI,
+  onAction,
 }: {
   room: Room;
   busy: boolean;
@@ -52,6 +54,7 @@ export function VisualNovel({
   jump?: { eventId: string; nonce: number };
   background?: string;
   onHideUI: () => void;
+  onAction?: (id: string) => Promise<unknown>;
 }) {
   const pages = useMemo(
     () => visualNovelPages(room, candidate),
@@ -307,6 +310,12 @@ export function VisualNovel({
               <X size={24} />
             </IconButton>
             <div className="visual-novel-status-content" onClick={(e) => e.stopPropagation()}>
+              <GamePanels
+                work={room.work}
+                runtime={room.current.runtime}
+                busy={busy}
+                onAction={onAction}
+              />
               <StatusDisplay
                 work={room.work}
                 runtime={page?.checkpoint.runtime ?? room.current.runtime}

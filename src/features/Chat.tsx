@@ -75,6 +75,7 @@ import { CollapsedPanel, PanelHeader } from '../components/Headers';
 import { ChatShortcuts } from './ChatShortcuts';
 import { ChatUsage } from './ChatUsage';
 import { exportBackup } from '../persistence/files';
+import { GamePanels } from '../components/GamePanels';
 import { StatusDisplay } from '../components/DesignControls';
 import { StoryBody, type EffectRequest } from './StoryBody';
 import { EffectPlayer } from '../components/EffectPlayer';
@@ -122,6 +123,23 @@ export function ChatContent({
   } = useChatSession({ persistedRoom, profile, resolveModel, apiKey, preview });
   const [scriptBusy, setScriptBusy] = useState(false);
   const busy = requestBusy || scriptBusy;
+  const nativeActionLock = useRef(false);
+  const playAction = async (actionId: string, origin?: Parameters<typeof executeAction>[2]) => {
+    if (
+      busy ||
+      nativeActionLock.current ||
+      (room.current.runtime.ending && !room.current.runtime.ending.allowAfterstory)
+    )
+      throw new Error('현재는 규칙을 실행할 수 없습니다.');
+    nativeActionLock.current = true;
+    setScriptBusy(true);
+    try {
+      return await mutate((r) => executeAction(r, actionId, origin));
+    } finally {
+      nativeActionLock.current = false;
+      setScriptBusy(false);
+    }
+  };
   const send = (...args: Parameters<typeof sendRequest>) =>
     scriptBusy ? Promise.resolve() : sendRequest(...args);
 
@@ -530,6 +548,7 @@ export function ChatContent({
                 onSuggestion={setInput}
                 onSwitch={() => switchUi('novel')}
                 onEffect={setEffect}
+                onAction={playAction}
                 onHideUI={() => {
                   composerRef.current?.blur();
                   setUiHidden(true);
@@ -622,6 +641,12 @@ export function ChatContent({
                     {mobile && !room.timeline.length && (
                       <WorkInfoPrompt onOpen={() => showMenu('info', true)} />
                     )}
+                    <GamePanels
+                      work={room.work}
+                      runtime={room.current.runtime}
+                      busy={busy || endingLocked}
+                      onAction={playAction}
+                    />
                     <StoryIntro title={op.name}>
                       <StoryBody
                         body={op.body}
@@ -812,7 +837,7 @@ export function ChatContent({
               <ActionButtons
                 room={room}
                 busy={busy || endingLocked}
-                onAction={(id) => run(mutate((r) => executeAction(r, id)))}
+                onAction={(id) => run(playAction(id))}
               />
               <ResizableComposer>
                 <MessageInput
@@ -1146,6 +1171,17 @@ export function ChatContent({
               status: room.current.runtime.status,
               inventory: room.current.runtime.inventory,
               nodeId: room.current.runtime.nodeId,
+            }}
+            onAction={async (actionId) => {
+              const next = (await playAction(actionId, {
+                effectId: effect.id,
+                source: effect.source,
+              })) as Room;
+              return {
+                status: next.current.runtime.status,
+                inventory: next.current.runtime.inventory,
+                nodeId: next.current.runtime.nodeId,
+              };
             }}
             readOnly={!canCompleteEffect(room, effect.id, effect.source)}
             autoClose={effect.autoPlay}

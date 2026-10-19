@@ -1,6 +1,7 @@
 import type { WorkAction } from '../../domain/actions';
 import { id } from '../../domain/types';
 import { Field, TextInput, Area } from '../../components/UI';
+import { RadioOptions } from '../../components/DesignControls';
 import { Select } from '../../components/Select';
 import { DisclosureCard } from '../../components/DisclosureCard';
 import { AddButton } from '../../components/AddButton';
@@ -9,7 +10,11 @@ import { ActionValueEditor } from './ActionValueEditor';
 import { ConditionEditor } from './ConditionEditor';
 import type { CreatorPanelState } from './useCreatorPanelState';
 
-export function ActionsSection({ work, update }: Pick<CreatorPanelState, 'work' | 'update'>) {
+export function ActionsSection({
+  work,
+  update,
+  notify,
+}: Pick<CreatorPanelState, 'work' | 'update' | 'notify'>) {
   const actions = work.actions ?? [];
   const change = (i: number, patch: Partial<WorkAction>) =>
     update({ actions: actions.map((a, j) => (j === i ? { ...a, ...patch } : a)) });
@@ -30,7 +35,22 @@ export function ActionsSection({ work, update }: Pick<CreatorPanelState, 'work' 
               title="규칙 삭제"
               name={action.name}
               needsConfirmation={!!action.steps.length || !!action.conditions.length}
-              onDelete={() => update({ actions: actions.filter((a) => a.id !== action.id) })}
+              onDelete={() => {
+                if (
+                  work.statusPanels?.some((p) =>
+                    p.blocks?.some((b) =>
+                      b.buttons.some((button) => button.actionId === action.id),
+                    ),
+                  ) ||
+                  work.effects.some((e) => e.actionIds?.includes(action.id))
+                ) {
+                  notify(
+                    '게임 화면 또는 연출에서 사용하는 규칙입니다. 버튼 연결을 먼저 해제해 주세요.',
+                  );
+                  return;
+                }
+                update({ actions: actions.filter((a) => a.id !== action.id) });
+              }}
             />
           }
         >
@@ -49,10 +69,24 @@ export function ActionsSection({ work, update }: Pick<CreatorPanelState, 'work' 
             />
           </Field>
           {action.trigger === 'button' && (
-            <p className="muted rule-button-hint">
-              대화 입력창 위에 ‘{action.name || '규칙'}’ 버튼이 자동으로 표시됩니다. 버튼을 누르면
-              아래 조건을 확인한 뒤 작업을 실행합니다. 대화 테스트에서도 사용할 수 있습니다.
-            </p>
+            <Field label="기본 실행 버튼">
+              <RadioOptions
+                value={action.buttonLocation === 'screen' ? '화면 안에서 연결' : '입력창 위에 표시'}
+                values={['입력창 위에 표시', '화면 안에서 연결']}
+                onChange={(value) =>
+                  change(i, {
+                    buttonLocation: value === '화면 안에서 연결' ? 'screen' : 'composer',
+                  })
+                }
+              />
+              <p className="muted rule-button-hint">
+                {action.buttonLocation === 'screen'
+                  ? '상태창의 게임 화면에서 버튼에 이 규칙을 연결하세요. 코드 연출에서는 XenoTale.action(규칙 ID)로 실행할 수 있습니다.'
+                  : `대화 입력창 위에 ‘${action.name || '규칙'}’ 버튼이 자동으로 표시됩니다.`}
+                버튼을 누르면 아래 조건을 확인한 뒤 작업을 실행합니다. 대화 테스트에서도 사용할 수
+                있습니다.
+              </p>
+            </Field>
           )}
           <Field label="실행 조건">
             <Select
@@ -208,7 +242,7 @@ export function ActionsSection({ work, update }: Pick<CreatorPanelState, 'work' 
       >
         규칙 추가
       </AddButton>
-      <DisclosureCard title="계산식 도움말">
+      <DisclosureCard className="rule-help" title="계산식 도움말">
         <p className="muted">
           계산식: + − * / %, 괄호, min·max·floor·ceil·abs를 사용할 수 있습니다. dice(1, 20)은 20면
           주사위 1개입니다. 작업은 위에서 아래로 실행합니다.

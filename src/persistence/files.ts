@@ -2,13 +2,14 @@ import { downloadPackage, readPackage } from './package';
 import { exposeAsset, type StoredAsset } from './assets';
 import { cleanWork, repairLegacyRisuLore } from '../domain/workContent';
 import { z } from 'zod';
+import { gameBlockSchema } from '../domain/gamePanels';
 import { actionSchema } from '../domain/actions';
 import { risuSchema } from '../engine/risu/schema';
 import { db } from './db';
 import type { Work, Room, Runtime, Workspace } from '../domain/types';
 import { clone, id } from '../domain/types';
 import { validateWork } from '../domain/engine';
-import { effectRecordSchema, canCompleteEffect } from '../domain/effects';
+import { effectRecordSchema, effectSourceSchema, canCompleteEffect } from '../domain/effects';
 import { presentationSchema } from '../domain/presentation';
 import { mergeNotes } from '../domain/notes';
 import { prepareCredential, readApiKey } from './credentials';
@@ -201,6 +202,7 @@ export const workSchema = z.object({
       name: short,
       prompt: str,
       content: str,
+      actionIds: arr(identifier).optional(),
       resources: resources.optional(),
       validation: validation.optional(),
       mode: z.enum(['manual', 'auto']).optional(),
@@ -226,7 +228,13 @@ export const workSchema = z.object({
   }),
   statusTemplate: str,
   statusPanels: arr(
-    z.object({ id: identifier, name: short, statusIds: arr(identifier).optional(), template: str }),
+    z.object({
+      id: identifier,
+      name: short,
+      statusIds: arr(identifier).optional(),
+      template: str,
+      blocks: z.array(gameBlockSchema).max(100).optional(),
+    }),
   ).optional(),
   characterGroups: arr(
     z.object({ defaultName: short.optional(), id: identifier, name: short, prompt: str }),
@@ -338,6 +346,7 @@ const event = z.union([
     risuEvent: z.boolean().optional(),
     risuChat: z.object({ role: z.string().max(20), data: str }).optional(),
     effectResult: effectRecordSchema.optional(),
+    effectOrigin: z.object({ effectId: identifier, source: effectSourceSchema }).optional(),
     body: str,
     before: checkpoint,
     after: checkpoint,

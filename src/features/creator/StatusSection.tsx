@@ -77,6 +77,9 @@ function StatusValuesEditor({
                   ) ||
                   work.chapters.some((c) => c.conditions.some((k) => k.ref === s.id)) ||
                   work.innerUnlock?.conditions.some((k) => k.ref === s.id) ||
+                  work.statusPanels?.some((p) =>
+                    p.blocks?.some((b) => b.conditions.some((c) => c.ref === s.id)),
+                  ) ||
                   work.actions?.some(
                     (a) =>
                       a.conditions.some((k) => k.ref === s.id) ||

@@ -49,6 +49,11 @@ export function effectDocument(content: string, runId: string, resources?: strin
       ready,
       get context() { return context; },
       complete: result => request('complete', result),
+      action: async actionId => {
+        const result = await request('action', actionId);
+        context = freeze({...context, ...result});
+        return context;
+      },
       close: async () => { await ready; port.postMessage({ type: 'close' }); },
       screen: (name, duration = 800) => request('screen', { name, duration })
       ,background: code => request('presentation', {background:code})

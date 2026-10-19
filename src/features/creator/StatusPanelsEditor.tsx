@@ -1,3 +1,8 @@
+import { GameBlocksEditor } from './GameBlocksEditor';
+import { GamePanels } from '../../components/GamePanels';
+import { addCharacterSetup } from '../../domain/gamePanels';
+import { applyAction } from '../../domain/actions';
+import type { Runtime } from '../../domain/types';
 import { useState } from 'react';
 import { Eye } from 'lucide-react';
 import { AddButton } from '../../components/AddButton';
@@ -24,6 +29,7 @@ export function StatusPanelsEditor({ work, update }: Pick<CreatorPanelState, 'wo
         전투·인물 정보처럼 상태창을 여러 개 만들 수 있습니다. 같은 상태값을 여러 창에 표시해도 값은
         하나로 유지됩니다.
       </p>
+      <Button onClick={() => update(addCharacterSetup(work))}>캐릭터 만들기 예시 추가</Button>
       {panels.map((panel) => (
         <StatusPanelEditor
           key={panel.id}
@@ -67,6 +73,7 @@ function StatusPanelEditor({
   onDelete: () => void;
 }) {
   const [preview, setPreview] = useState<Work | null>(null);
+  const [previewRuntime, setPreviewRuntime] = useState<Runtime | null>(null);
   const selected = panelStatuses(panel, work.statuses);
   const select = (statusIds: string[] | undefined) => {
     onChange({
@@ -87,7 +94,9 @@ function StatusPanelEditor({
         <DeleteAction
           title="상태창 삭제"
           name={panel.name}
-          needsConfirmation={!!panel.template.trim() || !!panel.statusIds?.length}
+          needsConfirmation={
+            !!panel.template.trim() || !!panel.statusIds?.length || !!panel.blocks?.length
+          }
           onDelete={onDelete}
           description="표시할 상태창만 삭제합니다. 상태값과 변경 규칙은 유지됩니다."
         />
@@ -136,23 +145,42 @@ function StatusPanelEditor({
           예시 html
         </Button>
       </div>
+      <GameBlocksEditor
+        work={work}
+        blocks={panel.blocks ?? []}
+        onChange={(blocks) => onChange({ blocks })}
+      />
       <Field label="문법 입력" hint="Markdown 또는 HTML. {{상태값 이름}}으로 현재 값을 표시합니다.">
         <Area value={panel.template} onChange={(template) => onChange({ template })} rows={7} />
       </Field>
       <Button
-        disabled={!panel.template.trim() && !selected.length}
-        onClick={() => setPreview(clone(work))}
+        disabled={!panel.template.trim() && !selected.length && !panel.blocks?.length}
+        onClick={() => {
+          setPreview(clone(work));
+          setPreviewRuntime(initialState(work, work.openings[0].id));
+        }}
       >
         <Eye size={15} />
         미리보기
       </Button>
-      {preview && (
-        <StatusDisplay
-          work={preview}
-          runtime={initialState(preview, preview.openings[0].id)}
-          panelId={panel.id}
-          collapsible={false}
-        />
+      {preview && previewRuntime && (
+        <>
+          <GamePanels
+            work={preview}
+            runtime={previewRuntime}
+            panelId={panel.id}
+            onAction={(actionId) => {
+              const action = preview.actions?.find((a) => a.id === actionId);
+              if (action) setPreviewRuntime(applyAction(preview, previewRuntime, action));
+            }}
+          />
+          <StatusDisplay
+            work={preview}
+            runtime={previewRuntime}
+            panelId={panel.id}
+            collapsible={false}
+          />
+        </>
       )}
     </DisclosureCard>
   );

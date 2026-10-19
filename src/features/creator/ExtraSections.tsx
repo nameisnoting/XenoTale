@@ -1,3 +1,5 @@
+import { SelectionPill } from '../../components/SelectionPill';
+import { Select } from '../../components/Select';
 import { DisplayRulesEditor } from './DisplayRulesEditor';
 import { AddButton } from '../../components/AddButton';
 import { DeleteAction } from '../../components/DeleteAction';
@@ -143,6 +145,7 @@ function ManualEffectsEditor({
             />
           </Field>
           <EffectCodeEditor
+            work={work}
             value={s}
             onChange={(patch) =>
               update({
@@ -205,18 +208,24 @@ function ManualEffectsEditor({
   );
 }
 function EffectCodeEditor({
+  work,
   value,
   onChange,
 }: {
+  work: Work;
   value: Work['effects'][number];
   onChange: (patch: Partial<Work['effects'][number]>) => void;
 }) {
   const input = useRef<HTMLTextAreaElement>(null);
   const exampleName = useRef<string | null>(null);
+  const insertingAction = useRef<string | null>(null);
   const changeContent = (content: string) =>
     onChange({
       content,
       validation: undefined,
+      ...(insertingAction.current
+        ? { actionIds: [...new Set([...(value.actionIds ?? []), insertingAction.current])] }
+        : {}),
       ...(exampleName.current && !value.name ? { name: exampleName.current } : {}),
     });
   return (
@@ -239,6 +248,55 @@ function EffectCodeEditor({
           ))}
         </div>
       )}
+      <Field
+        label="연결할 세부규칙"
+        hint="선택한 규칙만 이 연출에서 실행할 수 있습니다. 아래에서 실행 버튼 코드를 넣을 수 있습니다."
+      >
+        <div className="tab-pills" role="group" aria-label="연출에 연결할 규칙">
+          {(work.actions ?? [])
+            .filter((a) => a.trigger === 'button')
+            .map((action) => (
+              <SelectionPill
+                key={action.id}
+                name={action.name || '이름 없는 규칙'}
+                selected={!!value.actionIds?.includes(action.id)}
+                onSelect={() =>
+                  onChange({
+                    actionIds: value.actionIds?.includes(action.id)
+                      ? value.actionIds.filter((key) => key !== action.id)
+                      : [...(value.actionIds ?? []), action.id],
+                  })
+                }
+              />
+            ))}
+        </div>
+        <Select
+          label="규칙 실행 버튼 넣기"
+          value=""
+          options={[
+            { value: '', label: '실행 버튼을 넣을 규칙 선택' },
+            ...(work.actions ?? [])
+              .filter((a) => a.trigger === 'button')
+              .map((a) => ({ value: a.id, label: a.name })),
+          ]}
+          onChange={(actionId) => {
+            const action = work.actions?.find((a) => a.id === actionId);
+            if (!action || !input.current) return;
+            const buttonId = `rule-${id()}`;
+            const label = action.name
+              .replaceAll('&', '&amp;')
+              .replaceAll('<', '&lt;')
+              .replaceAll('>', '&gt;');
+            const code = `<button type="button" id="${buttonId}">${label}</button>\n<script>{const button=document.getElementById(${JSON.stringify(buttonId)});button.onclick=async()=>{button.disabled=true;try{await XenoTale.action(${JSON.stringify(actionId).replaceAll('<', '\\u003c')});}catch(error){button.textContent=error.message;}finally{button.disabled=false;}};}</script>\n`;
+            insertingAction.current = actionId;
+            try {
+              insertTextWithUndo(input.current, code, changeContent);
+            } finally {
+              insertingAction.current = null;
+            }
+          }}
+        />
+      </Field>
       <Field label="코드 입력">
         <Area inputRef={input} value={value.content} onChange={changeContent} />
       </Field>

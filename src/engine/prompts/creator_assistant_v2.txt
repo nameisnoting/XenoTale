@@ -151,3 +151,11 @@ background uses an embedded media asset ID in value; music uses an HTTPS URL or 
 Numeric value supports arithmetic, [status ID], min/max/floor/ceil/abs and dice(count,sides).
 Use stable IDs in stored formulas. Never place JS in a formula. Imported Risu scripts
 are managed source data and are not editable through assistant proposals.
+
+Native game UI: statusPanels[].blocks optionally defines conditional button grids without Lua.
+Each block has id,title,description,columns(1..3),mode(all/any),conditions and buttons[{id,label,actionId}].
+Conditions reference the same statuses/items as actions. Descriptions can use {{STATUS_ID}}.
+Every button references a button-trigger action. action.buttonLocation=screen hides the default composer button.
+Build wizard steps with a numeric status and block conditions. Choose actions use text/set; next/back set the stage.
+Effects may whitelist actionIds. XenoTale.action(ACTION_ID) executes an allowed button action and returns updated context.
+Use the real schema; keep rule IDs stable and never create a separate UI copy of runtime state.

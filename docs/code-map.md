@@ -38,24 +38,25 @@ HTML 표시와 Risu 실행 코드는 필요한 화면에서 불러옵니다.
 [`src/features/EditorPanels.tsx`](../src/features/EditorPanels.tsx)는 현재 섹션에 맞는 입력 화면을 고릅니다.
 과거 약 1,600줄에 섞여 있던 섹션 내용을 아래 파일로 옮겼습니다.
 
-| 바꾸려는 내용                           | 파일                                                                                                                                                         |
-| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 섹션 이름과 순서                        | [`creator/sections.ts`](../src/features/creator/sections.ts)                                                                                                 |
-| 작품 개요·시스템 프롬프트               | [`creator/OverviewSection.tsx`](../src/features/creator/OverviewSection.tsx)                                                                                 |
-| 등장 캐릭터                             | [`creator/CharactersSection.tsx`](../src/features/creator/CharactersSection.tsx)                                                                             |
-| 도입부                                  | [`creator/OpeningsSection.tsx`](../src/features/creator/OpeningsSection.tsx)                                                                                 |
-| 상태값·상태 규칙·여러 상태창            | [`creator/StatusSection.tsx`](../src/features/creator/StatusSection.tsx), [`creator/StatusPanelsEditor.tsx`](../src/features/creator/StatusPanelsEditor.tsx) |
-| 제작 메뉴·기본 요소·접힌 고급설정       | [`creator/CreatorSectionList.tsx`](../src/features/creator/CreatorSectionList.tsx)                                                                           |
-| 관계도 사용·내면 해금 조건              | [`creator/RelationsSection.tsx`](../src/features/creator/RelationsSection.tsx), [`creator/ConditionEditor.tsx`](../src/features/creator/ConditionEditor.tsx) |
-| 아이템과 강화 입력 화면                 | [`creator/ItemsSection.tsx`](../src/features/creator/ItemsSection.tsx)                                                                                       |
-| 행동·조건·계산 규칙                     | [`creator/ActionsSection.tsx`](../src/features/creator/ActionsSection.tsx), [`domain/actions.ts`](../src/domain/actions.ts)                                  |
-| 챕터·엔딩과 조건 입력 화면              | [`creator/ScenarioSection.tsx`](../src/features/creator/ScenarioSection.tsx)                                                                                 |
-| 단축어·수동연출·추천 페르소나           | [`creator/ExtraSections.tsx`](../src/features/creator/ExtraSections.tsx)                                                                                     |
-| 로어북 입력 카드                        | [`creator/LoreEditor.tsx`](../src/features/creator/LoreEditor.tsx)                                                                                           |
-| 제작·대화에서 공유하는 대화 품질 설정   | [`creator/QualityEditor.tsx`](../src/features/creator/QualityEditor.tsx)                                                                                     |
-| 저장·불러오기·그룹화·연출 미리보기 모달 | [`creator/CreatorPanelDialogs.tsx`](../src/features/creator/CreatorPanelDialogs.tsx)                                                                         |
-| 미디어 입력 화면                        | [`CreatorExtras.tsx`](../src/features/CreatorExtras.tsx)의 `MediaEditor`                                                                                     |
-| 관계도·시나리오 지도                    | [`Graphs.tsx`](../src/features/Graphs.tsx)                                                                                                                   |
+| 바꾸려는 내용                           | 파일                                                                                                                                                                                 |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 섹션 이름과 순서                        | [`creator/sections.ts`](../src/features/creator/sections.ts)                                                                                                                         |
+| 작품 개요·시스템 프롬프트               | [`creator/OverviewSection.tsx`](../src/features/creator/OverviewSection.tsx)                                                                                                         |
+| 등장 캐릭터                             | [`creator/CharactersSection.tsx`](../src/features/creator/CharactersSection.tsx)                                                                                                     |
+| 도입부                                  | [`creator/OpeningsSection.tsx`](../src/features/creator/OpeningsSection.tsx)                                                                                                         |
+| 상태값·상태 규칙·여러 상태창            | [`creator/StatusSection.tsx`](../src/features/creator/StatusSection.tsx), [`creator/StatusPanelsEditor.tsx`](../src/features/creator/StatusPanelsEditor.tsx)                         |
+| 조건별 게임 화면·선택 버튼              | [`creator/GameBlocksEditor.tsx`](../src/features/creator/GameBlocksEditor.tsx), [`GamePanels.tsx`](../src/components/GamePanels.tsx), [`gamePanels.ts`](../src/domain/gamePanels.ts) |
+| 제작 메뉴·기본 요소·접힌 고급설정       | [`creator/CreatorSectionList.tsx`](../src/features/creator/CreatorSectionList.tsx)                                                                                                   |
+| 관계도 사용·내면 해금 조건              | [`creator/RelationsSection.tsx`](../src/features/creator/RelationsSection.tsx), [`creator/ConditionEditor.tsx`](../src/features/creator/ConditionEditor.tsx)                         |
+| 아이템과 강화 입력 화면                 | [`creator/ItemsSection.tsx`](../src/features/creator/ItemsSection.tsx)                                                                                                               |
+| 행동·조건·계산 규칙                     | [`creator/ActionsSection.tsx`](../src/features/creator/ActionsSection.tsx), [`domain/actions.ts`](../src/domain/actions.ts)                                                          |
+| 챕터·엔딩과 조건 입력 화면              | [`creator/ScenarioSection.tsx`](../src/features/creator/ScenarioSection.tsx)                                                                                                         |
+| 단축어·수동연출·추천 페르소나           | [`creator/ExtraSections.tsx`](../src/features/creator/ExtraSections.tsx)                                                                                                             |
+| 로어북 입력 카드                        | [`creator/LoreEditor.tsx`](../src/features/creator/LoreEditor.tsx)                                                                                                                   |
+| 제작·대화에서 공유하는 대화 품질 설정   | [`creator/QualityEditor.tsx`](../src/features/creator/QualityEditor.tsx)                                                                                                             |
+| 저장·불러오기·그룹화·연출 미리보기 모달 | [`creator/CreatorPanelDialogs.tsx`](../src/features/creator/CreatorPanelDialogs.tsx)                                                                                                 |
+| 미디어 입력 화면                        | [`CreatorExtras.tsx`](../src/features/CreatorExtras.tsx)의 `MediaEditor`                                                                                                             |
+| 관계도·시나리오 지도                    | [`Graphs.tsx`](../src/features/Graphs.tsx)                                                                                                                                           |
 
 짧은 섹션까지 각각 독립된 폴더나 복잡한 등록 시스템으로 만들지 않았습니다.
 `ExtraSections.tsx` 안에서는 해당 이름의 함수로 바로 이동하면 됩니다.

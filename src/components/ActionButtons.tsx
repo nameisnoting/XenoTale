@@ -10,7 +10,9 @@ export function ActionButtons({
   busy: boolean;
   onAction: (id: string) => void;
 }) {
-  const actions = room.work.actions?.filter((a) => a.trigger === 'button');
+  const actions = room.work.actions?.filter(
+    (a) => a.trigger === 'button' && a.buttonLocation !== 'screen',
+  );
   if (!actions?.length) return null;
   return (
     <div className="action-buttons" aria-label="작품 행동">

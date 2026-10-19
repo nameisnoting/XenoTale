@@ -1,6 +1,7 @@
 import { MessageInput } from '../components/MessageInput';
 import { RisuContext } from '../components/RisuContext';
 import { commitRisuState, risuChatEntries } from '../domain/risuState';
+import { GamePanels } from '../components/GamePanels';
 import { ActionButtons } from '../components/ActionButtons';
 import { executeAction } from '../domain/actions';
 import { SendButton } from '../components/SendButton';
@@ -135,6 +136,18 @@ export function CreatorTest({
           </Button>
         </div>
         <div className="support-transcript">
+          <GamePanels
+            work={displayRoom.work}
+            runtime={displayRoom.current.runtime}
+            busy={busy}
+            onAction={(actionId) => {
+              if (busy || lock.current) throw new Error('답변 생성이 끝난 뒤 실행해 주세요.');
+              const next = executeAction(roomRef.current, actionId);
+              next.revision++;
+              setRoom(next);
+            }}
+          />
+
           <StoryBody
             room={displayRoom}
             disabled={busy}
@@ -269,6 +282,20 @@ export function CreatorTest({
               status: displayRoom.current.runtime.status,
               inventory: displayRoom.current.runtime.inventory,
               nodeId: displayRoom.current.runtime.nodeId,
+            }}
+            onAction={async (actionId) => {
+              if (busy || lock.current) throw new Error('답변 생성이 끝난 뒤 실행해 주세요.');
+              const next = executeAction(roomRef.current, actionId, {
+                effectId: effect.id,
+                source: effect.source,
+              });
+              next.revision++;
+              setRoom(next);
+              return {
+                status: next.current.runtime.status,
+                inventory: next.current.runtime.inventory,
+                nodeId: next.current.runtime.nodeId,
+              };
             }}
             readOnly={!canCompleteEffect(displayRoom, effect.id, effect.source)}
             onResult={async (result, presentation) => {

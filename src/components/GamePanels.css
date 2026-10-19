@@ -1,0 +1,73 @@
+.game-panel {
+  background: #211c15;
+  border: 1px solid #b89542;
+  border-radius: 5px;
+  color: #e7d7b0;
+  padding: 16px;
+  margin: 16px 0;
+  min-width: 0;
+}
+.game-panel > h3 {
+  margin: 0 0 16px;
+  font-size: 16px;
+  color: #d2af5c;
+}
+.game-block + .game-block {
+  margin-top: 16px;
+}
+.game-block > h4 {
+  margin: 0 0 8px;
+  font-size: 14px;
+}
+.game-block > p {
+  white-space: pre-wrap;
+  margin: 0 0 12px;
+  font-size: 14px;
+}
+.game-buttons {
+  display: grid;
+  gap: 8px;
+}
+.game-buttons--1 {
+  grid-template-columns: minmax(0, 1fr);
+}
+.game-buttons--2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.game-buttons--3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.game-buttons > .button {
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  min-height: 40px;
+}
+.game-buttons > .button[aria-pressed='true'] {
+  background: #d2af5c;
+  color: #211c15;
+  border-color: #d2af5c;
+}
+.game-block-editor {
+  margin-top: 16px;
+}
+.game-block-editor .game-button-editor {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  align-items: end;
+  gap: 12px;
+}
+.game-button-editor > .field {
+  margin: 0;
+}
+.game-button-editor > .icon-button {
+  margin-bottom: 12px;
+}
+@media (max-width: 600px) {
+  .game-block-editor .game-button-editor {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .game-button-editor > .field:first-child {
+    grid-column: 1 / -1;
+  }
+}

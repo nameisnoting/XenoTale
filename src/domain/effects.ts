@@ -90,7 +90,17 @@ export function canCompleteEffect(room: Room, effectId: string, source: EffectSo
   if (recordedEffect(room, effectId, source)) return false;
   const last = room.timeline.at(-1);
   // Multiple different effects from the latest story passage may finish in order.
-  const passage = [...room.timeline].reverse().find((e) => e.kind !== 'effect');
+  const passage = [...room.timeline]
+    .reverse()
+    .find(
+      (e) =>
+        e.kind !== 'effect' &&
+        !(
+          e.kind === 'action' &&
+          e.effectOrigin?.effectId === effectId &&
+          sameEffectSource(e.effectOrigin.source, source)
+        ),
+    );
   const currentPassage = passage
     ? passage.id === source.eventId
     : source.eventId === `opening:${room.openingId}`;

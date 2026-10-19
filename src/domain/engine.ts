@@ -1,3 +1,4 @@
+import { gamePanelProblems } from './gamePanels';
 import { conditionsMet } from './conditions';
 export { effectiveStatus, conditionMet, conditionsMet } from './conditions';
 import { displayRuleProblem } from './displayRules';
@@ -96,6 +97,14 @@ export function validateWork(w: Work, publish = false, report?: (issue: WorkIssu
   ] as const)
     ids(w[field], field);
   at('effects');
+  for (const effect of w.effects) {
+    if (
+      effect.actionIds?.some(
+        (key) => !w.actions?.some((a) => a.id === key && a.trigger === 'button'),
+      )
+    )
+      fail(`${effect.name}: 연결할 버튼 규칙을 확인해 주세요.`);
+  }
   if (publish && w.effects.some((e) => !e.name.trim() || !e.content.trim()))
     fail('연출의 이름과 내용을 입력해 주세요.');
   if (
@@ -137,7 +146,8 @@ export function validateWork(w: Work, publish = false, report?: (issue: WorkIssu
   }
   ids(w.statusPanels ?? [], 'statusPanels');
   for (const [index, panel] of (w.statusPanels ?? []).entries()) {
-    at('statusPanels', index, ['statuses']);
+    at('statusPanels', index, ['statuses', 'actions', 'items']);
+    for (const problem of gamePanelProblems(w, panel)) fail(problem);
     if (!panel.id.trim() || (publish && !panel.name.trim()))
       fail('상태창 이름과 ID를 확인해 주세요.');
     if (
