@@ -39,17 +39,19 @@ export function ActionValueEditor({
         <>
           <Field
             label="계산식"
-            hint="예: [HP] * 0.1 또는 dice(1, 6). 아래 목록에서 사용할 상태값을 넣을 수 있습니다."
+            hint="예: {{HP}} * 0.1 또는 dice(1, 6). 아래 목록에서 사용할 상태값을 넣을 수 있습니다."
           >
             <TextInput
               value={step.value.replace(/\[([^\]]+)\]/g, (token, key) => {
                 const field = work.statuses.find((s) => s.id === key);
-                return field ? `[${field.name}]` : token;
+                return field ? `{{${field.name}}}` : token;
               })}
               onChange={(value) =>
                 onChange(
-                  value.replace(/\[([^\]]+)\]/g, (token, name) => {
-                    const fields = work.statuses.filter((s) => s.name === name);
+                  value.replace(/\{\{([^{}]+)\}\}|\[([^\]]+)\]/g, (token, name, legacyName) => {
+                    const fields = work.statuses.filter(
+                      (s) => s.name === (name ?? legacyName) || s.id === (name ?? legacyName),
+                    );
                     return fields.length === 1 ? `[${fields[0].id}]` : token;
                   }),
                 )

@@ -9,7 +9,6 @@ export const sections = [
   { id: 'scenarios', name: '시나리오' },
   { id: 'items', name: '아이템' },
   { id: 'relations', name: '관계도' },
-  { id: 'actions', name: '상태 규칙' },
   { id: 'effects', name: '연출' },
 ];
 export const basicSections = sections.slice(0, 6);

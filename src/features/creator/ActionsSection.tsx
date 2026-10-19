@@ -15,18 +15,16 @@ export function ActionsSection({ work, update }: Pick<CreatorPanelState, 'work' 
     update({ actions: actions.map((a, j) => (j === i ? { ...a, ...patch } : a)) });
   return (
     <>
-      <h3>변경 규칙</h3>
       <p className="muted">
-        고급설정의 상태값에서 만든 값을 선택해 사용합니다. 언제 실행할지, 어떤 조건인지, 무엇을
-        바꿀지 순서대로 설정하세요. 버튼 규칙은 AI 호출 없이 실행되고, 응답 후 규칙은 AI의 델타를
-        반영한 뒤 실행됩니다. 같은 변경을 AI 지침과 규칙에 중복 지정하지 마세요.
+        상태값의 변경 조건을 상세하게 규정합니다. 규정하지 않으면 프롬프트에 따라 AI가 직접 증감을
+        판단합니다.
       </p>
       {actions.map((action, i) => (
         <DisclosureCard
           key={action.id}
           expanded
           className="creator-card"
-          title={action.name || `규칙 ${i + 1}`}
+          title={`{{${action.name || `규칙${i + 1}`}}}`}
           actions={
             <DeleteAction
               title="규칙 삭제"
@@ -50,6 +48,12 @@ export function ActionsSection({ work, update }: Pick<CreatorPanelState, 'work' 
               ]}
             />
           </Field>
+          {action.trigger === 'button' && (
+            <p className="muted rule-button-hint">
+              대화 입력창 위에 ‘{action.name || '규칙'}’ 버튼이 자동으로 표시됩니다. 버튼을 누르면
+              아래 조건을 확인한 뒤 작업을 실행합니다. 대화 테스트에서도 사용할 수 있습니다.
+            </p>
+          )}
           <Field label="실행 조건">
             <Select
               label="규칙 조건 결합"
@@ -184,21 +188,23 @@ export function ActionsSection({ work, update }: Pick<CreatorPanelState, 'work' 
         </DisclosureCard>
       ))}
       <AddButton
-        onClick={() =>
+        onClick={() => {
+          let number = 1;
+          while (actions.some((action) => action.name === `규칙${number}`)) number++;
           update({
             actions: [
               ...actions,
               {
                 id: id(),
-                name: `규칙 ${actions.length + 1}`,
+                name: `규칙${number}`,
                 trigger: 'button',
                 mode: 'all',
                 conditions: [],
                 steps: [],
               },
             ],
-          })
-        }
+          });
+        }}
       >
         규칙 추가
       </AddButton>

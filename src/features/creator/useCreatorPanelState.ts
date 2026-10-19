@@ -69,7 +69,6 @@ export function useCreatorPanelState({
     ),
   ];
   const deleteCharacter = (target: Character) => {
-    if (work.characters.length === 1) return;
     const characters = work.characters.filter((c) => c.id !== target.id);
     update({
       characters,
@@ -80,6 +79,7 @@ export function useCreatorPanelState({
         viewpointTargetId:
           work.quality.viewpointTargetId === target.id ? 'user' : work.quality.viewpointTargetId,
       },
+      relationNodeIds: work.relationNodeIds?.filter((key) => key !== target.id),
       relations: work.relations.filter((r) => r.from !== target.id && r.to !== target.id),
       openings: work.openings.map((o) => ({
         ...o,

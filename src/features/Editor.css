@@ -229,12 +229,6 @@
   padding: 0;
   min-width: 0;
 }
-.optional-feature.is-disabled {
-  filter: blur(2px);
-  opacity: 0.4;
-  pointer-events: none;
-  user-select: none;
-}
 .local-media-usage {
   display: grid;
   gap: 8px;
@@ -313,5 +307,48 @@
   .editor-shell .basic-info .image-upload > button:first-child {
     width: 120px;
     height: 160px;
+  }
+}
+
+.creator-sticky-tabs {
+  position: sticky;
+  top: var(--editor-header-height, 56px);
+  z-index: 3;
+  background: #222;
+  padding-top: 12px;
+}
+.creator-sticky-tabs > .work-info-tabs {
+  margin-top: 0;
+  margin-bottom: 16px;
+}
+.inner-unlock-settings {
+  margin-top: 24px;
+}
+.inner-unlock-settings .edit-card-section {
+  gap: 8px;
+}
+.inner-unlock-settings .edit-card-section-body {
+  gap: 16px;
+}
+.inner-unlock-settings .edit-card-section-body > .muted,
+.inner-unlock-settings .edit-card-section-body > .field {
+  margin: 0;
+}
+.rule-button-hint {
+  margin: 0;
+}
+.relation-palette > .section-title {
+  margin-bottom: 0;
+  gap: 8px;
+}
+.relation-palette > .avatar-choices {
+  margin-top: 16px;
+}
+.editor-shell .relation-palette > small {
+  margin-top: 8px;
+}
+@media (max-width: 800px) {
+  .creator-sticky-tabs {
+    top: 0;
   }
 }

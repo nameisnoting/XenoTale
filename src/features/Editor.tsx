@@ -104,6 +104,20 @@ function EditorContent({
   const selectedOpeningId = work.openings.some((o) => o.id === openingSelection)
     ? openingSelection
     : work.openings[0].id;
+  const headerRef = useRef<HTMLElement>(null);
+  useLayoutEffect(() => {
+    const header = headerRef.current;
+    if (!header) return;
+    const measure = () =>
+      header.parentElement?.style.setProperty(
+        '--editor-header-height',
+        `${header.getBoundingClientRect().height}px`,
+      );
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(header);
+    return () => observer.disconnect();
+  }, []);
   const latest = useRef(initial);
   const queue = useRef(Promise.resolve());
   const failed = useRef(false);
@@ -113,6 +127,10 @@ function EditorContent({
   const [section, setSection] = useState(() => {
     try {
       const saved = localStorage.getItem(sectionStorageKey);
+      if (saved === 'actions') {
+        localStorage.setItem(`xenotale.creator-tab.${initial.work.id}.statuses`, 'rules');
+        return 'statuses';
+      }
       return sections.some((item) => item.id === saved) ? saved! : 'overview';
     } catch {
       return 'overview';
@@ -584,7 +602,7 @@ function EditorContent({
         </div>
       </aside>
       <main className="editor-main">
-        <header className="editor-header">
+        <header ref={headerRef} className="editor-header">
           <IconButton title="메인으로" onClick={() => leave('/')}>
             <ArrowLeft size={20} />
           </IconButton>

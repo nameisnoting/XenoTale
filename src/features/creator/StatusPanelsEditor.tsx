@@ -20,7 +20,6 @@ export function StatusPanelsEditor({ work, update }: Pick<CreatorPanelState, 'wo
   const panels = statusPanels(work);
   return (
     <>
-      <h3>표시할 상태창</h3>
       <p className="muted">
         전투·인물 정보처럼 상태창을 여러 개 만들 수 있습니다. 같은 상태값을 여러 창에 표시해도 값은
         하나로 유지됩니다.

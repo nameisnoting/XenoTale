@@ -1,3 +1,4 @@
+import { CardSection } from '../../components/DisclosureCard';
 import { Plus } from 'lucide-react';
 import { Field, Toggle, Button } from '../../components/UI';
 import { RadioOptions } from '../../components/DesignControls';
@@ -27,81 +28,78 @@ export function RelationsSection({
           onChange={(relationsEnabled) => onChange({ ...work, relationsEnabled })}
         />
       </div>
-      <fieldset
-        disabled={!enabled}
-        inert={!enabled}
-        className={`optional-feature ${enabled ? '' : 'is-disabled'}`}
-      >
-        <RelationGraph {...relationView} work={work} onChange={onChange} />
-        {work.relationSplit && (
-          <section>
-            <h3>내면 해금 조건</h3>
-            <Field label="조건 충족 방식">
-              <RadioOptions
-                value={unlock.mode === 'all' ? '모두 충족' : '하나라도 충족'}
-                values={['모두 충족', '하나라도 충족']}
-                onChange={(value) =>
-                  onChange({
-                    ...work,
-                    innerUnlock: { ...unlock, mode: value === '모두 충족' ? 'all' : 'any' },
-                  })
-                }
-              />
-            </Field>
-            {!unlock.conditions.length && (
-              <p className="muted">조건이 없으면 처음부터 내면을 확인할 수 있습니다.</p>
-            )}
-            {unlock.conditions.map((condition, i) => (
-              <ConditionEditor
-                key={condition.id}
-                work={work}
-                value={condition}
-                onChange={(value) =>
-                  onChange({
-                    ...work,
-                    innerUnlock: {
-                      ...unlock,
-                      conditions: unlock.conditions.map((c, j) => (j === i ? value : c)),
-                    },
-                  })
-                }
-                onDelete={() =>
-                  onChange({
-                    ...work,
-                    innerUnlock: {
-                      ...unlock,
-                      conditions: unlock.conditions.filter((c) => c.id !== condition.id),
-                    },
-                  })
-                }
-              />
-            ))}
-            <Button
-              onClick={() =>
-                onChange({
-                  ...work,
-                  innerUnlock: {
-                    ...unlock,
-                    conditions: [
-                      ...unlock.conditions,
-                      {
-                        id: id(),
-                        kind: 'item',
-                        ref: work.items[0]?.id ?? '',
-                        op: 'eq',
-                        value: true,
+      {enabled && (
+        <fieldset className="optional-feature">
+          <RelationGraph {...relationView} work={work} onChange={onChange} />
+          {work.relationSplit && (
+            <div className="inner-unlock-settings edit-card-typography">
+              <CardSection title="내면 해금 조건">
+                <p className="muted">조건이 없으면 처음부터 내면을 확인할 수 있습니다.</p>
+                <Field label="조건 충족 방식">
+                  <RadioOptions
+                    value={unlock.mode === 'all' ? '모두 충족' : '하나라도 충족'}
+                    values={['모두 충족', '하나라도 충족']}
+                    onChange={(value) =>
+                      onChange({
+                        ...work,
+                        innerUnlock: { ...unlock, mode: value === '모두 충족' ? 'all' : 'any' },
+                      })
+                    }
+                  />
+                </Field>
+                {unlock.conditions.map((condition, i) => (
+                  <ConditionEditor
+                    key={condition.id}
+                    work={work}
+                    value={condition}
+                    onChange={(value) =>
+                      onChange({
+                        ...work,
+                        innerUnlock: {
+                          ...unlock,
+                          conditions: unlock.conditions.map((c, j) => (j === i ? value : c)),
+                        },
+                      })
+                    }
+                    onDelete={() =>
+                      onChange({
+                        ...work,
+                        innerUnlock: {
+                          ...unlock,
+                          conditions: unlock.conditions.filter((c) => c.id !== condition.id),
+                        },
+                      })
+                    }
+                  />
+                ))}
+                <Button
+                  onClick={() =>
+                    onChange({
+                      ...work,
+                      innerUnlock: {
+                        ...unlock,
+                        conditions: [
+                          ...unlock.conditions,
+                          {
+                            id: id(),
+                            kind: 'item',
+                            ref: work.items[0]?.id ?? '',
+                            op: 'eq',
+                            value: true,
+                          },
+                        ],
                       },
-                    ],
-                  },
-                })
-              }
-            >
-              <Plus size={15} />
-              조건 추가
-            </Button>
-          </section>
-        )}
-      </fieldset>
+                    })
+                  }
+                >
+                  <Plus size={15} />
+                  조건 추가
+                </Button>
+              </CardSection>
+            </div>
+          )}
+        </fieldset>
+      )}
     </>
   );
 }

@@ -78,8 +78,8 @@ for (const width of [1440, 393])
     await page.getByRole('button', { name: '작업 공간으로 불러오기', exact: true }).click();
     const nav = page.locator(width < 800 ? '.editor-mobile-stages' : '.editor-nav');
     await nav.getByRole('button', { name: '고급설정', exact: false }).click();
-    await nav.getByRole(width < 800 ? 'tab' : 'button', { name: '상태 규칙', exact: true }).click();
-    await page.getByRole('tab', { name: '변경 규칙', exact: true }).click();
+    await nav.getByRole(width < 800 ? 'tab' : 'button', { name: '상태값', exact: true }).click();
+    await page.getByRole('tab', { name: '세부규칙', exact: true }).click();
     await expect(page.getByRole('textbox', { name: '규칙 이름', exact: true })).toHaveValue(
       '회복약 사용',
     );

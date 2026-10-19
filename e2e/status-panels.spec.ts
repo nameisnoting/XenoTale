@@ -26,8 +26,8 @@ for (const width of [1440, 393]) {
       await card.getByRole('textbox', { name: '이름', exact: true }).fill(name);
       await card.getByRole('spinbutton', { name: '초기값', exact: true }).fill(value);
     }
-    await nav.getByRole(width < 800 ? 'tab' : 'button', { name: '상태 규칙', exact: true }).click();
-    await page.getByRole('tab', { name: '표시할 상태창', exact: true }).click();
+    await nav.getByRole(width < 800 ? 'tab' : 'button', { name: '상태값', exact: true }).click();
+    await page.getByRole('tab', { name: '상태창', exact: true }).click();
     const cards = page.locator('.status-panel-editor');
     await cards.first().getByRole('textbox', { name: '상태창 이름', exact: true }).fill('전투');
     await cards.first().getByRole('button', { name: 'MP', exact: true }).click();
@@ -51,7 +51,7 @@ for (const width of [1440, 393]) {
     await expect(page.getByText('저장완료', { exact: true })).toBeVisible();
     const workspaceId = new URL(page.url()).hash.split('/').at(-1)!;
     await page.reload();
-    await page.getByRole('tab', { name: '표시할 상태창', exact: true }).click();
+    await page.getByRole('tab', { name: '상태창', exact: true }).click();
     await expect(cards).toHaveCount(2);
     await expect(
       cards.first().getByRole('textbox', { name: '상태창 이름', exact: true }),

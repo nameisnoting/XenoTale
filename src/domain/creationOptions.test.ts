@@ -60,6 +60,29 @@ describe('creation options', () => {
     expect(messages[0].content).not.toContain('"mainCharacters":');
     expect(work.characters).toHaveLength(1);
   });
+  it('omits blank recommended personas and uses only a contentful persona in context', () => {
+    const work = finished();
+    const blank = work.personas[0];
+    expect(work.personas).toHaveLength(1);
+    expect(cleanWork(work).personas).toEqual([]);
+    expect(createRoom(work, 'demo', blank).current.context.persona.name).toBe('여행자');
+    work.personas.push({ id: 'named', name: '설정한 인물', prompt: '설정한 페르소나', image: '' });
+    const room = createRoom(work, 'demo', blank);
+    expect(room.work.personas.map((p) => p.id)).toEqual(['named']);
+    expect(room.current.context.persona.id).toBe('named');
+    expect(work.personas).toHaveLength(2);
+    const addedPlaceholder = {
+      id: 'new',
+      name: '페르소나 2',
+      defaultName: '페르소나 2',
+      prompt: '',
+      image: '',
+    };
+    expect(cleanWork({ ...work, personas: [addedPlaceholder] }).personas).toEqual([]);
+    expect(
+      cleanWork({ ...work, personas: [{ ...addedPlaceholder, prompt: '직접 작성' }] }).personas,
+    ).toHaveLength(1);
+  });
   it('the chosen default UI initializes every new room but does not change existing choices', () => {
     const work = finished(),
       original = createRoom(work);

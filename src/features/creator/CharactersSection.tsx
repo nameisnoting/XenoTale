@@ -111,21 +111,17 @@ export function CharactersSection({
                 name={c.name || `캐릭터 ${i + 1}`}
                 selected={i === charIndex}
                 onSelect={() => setTab(i)}
-                deletion={
-                  work.characters.length === 1
-                    ? undefined
-                    : {
-                        title: '캐릭터 삭제',
-                        ariaLabel: `${c.name || `캐릭터 ${i + 1}`} 삭제`,
-                        name: c.name,
-                        needsConfirmation:
-                          requiresDeleteConfirmation('character', c) ||
-                          work.relations.some((r) => r.from === c.id || r.to === c.id),
-                        description:
-                          '캐릭터와 연결된 관계·도입부 등장 정보·미디어 연결도 함께 제거됩니다.',
-                        onDelete: () => deleteCharacter(c),
-                      }
-                }
+                deletion={{
+                  title: '캐릭터 삭제',
+                  ariaLabel: `${c.name || `캐릭터 ${i + 1}`} 삭제`,
+                  name: c.name,
+                  needsConfirmation:
+                    requiresDeleteConfirmation('character', c) ||
+                    work.relations.some((r) => r.from === c.id || r.to === c.id),
+                  description:
+                    '캐릭터와 연결된 관계·도입부 등장 정보·미디어 연결도 함께 제거됩니다.',
+                  onDelete: () => deleteCharacter(c),
+                }}
               />
             ),
         )}

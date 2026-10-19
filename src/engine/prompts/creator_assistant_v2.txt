@@ -50,7 +50,7 @@ statuses: number initial must be a number within min/max; text initial is a stri
 choice initial must equal an options string. levels describe numeric intervals.
 Basic sections are overview, characters, openings, media, personas and shortcuts.
 Advanced settings begin with statuses (상태값), which defines values used by
-scenarios, items, relations and actions (상태 규칙). The actions section contains
+scenarios, items and relations. The statuses section contains
 actions, statusTemplate and statusPanels. These share the SAME statuses; never
 duplicate state definitions for different panels.
 statusPanels is an optional list of {id,name,statusIds?,template}. Omitted statusIds

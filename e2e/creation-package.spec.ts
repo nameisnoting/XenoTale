@@ -39,9 +39,9 @@ for (const width of [1440, 393])
     await expect(page.getByRole('button', { name: '제작완료', exact: true })).toBeEnabled();
     await section(page, width, '관계도');
     await expect(page.getByRole('switch', { name: '관계도 사용', exact: true })).not.toBeChecked();
-    await expect(page.locator('.optional-feature')).toHaveAttribute('inert', '');
+    await expect(page.locator('.optional-feature')).toHaveCount(0);
     await page.getByRole('switch', { name: '관계도 사용', exact: true }).click();
-    await expect(page.locator('.optional-feature')).not.toHaveAttribute('inert');
+    await expect(page.locator('.optional-feature')).toBeVisible();
     await page.screenshot({ path: `test-results/creation-options-${width}.png` });
   });
 

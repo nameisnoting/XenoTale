@@ -22,7 +22,6 @@ export function DisplayRulesEditor({
   const rules = work.displayRules ?? [];
   return (
     <section>
-      <h3>자동연출</h3>
       <p className="muted">
         AI가 출력한 표식이나 문자를 찾아 화면에서 바꿔 보여줍니다. 표식 이름만 입력하면 중괄호와
         정규식은 자동으로 처리합니다. 대화 원문은 유지됩니다.

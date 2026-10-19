@@ -1,7 +1,10 @@
-import type { Character, Work } from './types';
+import type { Character, Persona, Work } from './types';
 
 export const hasCharacterContent = (c: Character) =>
   !!(c.name.trim() || c.prompt.trim() || c.trigger.trim() || c.image || c.lore.length);
+
+export const hasPersonaContent = (p: Persona) =>
+  !!((p.name.trim() && p.name !== p.defaultName) || p.prompt.trim() || p.image || p.gender?.trim());
 
 /** Early Risu imports stored folder markers as empty lore. Keep any edited content or mode. */
 export function repairLegacyRisuLore(work: Work): Work {
@@ -24,6 +27,7 @@ export function cleanWork(work: Work): Work {
   return {
     ...base,
     characters,
+    personas: work.personas.filter(hasPersonaContent),
     openings: work.openings.map((o) => ({
       ...o,
       presence: characters.length ? o.presence.filter((id) => !blankIds.has(id)) : [],

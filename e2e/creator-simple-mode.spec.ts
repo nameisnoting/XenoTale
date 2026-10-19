@@ -25,13 +25,16 @@ for (const width of [1440, 393]) {
     await nav.getByRole(role, { name: '상태값', exact: true }).click();
     await page.getByRole('button', { name: '상태값 추가', exact: true }).click();
     await page.getByRole('textbox', { name: '이름', exact: true }).fill('HP');
-    await nav.getByRole(role, { name: '상태 규칙', exact: true }).click();
+    await page
+      .locator('.creator-sticky-tabs')
+      .getByRole('tab', { name: '세부규칙', exact: true })
+      .click();
     await page.getByRole('button', { name: '규칙 추가', exact: true }).click();
     await page.getByRole('button', { name: '작업 추가', exact: true }).click();
     await expect(page.getByRole('radio', { name: '숫자 입력', exact: true })).toBeChecked();
     await page.getByRole('spinbutton', { name: '변경할 값', exact: true }).fill('20');
     await page.getByRole('radio', { name: '계산식 사용', exact: true }).click();
-    await page.getByRole('textbox', { name: '계산식', exact: true }).fill('[HP] * 0.1');
+    await page.getByRole('textbox', { name: '계산식', exact: true }).fill('{{HP}} * 0.1');
     await page.getByText('저장완료', { exact: true }).waitFor();
     await page.reload();
     await expect(nav.getByRole('button', { name: '고급설정', exact: true })).toHaveAttribute(
@@ -40,7 +43,7 @@ for (const width of [1440, 393]) {
     );
     await expect(page.getByRole('radio', { name: '계산식 사용', exact: true })).toBeChecked();
     await expect(page.getByRole('textbox', { name: '계산식', exact: true })).toHaveValue(
-      '[HP] * 0.1',
+      '{{HP}} * 0.1',
     );
     await page.getByRole('radio', { name: '숫자 입력', exact: true }).click();
     await expect(page.getByRole('spinbutton', { name: '변경할 값', exact: true })).toHaveValue('0');

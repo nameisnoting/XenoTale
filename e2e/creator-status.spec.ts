@@ -23,20 +23,22 @@ for (const width of [1440, 393]) {
     };
     await section();
     const tab = async (name: string) => {
-      await section(name === '상태값' ? '상태값' : '상태 규칙');
-      if (name !== '상태값') await page.getByRole('tab', { name, exact: true }).click();
+      await section(name === '상태값' ? '상태값' : '상태값');
+      await page.locator('.creator-sticky-tabs').getByRole('tab', { name, exact: true }).click();
     };
     const add = page.getByRole('button', { name: '상태값 추가', exact: true });
     const template = page.getByRole('textbox', { name: '문법 입력', exact: true });
     await add.click();
     await add.click();
-    await tab('표시할 상태창');
+    await tab('상태창');
     await expect(template).toHaveValue('{{상태값1}}\n{{상태값2}}');
     await tab('상태값');
-    const cards = page.locator('.statuses-form .creator-card');
+    const cards = page
+      .getByRole('tabpanel', { name: '상태값', exact: true })
+      .locator('.creator-card');
     await cards.first().getByRole('textbox', { name: '이름', exact: true }).fill('체력');
     await cards.first().getByRole('spinbutton', { name: '초기값', exact: true }).fill('37');
-    await tab('표시할 상태창');
+    await tab('상태창');
     await expect(template).toHaveValue('{{체력}}\n{{상태값2}}');
     await tab('상태값');
     await cards.first().getByRole('button', { name: '레벨 추가', exact: true }).click();
@@ -59,7 +61,7 @@ for (const width of [1440, 393]) {
     await remove.click();
     await expect(page.getByRole('dialog')).toBeVisible();
     await page.getByRole('dialog').getByRole('button', { name: '취소', exact: true }).click();
-    await tab('표시할 상태창');
+    await tab('상태창');
     const examples = page.getByRole('group', { name: '상태창 예시', exact: true });
     await examples.getByRole('button', { name: '예시 마크다운', exact: true }).click();
     await expect(template).toHaveValue('```Status\n체력: {{체력}}\n상태값2: {{상태값2}}\n```');
@@ -79,7 +81,7 @@ for (const width of [1440, 393]) {
     ).toEqual(['rgb(0, 0, 0)', 'rgb(255, 255, 255)']);
     await tab('상태값');
     await cards.first().getByRole('spinbutton', { name: '초기값', exact: true }).fill('42');
-    await tab('표시할 상태창');
+    await tab('상태창');
     await page.getByRole('button', { name: '미리보기', exact: true }).click();
     await expect(html.locator('dd').first()).toHaveText('42');
     await expect(html.locator('dd').first()).toBeVisible();
@@ -91,12 +93,12 @@ for (const width of [1440, 393]) {
     await template.fill('나만의 상태창: {{체력}}');
     await tab('상태값');
     await add.click();
-    await tab('표시할 상태창');
+    await tab('상태창');
     await expect(template).toHaveValue('나만의 상태창: {{체력}}');
     await expect(page.getByText('저장완료', { exact: true })).toBeVisible();
     await page.reload();
     await section();
-    await tab('표시할 상태창');
+    await tab('상태창');
     await expect(template).toHaveValue('나만의 상태창: {{체력}}');
     await tab('상태값');
     await expect(page.getByRole('textbox', { name: '이름', exact: true }).first()).toHaveValue(

@@ -5,7 +5,8 @@ import { insertTextWithUndo } from '../../components/textEditing';
 import { DisclosureCard } from '../../components/DisclosureCard';
 import { requiresDeleteConfirmation } from '../../domain/deletion';
 import { ShortcutFields } from '../../components/ShortcutFields';
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
+import { CreatorTabs, useCreatorTab } from './CreatorTabs';
 import { Eye } from 'lucide-react';
 import type { Work } from '../../domain/types';
 import { id } from '../../domain/types';
@@ -58,20 +59,45 @@ export function ShortcutsSection({ work, update }: Pick<CreatorPanelState, 'work
   );
 }
 
-export function EffectsSection({
+export function EffectsSection(
+  state: Pick<CreatorPanelState, 'work' | 'setEffectPreview' | 'update'>,
+) {
+  const [tab, setTab] = useCreatorTab(state.work.id, 'effects', ['auto', 'manual'] as const);
+  const [manualOpened, setManualOpened] = useState(tab === 'manual');
+  return (
+    <>
+      <CreatorTabs
+        label="연출 설정"
+        value={tab}
+        onChange={(next) => {
+          setTab(next);
+          if (next === 'manual') setManualOpened(true);
+        }}
+        items={[
+          { id: 'auto', label: '자동연출' },
+          { id: 'manual', label: '수동연출' },
+        ]}
+      />
+      <div role="tabpanel" aria-label="자동연출" hidden={tab !== 'auto'}>
+        <DisplayRulesEditor
+          work={state.work}
+          onChange={(work) => state.update({ displayRules: work.displayRules })}
+        />
+      </div>
+      <div role="tabpanel" aria-label="수동연출" hidden={tab !== 'manual'}>
+        {manualOpened && <ManualEffectsEditor {...state} />}
+      </div>
+    </>
+  );
+}
+
+function ManualEffectsEditor({
   work,
   setEffectPreview,
   update,
 }: Pick<CreatorPanelState, 'work' | 'setEffectPreview' | 'update'>) {
   return (
     <>
-      <h2>연출</h2>
-      <DisplayRulesEditor
-        work={work}
-        onChange={(work) => update({ displayRules: work.displayRules })}
-      />
-      <hr />
-      <h3>수동연출 · 버튼</h3>
       <p className="muted">
         AI가 {'{{이름}}'}을 출력하면 보기 버튼이 나타납니다. 사용자가 누르면 화면 전체에서 연출을
         실행합니다. 연출을 추가한 뒤 예시를 선택하고 미리보기로 시작할 수 있습니다.

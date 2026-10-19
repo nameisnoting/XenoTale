@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 for (const width of [1440, 393]) {
-  test(`추천 페르소나 선택 X · 마지막 항목 보호 · 선택 유지 (${width})`, async ({ page }) => {
+  test(`추천 페르소나 선택 X · 마지막 항목 삭제 · 선택 유지 (${width})`, async ({ page }) => {
     await page.setViewportSize({ width, height: 1000 });
     await page.route('https://openrouter.ai/**', (route) => route.fulfill({ json: { data: [] } }));
     await page.goto('/');
@@ -30,8 +30,8 @@ for (const width of [1440, 393]) {
     const labels = library.locator('.selection-pill-label');
     const card = library.locator('.persona-card');
     const add = library.getByRole('button', { name: '추가', exact: true });
-    await add.click();
-    await expect(library.locator('.selection-pill-delete')).toHaveCount(0);
+    await expect(labels).toHaveText(['페르소나 1']);
+    await expect(library.locator('.selection-pill-delete')).toHaveCount(1);
     await expect(card.locator('.persona-chevron')).toHaveCount(0);
     await expect(card.getByRole('button', { name: /삭제$/ })).toHaveCount(0);
     await card.locator('.card-header').click();
@@ -57,7 +57,7 @@ for (const width of [1440, 393]) {
     await page.getByRole('dialog').getByRole('button', { name: '삭제', exact: true }).click();
     await expect(labels).toHaveText(['페르소나 2']);
     await expect(labels.first()).toHaveAttribute('aria-pressed', 'true');
-    await expect(library.locator('.selection-pill-delete')).toHaveCount(0);
+    await expect(library.locator('.selection-pill-delete')).toHaveCount(1);
     await expect(card.getByRole('textbox', { name: '프롬프트', exact: true })).toHaveValue('');
     await page.getByRole('button', { name: '실행 취소', exact: true }).click();
     await expect(labels).toHaveText(['페르소나 2', '페르소나 3']);
@@ -71,6 +71,14 @@ for (const width of [1440, 393]) {
     await page.reload();
     await section();
     await expect(labels).toHaveText(['페르소나 2']);
-    await expect(library.locator('.selection-pill-delete')).toHaveCount(0);
+    await expect(library.locator('.selection-pill-delete')).toHaveCount(1);
+    await library.getByRole('button', { name: '페르소나 2 삭제', exact: true }).click();
+    await expect(labels).toHaveCount(0);
+    await expect(card).toHaveCount(0);
+    await expect(page.getByText('저장완료', { exact: true })).toBeVisible();
+    await page.reload();
+    await expect(labels).toHaveCount(0);
+    await add.click();
+    await expect(card.getByRole('textbox', { name: '프롬프트', exact: true })).toBeVisible();
   });
 }

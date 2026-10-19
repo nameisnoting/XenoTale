@@ -3,12 +3,12 @@ export { effectiveStatus, conditionMet, conditionsMet } from './conditions';
 import { displayRuleProblem } from './displayRules';
 import { effectiveSystemPrompt } from './systemPrompt';
 import { z } from 'zod';
-import type { Work, Runtime, Checkpoint, Room, Candidate, Turn, Usage } from './types';
+import type { Work, Persona, Runtime, Checkpoint, Room, Candidate, Turn, Usage } from './types';
 import { id, clone, after } from './types';
 import { defaultPersona, settings } from './defaults';
 import { validMemories, repairMemoryActivity } from './memory';
 import { runtimeRelations } from './relations';
-import { cleanWork, relationsEnabled } from './workContent';
+import { cleanWork, hasPersonaContent, relationsEnabled } from './workContent';
 import { applyAction, actionAvailable, actionSchema, calculate } from './actions';
 
 const changes = <T extends z.ZodType>(schema: T) => z.array(schema).max(100);
@@ -368,7 +368,7 @@ export function initialState(w: Work, openingId: string): Runtime {
 export function createRoom(
   work: Work,
   modelId = 'demo',
-  persona = work.personas[0] ?? defaultPersona(),
+  persona?: Persona,
   openingId = work.openings[0].id,
 ): Room {
   work = cleanWork(work);
@@ -380,10 +380,12 @@ export function createRoom(
 export function createPreviewRoom(
   work: Work,
   modelId = 'demo',
-  persona = work.personas[0] ?? defaultPersona(),
+  persona?: Persona,
   openingId = work.openings[0].id,
 ): Room {
   work = cleanWork(work);
+  persona =
+    persona && hasPersonaContent(persona) ? persona : (work.personas[0] ?? defaultPersona());
   const initial: Checkpoint = {
     runtime: initialState(work, openingId),
     context: {

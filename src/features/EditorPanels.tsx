@@ -6,7 +6,7 @@ import { RelationsSection } from './creator/RelationsSection';
 import { OverviewSection } from './creator/OverviewSection';
 import { CharactersSection } from './creator/CharactersSection';
 import { OpeningsSection } from './creator/OpeningsSection';
-import { StatusSection, StatusRulesSection } from './creator/StatusSection';
+import { StatusSection } from './creator/StatusSection';
 import { ItemsSection } from './creator/ItemsSection';
 import { ScenarioSection } from './creator/ScenarioSection';
 import { ShortcutsSection, EffectsSection, PersonasSection } from './creator/ExtraSections';
@@ -22,7 +22,6 @@ export function EditorPanels(props: CreatorPanelProps) {
       {section === 'characters' && <CharactersSection {...state} />}
       {section === 'openings' && <OpeningsSection {...state} />}
       {section === 'statuses' && <StatusSection {...state} />}
-      {section === 'actions' && <StatusRulesSection {...state} />}
       {section === 'items' && <ItemsSection {...state} />}
       {section === 'scenarios' && <ScenarioSection {...state} />}
       {section === 'shortcuts' && <ShortcutsSection {...state} />}

@@ -433,7 +433,6 @@ export function PersonaLibrary({
     onSelect?.(list[index]?.id ?? '');
   };
   const deletePersona = async (target: Persona) => {
-    if (values.length === 1) return;
     const currentId = values[activeIndex]?.id;
     const retained = values.filter((v) => v.id !== target.id);
     if (onDelete) await onDelete(target.id);
@@ -474,17 +473,13 @@ export function PersonaLibrary({
               name={v.name || `페르소나 ${i + 1}`}
               selected={i === activeIndex}
               onSelect={() => select(i)}
-              deletion={
-                values.length === 1
-                  ? undefined
-                  : {
-                      title: '페르소나 삭제',
-                      ariaLabel: `${v.name || `페르소나 ${i + 1}`} 삭제`,
-                      name: v.name,
-                      needsConfirmation: requiresDeleteConfirmation('persona', v),
-                      onDelete: () => deletePersona(v),
-                    }
-              }
+              deletion={{
+                title: '페르소나 삭제',
+                ariaLabel: `${v.name || `페르소나 ${i + 1}`} 삭제`,
+                name: v.name,
+                needsConfirmation: requiresDeleteConfirmation('persona', v),
+                onDelete: () => deletePersona(v),
+              }}
             />
           ))}
           <Button onClick={add}>

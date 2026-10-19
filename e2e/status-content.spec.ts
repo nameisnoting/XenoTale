@@ -15,8 +15,8 @@ async function editor(page: Page, width: number) {
     .click();
   const nav = page.locator(width < 800 ? '.editor-mobile-stages' : '.editor-nav');
   await nav.getByRole('button', { name: '고급설정', exact: false }).click();
-  await nav.getByRole(width < 800 ? 'tab' : 'button', { name: '상태 규칙', exact: true }).click();
-  await page.getByRole('tab', { name: '표시할 상태창', exact: true }).click();
+  await nav.getByRole(width < 800 ? 'tab' : 'button', { name: '상태값', exact: true }).click();
+  await page.getByRole('tab', { name: '상태창', exact: true }).click();
   return page.getByRole('textbox', { name: '문법 입력', exact: true });
 }
 for (const width of [1440, 393]) {
@@ -25,18 +25,18 @@ for (const width of [1440, 393]) {
   }) => {
     const template = await editor(page, width);
     await page
-      .locator(width < 800 ? '.editor-mobile-stages' : '.editor-nav')
-      .getByRole(width < 800 ? 'tab' : 'button', { name: '상태값', exact: true })
+      .locator('.creator-sticky-tabs')
+      .getByRole('tab', { name: '상태값', exact: true })
       .click();
     await page.getByRole('button', { name: '상태값 추가', exact: true }).click();
     await page.getByRole('textbox', { name: '이름', exact: true }).fill('체력');
     const initial = page.getByRole('spinbutton', { name: '초기값', exact: true });
     await initial.fill('80');
     await page
-      .locator(width < 800 ? '.editor-mobile-stages' : '.editor-nav')
-      .getByRole(width < 800 ? 'tab' : 'button', { name: '상태 규칙', exact: true })
+      .locator('.creator-sticky-tabs')
+      .getByRole('tab', { name: '상태값', exact: true })
       .click();
-    await page.getByRole('tab', { name: '표시할 상태창', exact: true }).click();
+    await page.getByRole('tab', { name: '상태창', exact: true }).click();
     await template.fill('```플레이어 상태\n체력: {{체력}}\n```');
     await page.getByRole('button', { name: '미리보기', exact: true }).click();
     const preview = page.locator('.status-preview');
@@ -47,17 +47,17 @@ for (const width of [1440, 393]) {
       'rgba(0, 0, 0, 0)',
     );
     await page
-      .locator(width < 800 ? '.editor-mobile-stages' : '.editor-nav')
-      .getByRole(width < 800 ? 'tab' : 'button', { name: '상태값', exact: true })
+      .locator('.creator-sticky-tabs')
+      .getByRole('tab', { name: '상태값', exact: true })
       .click();
     await initial.fill('40');
     await page
-      .locator(width < 800 ? '.editor-mobile-stages' : '.editor-nav')
-      .getByRole(width < 800 ? 'tab' : 'button', { name: '상태 규칙', exact: true })
+      .locator('.creator-sticky-tabs')
+      .getByRole('tab', { name: '상태값', exact: true })
       .click();
-    await page.getByRole('tab', { name: '표시할 상태창', exact: true }).click();
+    await page.getByRole('tab', { name: '상태창', exact: true }).click();
     await template.fill('~~~새 상태\n현재 체력: {{체력}}\n~~~');
-    await expect(preview).toHaveCount(0);
+    await expect(preview.locator('code')).toHaveText('체력: 80\n');
     await page.getByRole('button', { name: '미리보기', exact: true }).click();
     await expect(preview.locator('.code-block-title')).toHaveText('새 상태');
     await expect(preview.locator('code')).toHaveText('현재 체력: 40\n');

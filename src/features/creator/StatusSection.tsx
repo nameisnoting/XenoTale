@@ -6,52 +6,49 @@ import { requiresDeleteConfirmation, hasText } from '../../domain/deletion';
 import { Select } from '../../components/Select';
 import { useState } from 'react';
 import { id } from '../../domain/types';
-import { Tabs } from '../../components/Tabs';
+import { CreatorTabs, useCreatorTab } from './CreatorTabs';
 import { ActionsSection } from './ActionsSection';
 import { StatusPanelsEditor } from './StatusPanelsEditor';
 import { Field, TextInput, Area, Segmented, NumberInput } from '../../components/UI';
 import { RadioOptions, KeywordInput } from '../../components/DesignControls';
 import type { CreatorPanelState } from './useCreatorPanelState';
 
-export function StatusRulesSection(state: CreatorPanelState) {
-  const [tab, setTab] = useState<'rules' | 'panels'>('rules');
-  const [panelsOpened, setPanelsOpened] = useState(false);
+export function StatusSection(state: CreatorPanelState) {
+  const [tab, setTab] = useCreatorTab(state.work.id, 'statuses', [
+    'values',
+    'rules',
+    'panels',
+  ] as const);
+  const [visited, setVisited] = useState(() => new Set(['values', tab]));
   return (
     <>
-      <h2>상태 규칙</h2>
-      <Tabs
-        label="상태 규칙 설정"
+      <CreatorTabs
+        label="상태값 설정"
         value={tab}
         onChange={(next) => {
           setTab(next);
-          if (next === 'panels') setPanelsOpened(true);
+          setVisited((previous) => new Set([...previous, next]));
         }}
         items={[
-          { id: 'rules', label: '변경 규칙' },
-          { id: 'panels', label: '표시할 상태창' },
+          { id: 'values', label: '상태값' },
+          { id: 'rules', label: '세부규칙' },
+          { id: 'panels', label: '상태창' },
         ]}
       />
-      <div
-        className="status-rule-panel"
-        role="tabpanel"
-        aria-label="변경 규칙"
-        hidden={tab !== 'rules'}
-      >
-        <ActionsSection {...state} />
+      <div role="tabpanel" aria-label="상태값" hidden={tab !== 'values'}>
+        <StatusValuesEditor {...state} />
       </div>
-      <div
-        className="status-rule-panel"
-        role="tabpanel"
-        aria-label="표시할 상태창"
-        hidden={tab !== 'panels'}
-      >
-        {panelsOpened && <StatusPanelsEditor {...state} />}
+      <div role="tabpanel" aria-label="세부규칙" hidden={tab !== 'rules'}>
+        {visited.has('rules') && <ActionsSection {...state} />}
+      </div>
+      <div role="tabpanel" aria-label="상태창" hidden={tab !== 'panels'}>
+        {visited.has('panels') && <StatusPanelsEditor {...state} />}
       </div>
     </>
   );
 }
 
-export function StatusSection({
+function StatusValuesEditor({
   work,
   notify,
   updateStatuses,
@@ -59,17 +56,15 @@ export function StatusSection({
 }: Pick<CreatorPanelState, 'work' | 'notify' | 'updateStatuses' | 'changeStatus'>) {
   return (
     <>
-      <h2>상태값</h2>
       <p className="muted">
-        HP·호감도 같은 값을 만듭니다. 프롬프트와 레벨 구간 설명은 AI가 상황을 판단할 때 읽는
-        지침입니다. 만든 값은 상태 규칙·시나리오·아이템·관계도에서 선택해 연결할 수 있습니다.
+        HP, 호감도 등 다양한 상태값을 정의합니다. 정의된 값은 시나리오, 아이템, 관계도에 활용됩니다.
       </p>
       {work.statuses.map((s, i) => (
         <DisclosureCard
           className="creator-card"
           expanded
           key={s.id}
-          title={s.name || `상태값 ${i + 1}`}
+          title={`{{${s.name || `상태값${i + 1}`}}}`}
           actions={
             <DeleteAction
               title="상태값 삭제"

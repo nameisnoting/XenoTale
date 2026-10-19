@@ -521,29 +521,31 @@ function RelationshipCanvas({
               관계도 맵에 추가
             </Button>
           </div>
-          <div className="avatar-choices">
-            {allNodes
-              .filter((n) => !visibleIds.includes(n.id))
-              .map((n) => (
-                <button
-                  key={n.id}
-                  aria-label={n.name}
-                  aria-pressed={pendingNodes.includes(n.id)}
-                  onClick={() =>
-                    setPendingNodes((p) =>
-                      p.includes(n.id) ? p.filter((k) => k !== n.id) : [...p, n.id],
-                    )
-                  }
-                >
-                  {n.image ? (
-                    <img src={safeUrl(n.image)} alt="" />
-                  ) : (
-                    <span className="palette-person">●</span>
-                  )}
-                  {n.name}
-                </button>
-              ))}
-          </div>
+          {allNodes.some((n) => !visibleIds.includes(n.id)) && (
+            <div className="avatar-choices">
+              {allNodes
+                .filter((n) => !visibleIds.includes(n.id))
+                .map((n) => (
+                  <button
+                    key={n.id}
+                    aria-label={n.name}
+                    aria-pressed={pendingNodes.includes(n.id)}
+                    onClick={() =>
+                      setPendingNodes((p) =>
+                        p.includes(n.id) ? p.filter((k) => k !== n.id) : [...p, n.id],
+                      )
+                    }
+                  >
+                    {n.image ? (
+                      <img src={safeUrl(n.image)} alt="" />
+                    ) : (
+                      <span className="palette-person">●</span>
+                    )}
+                    {n.name}
+                  </button>
+                ))}
+            </div>
+          )}
           <small>인물을 제외해도 작성한 관계는 유지됩니다. 다시 추가하면 표시됩니다.</small>
         </section>
       )}

@@ -91,7 +91,7 @@ export function emptyWork(author = '이야기꾼'): Work {
     items: [],
     relations: [],
     chapters: [],
-    personas: [],
+    personas: [{ id: id(), name: '', image: '', prompt: '' }],
     shortcuts: [],
     effects: [],
     defaultUi: 'novel',

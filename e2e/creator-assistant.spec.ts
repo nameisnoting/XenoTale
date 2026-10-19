@@ -84,7 +84,7 @@ function result(draft: any) {
       prompt: '협력하면 증가한다.',
     },
   ];
-  d.actions.statusTemplate = '신뢰';
+  d.statuses.statusTemplate = '신뢰';
   d.items.items = [
     {
       id: 'key',
@@ -146,7 +146,7 @@ async function exported(page: Page) {
   return (await readDownloadedJson((await download.path())!)).workspace.work;
 }
 
-test('전체 구조 전달 · 12개 섹션 제안 · 클릭 전 미적용 · 일괄 적용/취소 · 저장/재접속', async ({
+test('전체 구조 전달 · 11개 섹션 제안 · 클릭 전 미적용 · 일괄 적용/취소 · 저장/재접속', async ({
   page,
 }) => {
   const errors: string[] = [];
@@ -167,8 +167,8 @@ test('전체 구조 전달 · 12개 섹션 제안 · 클릭 전 미적용 · 일
   await ask(page);
   await expect(page.getByRole('button', { name: '적용하기', exact: true }).last()).toBeVisible();
   const data = JSON.parse(payload.messages[1].content);
-  expect(data.sections).toHaveLength(12);
-  expect(Object.keys(data.draftSchema)).toHaveLength(12);
+  expect(data.sections).toHaveLength(11);
+  expect(Object.keys(data.draftSchema)).toHaveLength(11);
   expect(data.draftSchema.effects.properties.effects.items.properties.content.type).toBe('string');
   expect(payload.messages[0].content).toContain('XenoTale.complete');
   expect(payload.messages[0].content).toContain('{{ExactEffectName}}');
@@ -176,7 +176,7 @@ test('전체 구조 전달 · 12개 섹션 제안 · 클릭 전 미적용 · 일
   expect(JSON.stringify(payload)).not.toContain('fake-creator-key');
   await expect(page.getByRole('button', { name: '도움받을 항목' })).toHaveCount(0);
   await expect(page.getByRole('textbox', { name: '제목', exact: false })).toHaveValue('');
-  await expect(page.locator('.support-proposal details')).toHaveCount(12);
+  await expect(page.locator('.support-proposal details')).toHaveCount(11);
   await page.screenshot({ path: 'test-results/creator-assistant-desktop.png' });
   await page.getByRole('button', { name: '적용하기', exact: true }).last().click();
   await expect(page.getByRole('textbox', { name: '제목', exact: false })).toHaveValue(
