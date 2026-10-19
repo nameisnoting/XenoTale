@@ -14,10 +14,7 @@ for (const width of [1440, 393]) {
       .click();
     const section = async (name = '상태값') => creatorSection(page, width, name);
     await section();
-    const tab = async (name: string) => {
-      await section(name === '상태값' ? '상태값' : '상태값');
-      await page.locator('.creator-sticky-tabs').getByRole('tab', { name, exact: true }).click();
-    };
+    const tab = async (name: string) => creatorSection(page, width, name);
     const add = page.getByRole('button', { name: '상태값 추가', exact: true });
     const template = page.getByRole('textbox', { name: '문법 입력', exact: true });
     await add.click();
@@ -26,7 +23,7 @@ for (const width of [1440, 393]) {
     await expect(template).toHaveValue('{{상태값1}}\n{{상태값2}}');
     await tab('상태값');
     const cards = page
-      .getByRole('tabpanel', { name: '상태값', exact: true })
+      .getByRole('region', { name: '상태값 편집', exact: true })
       .locator('.creator-card');
     await cards.first().getByRole('textbox', { name: '이름', exact: true }).fill('체력');
     await cards.first().getByRole('spinbutton', { name: '초기값', exact: true }).fill('37');

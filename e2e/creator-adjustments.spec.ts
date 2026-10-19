@@ -2,9 +2,7 @@ import { creatorSection } from './helpers/creator';
 import { test, expect } from '@playwright/test';
 
 for (const width of [1440, 393]) {
-  test(`상태 3탭 고정·참조 제목·관계도 숨김과 간격·마지막 캐릭터 삭제 ${width}`, async ({
-    page,
-  }) => {
+  test(`단일 페이지·참조 제목·관계도 숨김과 간격·마지막 캐릭터 삭제 ${width}`, async ({ page }) => {
     const errors: string[] = [];
     page.on('pageerror', (e) => errors.push(e.message));
     await page.setViewportSize({ width, height: 900 });
@@ -25,40 +23,24 @@ for (const width of [1440, 393]) {
     await nav.getByRole('button', { name: '고급설정', exact: true }).click();
     await expect(nav.getByRole(role, { name: '상태 규칙', exact: true })).toHaveCount(0);
     await creatorSection(page, width, '상태값');
-    const tabs = page.locator('.creator-sticky-tabs');
-    await expect(tabs.getByRole('tab')).toHaveText([
-      '이벤트',
-      '상태값',
-      '아이템',
-      '연출',
-      '상태창',
-    ]);
+    await expect(page.getByRole('tablist', { name: '이벤트 제작', exact: true })).toHaveCount(0);
     await page.getByRole('button', { name: '상태값 추가', exact: true }).click();
     await expect(
-      page.locator('[role=tabpanel][aria-label=상태값] .disclosure-title').first(),
+      page.locator('[data-event-resource-editor=values] .disclosure-title').first(),
     ).toHaveText('{{상태값1}}');
     await page.getByRole('textbox', { name: '이름', exact: true }).fill('HP');
     await expect(
-      page.locator('[role=tabpanel][aria-label=상태값] .disclosure-title').first(),
+      page.locator('[data-event-resource-editor=values] .disclosure-title').first(),
     ).toHaveText('{{HP}}');
     await page.getByRole('button', { name: '상태값 추가', exact: true }).click();
-    const scroller = page.locator(width < 800 ? '.editor-fieldset' : '.editor-main');
-    await scroller.evaluate((el) => {
-      el.scrollTop = 500;
-    });
-    const viewport = (await scroller.boundingBox())!;
-    const header = (await page.locator('.editor-header').boundingBox())!;
-    await expect
-      .poll(async () => (await tabs.boundingBox())!.y)
-      .toBeCloseTo(width < 800 ? viewport.y : viewport.y + header.height, 0);
-    await tabs.getByRole('tab', { name: '이벤트', exact: true }).click();
+    await creatorSection(page, width, '이벤트');
     await page.getByRole('button', { name: '이벤트 추가', exact: true }).click();
-    const rule = page.getByRole('tabpanel', { name: '이벤트', exact: true });
+    const rule = page.locator('.event-list');
     await expect(rule.locator('.disclosure-title').first()).toHaveText('이벤트1');
     await rule.getByRole('textbox', { name: '이벤트 이름', exact: true }).fill('회복');
     await expect(rule.locator('.disclosure-title').first()).toHaveText('회복');
     await expect(rule.locator('.rule-button-hint')).toContainText('대화 입력창 위');
-    await tabs.getByRole('tab', { name: '상태창', exact: true }).click();
+    await creatorSection(page, width, '상태창');
     await expect(page.getByRole('heading', { name: '표시할 상태창', exact: true })).toHaveCount(0);
     await nav.getByRole(role, { name: '관계도', exact: true }).click();
     await expect(page.locator('.optional-feature')).toHaveCount(0);

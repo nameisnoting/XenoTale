@@ -10,9 +10,12 @@ export async function creatorSection(page: Page, width: number, name: string) {
     if ((await toggle.getAttribute('aria-expanded')) === 'false') await toggle.click();
   }
   await button.click();
-  if (library)
+  const open = page.locator('[data-event-resource-editor]');
+  if (await open.count())
+    await open.getByRole('button', { name: '편집 완료', exact: true }).first().click();
+  if (library && name !== '세부규칙')
     await page
-      .getByRole('tablist', { name: '이벤트 제작', exact: true })
-      .getByRole('tab', { name: name === '세부규칙' ? '이벤트' : name, exact: true })
+      .getByRole('group', { name: '요소 만들기·편집', exact: true })
+      .getByRole('button', { name: new RegExp(`^${name} `) })
       .click();
 }

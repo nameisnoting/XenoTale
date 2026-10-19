@@ -1,4 +1,6 @@
-import { useId, useLayoutEffect, useRef, useState } from 'react';
+import { useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { ArrowUp, ArrowDown, Plus } from 'lucide-react';
+import { Button, IconButton } from '../../components/UI';
 import { eventTriggers, stepTitle, conditionTitle, eventConnections } from '../../domain/events';
 import type { Work } from '../../domain/types';
 import type { WorkAction } from '../../domain/actions';
@@ -8,20 +10,25 @@ export function EventGraph({
   action,
   selected,
   onSelect,
-  onConnect,
+  onMove,
+  onAdd,
+  onAddCondition,
+  inspector,
 }: {
   work: Work;
   action: WorkAction;
   selected: string;
   onSelect: (key: string) => void;
-  onConnect: (source: number, target: number) => void;
+  onMove: (from: number, to: number) => void;
+  onAdd: () => void;
+  onAddCondition: () => void;
+  inspector: ReactNode;
 }) {
   const root = useRef<HTMLDivElement>(null);
   const arrow = useId().replace(/:/g, '');
-  const [source, setSource] = useState<number | null>(null);
   const [drawing, setDrawing] = useState({ width: 1, height: 1, paths: [] as string[] });
   const connected = eventConnections(work, action);
-  const nodes: { id: string; kind: string; title: string; input?: number; output?: number }[] = [
+  const nodes: { id: string; kind: string; title: string; index?: number }[] = [
     {
       id: 'trigger',
       kind: '시작',
@@ -33,14 +40,12 @@ export function EventGraph({
       title: action.conditions.length
         ? `${action.mode === 'all' ? '모두' : '하나라도'} 충족 · ${action.conditions.length}개`
         : '조건 없이 실행',
-      output: -1,
     },
     ...action.steps.map((step, index) => ({
       id: `step:${index}`,
       kind: `작업 ${index + 1}`,
       title: stepTitle(work, step),
-      input: index,
-      output: index,
+      index,
     })),
     {
       id: 'links',
@@ -85,8 +90,8 @@ export function EventGraph({
   return (
     <>
       <p className="muted event-graph-hint">
-        노드를 눌러 내용을 편집하세요. 작업의 출력과 입력을 연결하면 실행 순서가 바뀝니다. 조건을
-        통과하면 작업을 위에서 아래로 실행합니다.
+        노드를 누르면 그 자리에서 편집할 수 있습니다. 조건을 통과하면 작업을 순서대로 실행합니다.
+        작업의 위·아래 화살표로 순서를 바꾸세요. 선은 현재 실행 순서를 보여줍니다.
       </p>
       <div ref={root} className="event-canvas" aria-label="이벤트 노드 작업공간">
         <svg
@@ -129,9 +134,13 @@ export function EventGraph({
                 type="button"
                 className="event-node"
                 aria-pressed={selected === node.id}
+                aria-label={`${node.kind} 편집: ${node.title}`}
                 onClick={() => onSelect(node.id)}
               >
                 <span className="event-node-kind">{node.kind}</span>
+                <span className="event-node-edit-label">
+                  {selected === node.id ? '편집 중' : '눌러서 편집'}
+                </span>
                 <span>{node.title}</span>
                 {node.id === 'conditions' && action.conditions.length > 0 && (
                   <span className="event-node-detail">
@@ -140,49 +149,40 @@ export function EventGraph({
                   </span>
                 )}
               </button>
-              {(node.input !== undefined || node.output !== undefined) && (
-                <div className="event-node-ports">
-                  {node.input !== undefined && (
-                    <button
-                      type="button"
-                      aria-label={`작업 ${node.input + 1} 입력`}
-                      onClick={() => {
-                        if (source === null) {
-                          onSelect(node.id);
-                          return;
-                        }
-                        onConnect(source, node.input!);
-                        setSource(null);
-                      }}
-                    >
-                      입력
-                    </button>
-                  )}
-                  {node.output !== undefined && (
-                    <button
-                      type="button"
-                      className="event-output"
-                      aria-label={`${node.kind} 출력`}
-                      aria-pressed={source === node.output}
-                      onClick={() => setSource(source === node.output ? null : node.output!)}
-                    >
-                      출력
-                    </button>
-                  )}
+              {node.index !== undefined && (
+                <div className="event-node-order">
+                  <span className="muted">실행 순서</span>
+                  <IconButton
+                    title={`작업 ${node.index + 1} 위로`}
+                    disabled={node.index === 0}
+                    onClick={() => onMove(node.index!, node.index! - 1)}
+                  >
+                    <ArrowUp size={16} />
+                  </IconButton>
+                  <IconButton
+                    title={`작업 ${node.index + 1} 아래로`}
+                    disabled={node.index === action.steps.length - 1}
+                    onClick={() => onMove(node.index!, node.index! + 1)}
+                  >
+                    <ArrowDown size={16} />
+                  </IconButton>
                 </div>
               )}
+              {selected === node.id && inspector}
             </div>
           ))}
         </div>
       </div>
-      {source !== null && (
-        <p className="event-link-hint" role="status">
-          다음에 실행할 작업의 입력을 선택하세요.{' '}
-          <button type="button" onClick={() => setSource(null)}>
-            연결 취소
-          </button>
-        </p>
-      )}
+      <div className="event-editor-tools" role="group" aria-label="노드 추가">
+        <Button onClick={onAddCondition}>
+          <Plus size={16} />
+          조건 추가
+        </Button>
+        <Button onClick={onAdd}>
+          <Plus size={16} />
+          작업 종류 선택해서 추가
+        </Button>
+      </div>
     </>
   );
 }

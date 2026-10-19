@@ -296,7 +296,8 @@ npm run test:e2e
 
 - `domain/events.ts`: 이벤트 생성·작업 순서·공유 조건 연결을 해석하는 편집 모델.
 - `domain/actions.ts`: 기존 행동과 같은 데이터로 직접 실행 및 자동 이벤트를 한 체크포인트에서 처리.
-- `features/creator/EventsSection.tsx`: 이벤트·상태값·아이템·연출·상태창 통합 진입점.
-- `features/creator/EventEditor.tsx`, `EventGraph.tsx`, `EventParts.tsx`: 노드형/블록형이 같은 조건과 순차 작업을 편집.
+- `features/creator/EventsSection.tsx`, `EventResources.tsx`: 탭 없는 통합 페이지와 문맥에 맞는 공유 요소 편집기. 원래 편집 컴포넌트를 재사용하고 Work ID 한 벌을 유지.
+- `features/creator/EventEditor.tsx`, `EventGraph.tsx`, `EventParts.tsx`: 노드형/블록형이 같은 조건과 순차 작업을 편집. 노드 안에서 편집하고 화살표로 순서를 변경.
+- `features/creator/useEventWorkshop.ts`, `EventAddContent.tsx`: 선택·추가·포커스 이동과 새 요소의 작업 대상 연결. 드롭다운은 선택을 유지하며 명시적인 추가 버튼만 데이터를 변경.
 - `features/creator/EventConnections.tsx`: 시나리오·내면 해금 조건 원본을 참조하고 편집.
 - `features/creator/EventTest.tsx`: 실제 데이터를 쓰지 않는 초기값 기반 미리보기 실행.

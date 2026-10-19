@@ -23,12 +23,12 @@ for (const width of [1440, 393]) {
       [1, 'MP', '10'],
     ] as const) {
       await page.getByRole('button', { name: '상태값 추가', exact: true }).click();
-      const card = page.locator('[role=tabpanel][aria-label=상태값] .creator-card').nth(index);
+      const card = page.locator('[data-event-resource-editor=values] .creator-card').nth(index);
       await card.getByRole('textbox', { name: '이름', exact: true }).fill(name);
       await card.getByRole('spinbutton', { name: '초기값', exact: true }).fill(value);
     }
     await creatorSection(page, width, '상태값');
-    await page.getByRole('tab', { name: '상태창', exact: true }).click();
+    await creatorSection(page, width, '상태창');
     const cards = page.locator('.status-panel-editor');
     await cards.first().getByRole('textbox', { name: '상태창 이름', exact: true }).fill('전투');
     await cards.first().getByRole('button', { name: 'MP', exact: true }).click();
@@ -52,7 +52,7 @@ for (const width of [1440, 393]) {
     await expect(page.getByText('저장완료', { exact: true })).toBeVisible();
     const workspaceId = new URL(page.url()).hash.split('/').at(-1)!;
     await page.reload();
-    await page.getByRole('tab', { name: '상태창', exact: true }).click();
+    await creatorSection(page, width, '상태창');
     await expect(cards).toHaveCount(2);
     await expect(
       cards.first().getByRole('textbox', { name: '상태창 이름', exact: true }),

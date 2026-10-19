@@ -26,12 +26,9 @@ for (const width of [1440, 393]) {
     await creatorSection(page, width, '상태값');
     await page.getByRole('button', { name: '상태값 추가', exact: true }).click();
     await page.getByRole('textbox', { name: '이름', exact: true }).fill('HP');
-    await page
-      .locator('.creator-sticky-tabs')
-      .getByRole('tab', { name: '이벤트', exact: true })
-      .click();
+    await creatorSection(page, width, '이벤트');
     await page.getByRole('button', { name: '이벤트 추가', exact: true }).click();
-    await page.getByRole('button', { name: '작업 추가', exact: true }).click();
+    await page.getByRole('button', { name: '선택한 내용 추가', exact: true }).click();
     await expect(page.getByRole('radio', { name: '숫자 입력', exact: true })).toBeChecked();
     await page.getByRole('spinbutton', { name: '변경할 값', exact: true }).fill('20');
     await page.getByRole('radio', { name: '계산식 사용', exact: true }).click();

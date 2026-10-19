@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { newEvent } from '../../domain/events';
 import { EventEditor } from './EventEditor';
 import type { EventLibrary } from './EventParts';
@@ -13,8 +13,10 @@ export function ActionsSection({
   notify,
   onSectionSelect,
   onOpenLibrary,
+  renderLibrary,
 }: Pick<CreatorPanelState, 'work' | 'update' | 'notify' | 'onSectionSelect'> & {
-  onOpenLibrary: (tab: EventLibrary) => void;
+  onOpenLibrary: (library: EventLibrary, host: string) => void;
+  renderLibrary: (host: string, onDone: (kind: EventLibrary) => void) => ReactNode;
 }) {
   const [created, setCreated] = useState('');
   return (
@@ -28,7 +30,8 @@ export function ActionsSection({
           key={action.id}
           {...{ work, action, update, notify }}
           expanded={index === 0 || action.id === created}
-          onLibrary={onOpenLibrary}
+          onLibrary={(kind) => onOpenLibrary(kind, action.id)}
+          renderLibrary={(onDone) => renderLibrary(action.id, onDone)}
           onNavigate={onSectionSelect}
         />
       ))}

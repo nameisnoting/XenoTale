@@ -26,10 +26,7 @@ async function start(page: Page, width: number) {
   const a = (await add.boundingBox())!,
     b = (await help.boundingBox())!;
   expect(b.y - a.y - a.height).toBeCloseTo(16, 0);
-  await page
-    .locator('.creator-sticky-tabs')
-    .getByRole('tab', { name: '상태창', exact: true })
-    .click();
+  await creatorSection(page, width, '상태창');
   await page.getByRole('button', { name: '캐릭터 만들기 예시 추가', exact: true }).click();
   return { nav, role } as const;
 }

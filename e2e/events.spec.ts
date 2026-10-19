@@ -24,7 +24,7 @@ async function savedWork(page: Page) {
 }
 
 for (const width of [1440, 393])
-  test(`통합 이벤트·노드 연결·블록 전환·공유 조건·기존 요소·실제 실행 ${width}`, async ({
+  test(`통합 이벤트·노드 순서·블록 전환·공유 조건·기존 요소·실제 실행 ${width}`, async ({
     page,
   }) => {
     test.setTimeout(60000);
@@ -179,27 +179,21 @@ for (const width of [1440, 393])
         ],
       },
     ];
-    await page
-      .locator('input[accept*=".charx"]')
-      .setInputFiles({
-        name: '이벤트.json',
-        mimeType: 'application/json',
-        buffer: Buffer.from(JSON.stringify({ kind: 'xenotale.work', schemaVersion: 2, work })),
-      });
+    await page.locator('input[accept*=".charx"]').setInputFiles({
+      name: '이벤트.json',
+      mimeType: 'application/json',
+      buffer: Buffer.from(JSON.stringify({ kind: 'xenotale.work', schemaVersion: 2, work })),
+    });
     await page.getByRole('button', { name: '작업 공간으로 불러오기', exact: true }).click();
     await creatorSection(page, width, '이벤트');
     const nav = page.locator(width < 800 ? '.editor-mobile-stages' : '.editor-nav');
     await expect(
       nav.getByRole(width < 800 ? 'tab' : 'button', { name: '상태값', exact: true }),
     ).toHaveCount(0);
-    const tabs = page.getByRole('tablist', { name: '이벤트 제작', exact: true });
-    await expect(tabs.getByRole('tab')).toHaveText([
-      '이벤트',
-      '상태값',
-      '아이템',
-      '연출',
-      '상태창',
-    ]);
+    await expect(page.getByRole('tablist', { name: '이벤트 제작', exact: true })).toHaveCount(0);
+    await expect(
+      page.getByRole('group', { name: '요소 만들기·편집', exact: true }).getByRole('button'),
+    ).toHaveCount(4);
     const card = page.locator('.event-editor').first();
     await card.getByRole('textbox', { name: '이벤트 이름', exact: true }).fill('마법석 줍기 수정');
     await card.getByRole('radio', { name: '노드형', exact: true }).check();
@@ -207,9 +201,15 @@ for (const width of [1440, 393])
     await card.getByRole('spinbutton', { name: '수량', exact: true }).fill('2');
     await card.getByRole('combobox', { name: '이벤트에 추가할 내용', exact: true }).click();
     await page.getByRole('option', { name: '숫자 상태 설정', exact: true }).click();
+    await expect(
+      card.getByRole('combobox', { name: '이벤트에 추가할 내용', exact: true }),
+    ).toContainText('숫자 상태 설정');
+    await expect(card.locator('[data-event-node^="step:"]')).toHaveCount(1);
+    await card.getByRole('button', { name: '선택한 내용 추가', exact: true }).click();
+    await expect(card.locator('[data-event-node^="step:"]')).toHaveCount(2);
+    await expect(card.locator('.event-node-inspector')).toBeInViewport();
     await card.getByRole('spinbutton', { name: '설정할 값', exact: true }).fill('7');
-    await card.getByRole('button', { name: '조건 출력', exact: true }).click();
-    await card.getByRole('button', { name: '작업 2 입력', exact: true }).click();
+    await card.getByRole('button', { name: '작업 2 위로', exact: true }).click();
     await card.getByRole('radio', { name: '블록형', exact: true }).check();
     await expect(
       card.locator('.event-step').first().getByRole('combobox', { name: '작업 종류', exact: true }),
@@ -312,4 +312,103 @@ for (const width of [1440, 393])
     expect(runtime.relationships.bond).toBe('동료');
     expect(errors).toEqual([]);
     expect(paid).toEqual([]);
+  });
+
+for (const width of [1440, 393])
+  test(`한 페이지에서 새 상태값·아이템 만들고 이벤트에 바로 연결 ${width}`, async ({ page }) => {
+    test.setTimeout(60000);
+    page.setDefaultTimeout(10000);
+    const errors: string[] = [];
+    page.on('pageerror', (error) => errors.push(error.message));
+    await page.setViewportSize({ width, height: 1000 });
+    await page.route('https://openrouter.ai/**', (r) => r.fulfill({ json: { data: [] } }));
+    await page.goto('/');
+    await page.getByRole('button', { name: '키 없이 먼저 둘러보기', exact: true }).click();
+    await page
+      .getByRole('button', { name: width < 800 ? '만들기' : '작품 만들기', exact: true })
+      .click();
+    await creatorSection(page, width, '이벤트');
+    await page.getByRole('button', { name: '이벤트 추가', exact: true }).click();
+    const card = page.locator('.event-editor').first();
+    await card.getByRole('textbox', { name: '이벤트 이름', exact: true }).fill('보상 받기');
+    await card.getByRole('radio', { name: '노드형', exact: true }).check();
+    const choice = card.getByRole('combobox', { name: '이벤트에 추가할 내용', exact: true });
+    await choice.click();
+    await page.getByRole('option', { name: '아이템 획득', exact: true }).click();
+    await expect(choice).toContainText('아이템 획득');
+    await expect(card.locator('[data-event-node^="step:"]')).toHaveCount(0);
+    await choice.click();
+    await page.getByRole('option', { name: '숫자 상태 증감', exact: true }).click();
+    await expect(choice).toContainText('숫자 상태 증감');
+    await expect(card.locator('[data-event-node^="step:"]')).toHaveCount(0);
+    await card.getByRole('button', { name: '선택한 내용 추가', exact: true }).click();
+    const inspector = card.locator('.event-node-inspector');
+    await expect(inspector).toBeInViewport();
+    await expect(card.getByRole('button', { name: /출력$|입력$/ })).toHaveCount(0);
+    await inspector.getByRole('button', { name: '상태값 만들기·편집', exact: true }).click();
+    const resources = card.locator('[data-event-resource-editor]');
+    await expect(resources).toHaveAttribute('data-event-resource-editor', 'values');
+    await expect(resources).toBeInViewport();
+    await resources.getByRole('button', { name: '상태값 추가', exact: true }).click();
+    await resources.getByRole('textbox', { name: '이름', exact: true }).fill('명성');
+    await resources.getByRole('button', { name: '편집 완료', exact: true }).last().click();
+    await expect(resources).toHaveCount(0);
+    await expect(inspector.getByRole('combobox', { name: '작업 대상', exact: true })).toContainText(
+      '명성',
+    );
+    await inspector.getByRole('spinbutton', { name: '변경할 값', exact: true }).fill('5');
+    await choice.click();
+    await page.getByRole('option', { name: '아이템 획득', exact: true }).click();
+    await card.getByRole('button', { name: '선택한 내용 추가', exact: true }).click();
+    await inspector.getByRole('button', { name: '아이템 만들기·편집', exact: true }).click();
+    await resources.getByRole('button', { name: '아이템 추가', exact: true }).click();
+    await resources.getByRole('textbox', { name: '이름', exact: true }).fill('모험 증표');
+    await resources.getByRole('button', { name: '편집 완료', exact: true }).last().click();
+    await expect(inspector.getByRole('combobox', { name: '작업 대상', exact: true })).toContainText(
+      '모험 증표',
+    );
+    // This same selection remains usable for another addition; it never resets itself.
+    await expect(choice).toContainText('아이템 획득');
+    await card.getByRole('button', { name: '선택한 내용 추가', exact: true }).click();
+    await expect(card.locator('[data-event-node^="step:"]')).toHaveCount(3);
+    await inspector.getByRole('button', { name: '작업 삭제', exact: true }).click();
+    // Opening connections must visibly reveal its editor in BOTH working views.
+    for (const view of ['노드형', '블록형']) {
+      await card.getByRole('radio', { name: view, exact: true }).check();
+      await choice.click();
+      await page.getByRole('option', { name: '시나리오·내면 해금 조건 연결', exact: true }).click();
+      await card.getByRole('button', { name: '연결 조건 편집', exact: true }).click();
+      await expect(card.locator('.event-connections')).toBeInViewport();
+    }
+    await card.locator('.event-test > summary').click();
+    await card.getByRole('button', { name: '테스트 실행', exact: true }).click();
+    await expect(card.locator('.event-test-result')).toContainText('명성: 0 → 5');
+    await expect(card.locator('.event-test-result')).toContainText('모험 증표');
+    await page.getByText('저장완료', { exact: true }).waitFor();
+    const saved = await savedWork(page);
+    expect(saved.statuses).toHaveLength(1);
+    expect(saved.items).toHaveLength(1);
+    expect(saved.actions[0].steps.map((step: any) => step.target)).toEqual([
+      saved.statuses[0].id,
+      saved.items[0].id,
+    ]);
+    expect(saved.statuses[0].initial).toBe(0);
+    await page.reload();
+    await creatorSection(page, width, '이벤트');
+    await card.getByRole('radio', { name: '노드형', exact: true }).check();
+    await card.locator('[data-event-node="step:0"] .event-node').click();
+    await expect(inspector.getByRole('combobox', { name: '작업 대상', exact: true })).toContainText(
+      '명성',
+    );
+    await inspector.getByRole('button', { name: '상태값 만들기·편집', exact: true }).click();
+    await resources.getByRole('textbox', { name: '이름', exact: true }).fill('평판');
+    await resources.getByRole('button', { name: '편집 완료', exact: true }).last().click();
+    await expect(inspector.getByRole('combobox', { name: '작업 대상', exact: true })).toContainText(
+      '평판',
+    );
+    expect(
+      await page.locator('.editor-main').evaluate((el) => el.scrollWidth <= el.clientWidth + 1),
+    ).toBe(true);
+    await page.screenshot({ path: `docs/screenshots/event-inline-${width}.png` });
+    expect(errors).toEqual([]);
   });
