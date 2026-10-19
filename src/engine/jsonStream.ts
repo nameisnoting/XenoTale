@@ -1,3 +1,4 @@
+import { modelError } from './providerError';
 export type JsonProgress = { reply: string; receivedChars: number; thinking: boolean };
 
 // Only preview the first, top-level reply string. Incomplete proposal JSON must
@@ -29,6 +30,7 @@ export async function readJsonStream(
   response: Response,
   onProgress: (progress: JsonProgress) => void,
   signal: AbortSignal,
+  apiKey = '',
 ): Promise<{ content: string; finishReason: string | null }> {
   if (!response.body) throw new Error('모델의 응답 스트림을 읽지 못했습니다.');
   const reader = response.body.getReader();
@@ -51,7 +53,7 @@ export async function readJsonStream(
       return;
     }
     const chunk = JSON.parse(data);
-    if (chunk.error) throw new Error('모델이 답변 생성 중 오류를 반환했습니다.');
+    if (chunk.error) throw modelError(response.status, chunk, apiKey);
     const choice = chunk.choices?.[0];
     if (!choice) return;
     if (typeof choice.delta?.content === 'string') content += choice.delta.content;

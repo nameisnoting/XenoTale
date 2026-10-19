@@ -9,6 +9,7 @@ import { buildQualityDirectives } from '../domain/qualityDirectives';
 import { runtimeRelations } from '../domain/relations';
 import { demoChoices, demoTurnBody } from '../domain/demo';
 import responseSchema from './turn-envelope.schema.json';
+import { modelError, readModelError } from './providerError';
 
 const BASE = 'https://openrouter.ai/api/v1';
 export const demoModel: Model = {
@@ -359,19 +360,9 @@ export async function generate(
       body: JSON.stringify(payload),
       signal,
     });
-    if (!response.ok) {
-      const status = response.status;
-      throw new Error(
-        status === 401
-          ? 'API 키를 다시 확인해 주세요.'
-          : status === 402
-            ? 'OpenRouter 잔액이 부족합니다.'
-            : status === 429
-              ? '요청이 많습니다. 잠시 후 다시 시도해 주세요.'
-              : `모델 요청에 실패했습니다 (${status}). 다른 모델을 선택하거나 다시 시도해 주세요.`,
-      );
-    }
+    if (!response.ok) throw await readModelError(response, apiKey);
     const data = await response.json();
+    if (data.error) throw modelError(response.status, data, apiKey);
     const u = data.usage;
     if (u) {
       usage.input = (usage.input ?? 0) + (u.prompt_tokens ?? 0);

@@ -10,6 +10,7 @@ import { id, selected, fingerprint } from '../domain/types';
 import { demoSummary } from '../domain/demo';
 import type { InputPart } from '../domain/creatorAttachments';
 import { readJsonStream, type JsonProgress } from './jsonStream';
+import { modelError, readModelError } from './providerError';
 export async function requestJson(
   system: string,
   data: unknown,
@@ -64,13 +65,14 @@ export async function requestJson(
     }),
     signal,
   });
-  if (!response.ok) throw new Error(`모델 요청에 실패했습니다 (${response.status}).`);
+  if (!response.ok) throw await readModelError(response, key);
   let content: string;
   let finishReason: string | null;
   if (options.onProgress && response.headers.get('content-type')?.includes('text/event-stream')) {
-    ({ content, finishReason } = await readJsonStream(response, options.onProgress, signal));
+    ({ content, finishReason } = await readJsonStream(response, options.onProgress, signal, key));
   } else {
     const result = await response.json();
+    if (result.error) throw modelError(response.status, result, key);
     const answer = result.choices?.[0];
     content = answer?.message?.content;
     finishReason = answer?.finish_reason;

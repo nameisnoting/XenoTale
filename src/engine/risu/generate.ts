@@ -6,6 +6,7 @@ import { emptyDelta } from '../../domain/engine';
 import { risuCommand, runRisu } from './client';
 import type { RisuMessage } from './types';
 import type { reasoningFor } from '../openrouter';
+import { modelError, readModelError } from '../providerError';
 
 /** Risu uses plain narrative/tag output, preserving its request/output hooks. Native rooms keep TurnEnvelope. */
 export async function generateRisu(
@@ -97,15 +98,11 @@ export async function generateRisu(
       ...(reasoning ? { reasoning } : {}),
     }),
   });
-  if (!response.ok)
-    throw new Error(
-      response.status === 429
-        ? '요청이 많습니다. 잠시 후 다시 시도해 주세요.'
-        : `모델 요청에 실패했습니다 (${response.status}).`,
-    );
+  if (!response.ok) throw await readModelError(response, key);
   const data = await response.json(),
     answer = data.choices?.[0],
     text = answer?.message?.content;
+  if (data.error) throw modelError(response.status, data, key);
   if (!text?.trim()) throw new Error('모델의 응답이 비어 있습니다.');
   options.onPhase?.('응답의 판정과 상태를 반영하고 있습니다…');
   let processed;

@@ -311,3 +311,8 @@ npm run test:e2e
 - `engine/creatorReferences.ts`: 파일 읽기·멀티모달 part 구성·PDF 처리 엔진 선택.
 - `engine/auxiliary.ts`: 기존 JSON/스트리밍 요청에 선택적인 content parts와 파일 파서 옵션 추가. 다른 요약 요청은 문자열 전송 유지.
 - `persistence/files.ts`: 작업공간 초안/기록 첨부와 프로필 공통 지침의 호환 가능한 선택 필드. 기존 파일 버전·DB 테이블은 그대로 사용.
+
+## 모델 오류 설명
+
+- `engine/providerError.ts`: HTTP 오류와 HTTP 200 내부 오류에서 OpenRouter 메시지 및 JSON 형태의 공급자 오류 설명만 읽습니다. API 키를 가리고 길이를 제한하며 원본 요청 전체를 표시하거나 기록하지 않습니다.
+- 일반 대화·Risu 대화·서포터·요약·서포터 스트림이 같은 처리를 사용합니다. 실패한 요청을 자동 재전송하거나 모델/출력 형식을 임의로 바꾸지 않습니다.
