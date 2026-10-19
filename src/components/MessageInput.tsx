@@ -2,7 +2,8 @@ import { useLayoutEffect, useRef, type ComponentPropsWithRef } from 'react';
 import './MessageInput.css';
 
 // All conversation inputs share two-to-eight visible lines, including wrapped text.
-// Only viewport resizing follows the bottom; new responses do not move the reader.
+// Chat readers keep their position even when the footer changes height.
+// The creator supporter can continue following the bottom during input resizing.
 export function MessageInput({
   ref,
   value,
@@ -29,7 +30,10 @@ export function MessageInput({
     element.style.height = `${Math.max(min, Math.min(max, wanted))}px`;
     element.style.overflowY = wanted > max ? 'auto' : 'hidden';
     if (transcript && transcript.clientHeight > 0) {
-      transcript.scrollTop = atBottom ? transcript.scrollHeight : top;
+      transcript.scrollTop =
+        atBottom && transcript.classList.contains('support-transcript')
+          ? transcript.scrollHeight
+          : top;
       anchor.current = { top: transcript.scrollTop, atBottom, height: transcript.clientHeight };
     }
   };
@@ -58,7 +62,10 @@ export function MessageInput({
       if (!transcript || transcript.clientHeight === anchor.current.height) return;
       anchor.current.height = transcript.clientHeight;
       if (!anchor.current.height) return;
-      transcript.scrollTop = anchor.current.atBottom ? transcript.scrollHeight : anchor.current.top;
+      transcript.scrollTop =
+        anchor.current.atBottom && transcript.classList.contains('support-transcript')
+          ? transcript.scrollHeight
+          : anchor.current.top;
       anchor.current.top = transcript.scrollTop;
     });
     if (transcript) {

@@ -7,7 +7,7 @@ async function start(page: Page, width: number) {
   await page.goto('/');
   await page.getByRole('button', { name: '키 없이 먼저 둘러보기', exact: true }).click();
 }
-async function verifyInput(input: Locator, transcript: Locator) {
+async function verifyInput(input: Locator, transcript: Locator, followBottom = true) {
   // Long content isolates viewport anchoring from network and model response timing.
   await transcript.evaluate((e) => {
     const content = document.createElement('p');
@@ -28,11 +28,14 @@ async function verifyInput(input: Locator, transcript: Locator) {
   await input.pressSequentially('셋째 줄');
   const three = await input.evaluate((e) => e.getBoundingClientRect().height);
   expect(three).toBeGreaterThan(two + 15);
+  const beforeGrowth = await transcript.evaluate((e) => e.scrollTop);
   const eightLines = Array.from({ length: 8 }, (_, i) => `${i + 1}번째 줄`).join('\n');
   await input.fill(eightLines);
-  await expect
-    .poll(() => transcript.evaluate((e) => e.scrollHeight - e.clientHeight - e.scrollTop))
-    .toBeLessThan(2);
+  if (followBottom)
+    await expect
+      .poll(() => transcript.evaluate((e) => e.scrollHeight - e.clientHeight - e.scrollTop))
+      .toBeLessThan(2);
+  else await expect.poll(() => transcript.evaluate((e) => e.scrollTop)).toBe(beforeGrowth);
   const eight = await input.evaluate((e) => e.getBoundingClientRect().height);
   expect(eight - two).toBeCloseTo(132, 0);
   await input.fill(eightLines + '\n9번째 줄\n10번째 줄');
@@ -125,7 +128,7 @@ for (const width of [1440, 393]) {
     const input = page.getByRole('textbox', { name: '메시지', exact: true });
     await expect(input).toBeVisible();
     await expect(page.locator('.composer-hint')).toHaveCount(0);
-    await verifyInput(input, page.locator('.chat-scroll'));
+    await verifyInput(input, page.locator('.chat-scroll'), false);
     const handle = page.getByRole('separator', { name: '메시지 입력창 크기 조절' });
     await handle.press('End');
     await expect(page.locator('.resizable-composer')).toHaveAttribute('data-manual', 'true');
