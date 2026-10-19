@@ -219,6 +219,20 @@ for (const width of [1440, 393])
       );
     expect(gaps).toEqual([16, 16, 16]);
     await expect(components.first()).toHaveCSS('border-top-width', '1px');
+    const conditions = card.locator('[data-event-edit="conditions"]');
+    const emptyGap = await conditions.evaluate((element) => {
+      const note = element.querySelector('p')!.getBoundingClientRect();
+      return element.querySelector('.add-button')!.getBoundingClientRect().top - note.bottom;
+    });
+    expect(emptyGap).toBe(16);
+    await expect(components.first()).toHaveCSS('border-top-color', 'rgb(78, 78, 78)');
+    await expect(card.locator('[data-event-edit="add"]')).toHaveCount(1);
+    await expect(card.locator('[data-event-edit="add"]').locator('..').locator('..')).toHaveClass(
+      'edit-card-section',
+    );
+    await expect(
+      card.getByRole('button', { name: '작업 종류 선택해서 추가', exact: true }),
+    ).toHaveCount(0);
     await card.getByRole('radio', { name: '노드형', exact: true }).check();
     await selectNodeInPlace(page, width, 'step:0');
     await card.getByRole('spinbutton', { name: '수량', exact: true }).fill('2');
@@ -234,6 +248,9 @@ for (const width of [1440, 393])
     await card.getByRole('spinbutton', { name: '설정할 값', exact: true }).fill('7');
     await card.getByRole('button', { name: '작업 2 위로', exact: true }).click();
     await card.getByRole('radio', { name: '블록형', exact: true }).check();
+    await expect(
+      card.getByRole('combobox', { name: '이벤트에 추가할 내용', exact: true }),
+    ).toContainText('숫자 상태 설정');
     await expect(
       card.locator('.event-step').first().getByRole('combobox', { name: '작업 종류', exact: true }),
     ).toContainText('숫자 상태 설정');
@@ -353,7 +370,19 @@ for (const width of [1440, 393])
     await creatorSection(page, width, '이벤트');
     await page.getByRole('button', { name: '이벤트 추가', exact: true }).click();
     const card = page.locator('.event-editor').first();
+    await card.getByRole('button', { name: '이벤트 삭제', exact: true }).click();
+    await expect(page.locator('.event-editor')).toHaveCount(0);
+    await page.getByRole('button', { name: '이벤트 추가', exact: true }).click();
     await card.getByRole('textbox', { name: '이벤트 이름', exact: true }).fill('보상 받기');
+    await card.getByRole('button', { name: '이벤트 삭제', exact: true }).click();
+    const deletion = page
+      .getByRole('dialog')
+      .filter({ has: page.getByRole('heading', { name: '이벤트 삭제', exact: true }) });
+    await expect(deletion).toContainText('보상 받기');
+    await deletion.getByRole('button', { name: '취소', exact: true }).click();
+    await expect(card.getByRole('textbox', { name: '이벤트 이름', exact: true })).toHaveValue(
+      '보상 받기',
+    );
     await card.getByRole('radio', { name: '노드형', exact: true }).check();
     const choice = card.getByRole('combobox', { name: '이벤트에 추가할 내용', exact: true });
     await choice.click();
@@ -368,6 +397,7 @@ for (const width of [1440, 393])
     const inspector = card.locator('.event-node-inspector');
     await expect(inspector).toBeInViewport();
     await expect(card.getByRole('button', { name: /출력$|입력$/ })).toHaveCount(0);
+    await expect(card.locator('.event-canvas + [data-event-edit="add"]')).toHaveCount(1);
     await inspector.getByRole('button', { name: '상태값 만들기·편집', exact: true }).click();
     const resources = card.locator('[data-event-resource-editor]');
     await expect(resources).toHaveAttribute('data-event-resource-editor', 'values');

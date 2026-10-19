@@ -1,7 +1,14 @@
+.event-editor .edit-card-section-body > p,
+.event-editor .event-node-inspector > p,
+.event-editor .event-connections > p,
+.event-editor .button.add-button,
+.event-editor .condition-row.condition-row {
+  margin: 0;
+}
 .event-editor .event-component {
   margin: 0;
   padding-top: var(--edit-card-padding);
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--main-03);
 }
 .event-editor .edit-card-section > h3 {
   margin: 0;
@@ -23,7 +30,7 @@
 }
 .event-editor .event-test {
   margin-top: 0;
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--main-03);
 }
 .event-editor-tools,
 .event-step-order,
@@ -123,7 +130,7 @@
   color: var(--muted);
 }
 .event-node-inspector {
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--main-03);
 }
 .event-test-inputs {
   display: grid;

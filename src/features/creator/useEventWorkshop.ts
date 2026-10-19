@@ -17,7 +17,6 @@ export function useEventWorkshop({
 }) {
   const [selected, setSelected] = useState('trigger');
   const root = useRef<HTMLDivElement>(null);
-  const addControl = useRef<HTMLDivElement>(null);
   const [pending, setPending] = useState<{ target: string } | null>(null);
   const [libraryTarget, setLibraryTarget] = useState<{
     index: number;
@@ -154,7 +153,6 @@ export function useEventWorkshop({
   };
   return {
     root,
-    addControl,
     selected,
     setSelected,
     selectNode,

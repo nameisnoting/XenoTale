@@ -1,6 +1,6 @@
 import { useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
-import { ArrowUp, ArrowDown, Plus } from 'lucide-react';
-import { Button, IconButton } from '../../components/UI';
+import { ArrowUp, ArrowDown } from 'lucide-react';
+import { IconButton } from '../../components/UI';
 import { eventTriggers, stepTitle, conditionTitle, eventConnections } from '../../domain/events';
 import type { Work } from '../../domain/types';
 import type { WorkAction } from '../../domain/actions';
@@ -11,8 +11,7 @@ export function EventGraph({
   selected,
   onSelect,
   onMove,
-  onAdd,
-  onAddCondition,
+  addContent,
   inspector,
 }: {
   work: Work;
@@ -20,8 +19,7 @@ export function EventGraph({
   selected: string;
   onSelect: (key: string) => void;
   onMove: (from: number, to: number) => void;
-  onAdd: () => void;
-  onAddCondition: () => void;
+  addContent: ReactNode;
   inspector: ReactNode;
 }) {
   const root = useRef<HTMLDivElement>(null);
@@ -189,16 +187,7 @@ export function EventGraph({
           ))}
         </div>
       </div>
-      <div className="event-editor-tools" role="group" aria-label="노드 추가">
-        <Button onClick={onAddCondition}>
-          <Plus size={16} />
-          조건 추가
-        </Button>
-        <Button onClick={onAdd}>
-          <Plus size={16} />
-          작업 종류 선택해서 추가
-        </Button>
-      </div>
+      {addContent}
     </>
   );
 }

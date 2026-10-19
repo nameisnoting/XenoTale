@@ -1,10 +1,10 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { ArrowUp, ArrowDown } from 'lucide-react';
 import { DisclosureCard, CardSection } from '../../components/DisclosureCard';
 import { Field, TextInput, Button, IconButton } from '../../components/UI';
 import { RadioOptions } from '../../components/DesignControls';
 import { DeleteAction } from '../../components/DeleteAction';
-import { AddButton } from '../../components/AddButton';
+import { requiresDeleteConfirmation } from '../../domain/deletion';
 import { useEventWorkshop } from './useEventWorkshop';
 import { EventAddContent } from './EventAddContent';
 import type { WorkAction } from '../../domain/actions';
@@ -49,10 +49,10 @@ export function EventEditor({
     }
     update({ actions: work.actions?.map((a) => (a.id === action.id ? { ...a, ...patch } : a)) });
   };
+  const [contentKind, setContentKind] = useState('add');
   const workshop = useEventWorkshop({ work, action, change, onLibrary });
   const {
     root,
-    addControl,
     selected,
     setSelected,
     selectNode,
@@ -102,6 +102,18 @@ export function EventEditor({
       {libraryInStep && libraryTarget.index === index && libraryEditor}
     </>
   );
+  const addContent = (
+    <EventAddContent
+      value={contentKind}
+      onChange={setContentKind}
+      onStep={addStep}
+      onCondition={addCondition}
+      onLinks={() => {
+        setSelected('links');
+        reveal(view === 'nodes' ? 'inspector' : 'links');
+      }}
+    />
+  );
   return (
     <div ref={root} className="event-editor-wrap">
       <DisclosureCard
@@ -112,7 +124,7 @@ export function EventEditor({
           <DeleteAction
             title="이벤트 삭제"
             name={action.name}
-            needsConfirmation={!!action.steps.length || !!action.conditions.length}
+            needsConfirmation={requiresDeleteConfirmation('event', action)}
             onDelete={() => {
               if (
                 work.statusPanels?.some((panel) =>
@@ -159,28 +171,13 @@ export function EventEditor({
           <Button onClick={() => openLibrary('panels')}>상태창 만들기·편집</Button>
         </div>
         {!libraryInStep && libraryEditor}
-        <EventAddContent
-          ref={addControl}
-          onStep={addStep}
-          onCondition={addCondition}
-          onLinks={() => {
-            setSelected('links');
-            reveal(view === 'nodes' ? 'inspector' : 'links');
-          }}
-        />
         {view === 'nodes' ? (
           <>
             <EventGraph
               {...{ work, action, selected }}
               onSelect={selectNode}
               onMove={reorder}
-              onAdd={() => {
-                addControl.current?.scrollIntoView({ block: 'start' });
-                addControl.current
-                  ?.querySelector<HTMLButtonElement>('[role="combobox"]')
-                  ?.focus({ preventScroll: true });
-              }}
-              onAddCondition={addCondition}
+              addContent={addContent}
               inspector={
                 <div
                   className="event-node-inspector"
@@ -223,9 +220,7 @@ export function EventEditor({
             <div className="event-component">
               <CardSection title="실행할 작업">
                 {!action.steps.length && (
-                  <p className="muted">
-                    위의 ‘추가할 내용’에서 상태 변경·아이템·연출 등을 연결하세요.
-                  </p>
+                  <p className="muted">아래에서 실행할 작업을 선택해 추가하세요.</p>
                 )}
                 {action.steps.map((_, index) => (
                   <div key={index} data-event-edit={`step:${index}`} tabIndex={-1}>
@@ -262,13 +257,7 @@ export function EventEditor({
                     </DisclosureCard>
                   </div>
                 ))}
-                <AddButton
-                  onClick={() => {
-                    reveal('add');
-                  }}
-                >
-                  작업 종류 선택해서 추가
-                </AddButton>
+                {addContent}
               </CardSection>
             </div>
             <div className="event-component" data-event-edit="links" tabIndex={-1}>

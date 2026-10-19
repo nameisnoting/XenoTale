@@ -8,6 +8,7 @@ const key = z.string().min(1).max(1000);
 export const actionSchema = z.object({
   id: key,
   name: z.string().max(1000),
+  defaultName: z.string().max(1000).optional(),
   trigger: z.enum(['button', 'after-response', 'item-gained', 'state-changed']),
   triggerRef: z.string().max(1000).optional(),
   buttonLocation: z.enum(['composer', 'screen']).optional(),

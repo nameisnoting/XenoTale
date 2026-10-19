@@ -9,10 +9,12 @@ export type DeleteKind =
   | 'chapter'
   | 'shortcut'
   | 'effect'
+  | 'event'
   | 'characterGroup'
   | 'relation';
 
 const legacyNames: Partial<Record<DeleteKind, RegExp>> = {
+  event: /^(?:이벤트|규칙)\s*\d+$/,
   note: /^노트\s*\d+$/,
   persona: /^페르소나\s*\d+$/,
   lore: /^로어북\s*\d+$/,
@@ -77,6 +79,17 @@ export function requiresDeleteConfirmation(kind: DeleteKind, value: any): boolea
       );
     case 'shortcut':
       return hasText([value.description, value.prompt]);
+    case 'event':
+      return (
+        !!value.conditions?.length ||
+        !!value.steps?.length ||
+        value.trigger !== 'button' ||
+        value.mode !== 'all' ||
+        hasText(value.triggerRef) ||
+        value.buttonLocation === 'screen' ||
+        !!value.workspace?.chapters?.length ||
+        !!value.workspace?.innerUnlock
+      );
     case 'effect':
       return hasText([value.prompt, value.content]);
     case 'characterGroup':

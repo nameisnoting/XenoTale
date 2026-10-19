@@ -27,6 +27,7 @@ export function newEvent(actions: WorkAction[] = []): WorkAction {
   return {
     id: id(),
     name: `이벤트${number}`,
+    defaultName: `이벤트${number}`,
     trigger: 'button',
     mode: 'all',
     conditions: [],

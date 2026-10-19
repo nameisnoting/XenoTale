@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { requiresDeleteConfirmation as confirm } from './deletion';
 import { emptyWork } from './defaults';
 import { workSchema } from '../persistence/files';
+import { newEvent } from './events';
 
 describe('authored-entry deletion policy', () => {
   it('deletes untouched generated titles immediately, but protects renamed titles across serialization', () => {
@@ -93,6 +94,33 @@ describe('authored-entry deletion policy', () => {
     expect(confirm('effect', { name: '', prompt: '', content: '<html>' })).toBe(true);
     expect(confirm('characterGroup', { name: '그룹 1', prompt: '그룹 설정' })).toBe(true);
     expect(confirm('relation', { label: '', innerLabel: '비밀 관계' })).toBe(true);
+  });
+  it('protects event names, execution settings and links, retaining provenance through files', () => {
+    const event = newEvent();
+    expect(confirm('event', event)).toBe(false);
+    expect(confirm('event', { ...event, workspace: { view: 'nodes' } })).toBe(false);
+    for (const patch of [
+      { name: '보상 받기' },
+      { name: '이벤트99' },
+      { trigger: 'after-response' },
+      { triggerRef: 'status-id' },
+      { mode: 'any' },
+      { buttonLocation: 'screen' },
+      { steps: [{ kind: 'music', target: '', value: '' }] },
+      { conditions: [{ ref: 'status-id' }] },
+      { workspace: { view: 'blocks', chapters: ['chapter-id'] } },
+      { workspace: { view: 'blocks', innerUnlock: true } },
+    ])
+      expect(confirm('event', { ...event, ...patch })).toBe(true);
+    const work = emptyWork();
+    work.actions = [{ ...event, name: '이벤트99' }];
+    const restored = workSchema.parse(JSON.parse(JSON.stringify(work))).actions![0];
+    expect(restored.defaultName).toBe(event.name);
+    expect(confirm('event', restored)).toBe(true);
+    const legacy = { ...event, defaultName: undefined };
+    expect(confirm('event', legacy)).toBe(false);
+    expect(confirm('event', { ...legacy, name: '규칙 1' })).toBe(false);
+    expect(confirm('event', { ...legacy, name: '보상 받기' })).toBe(true);
   });
   it('retains default-name provenance in portable work data', () => {
     const work = emptyWork();
