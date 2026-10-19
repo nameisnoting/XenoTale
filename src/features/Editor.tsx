@@ -92,6 +92,9 @@ function EditorContent({
     initial.testCreativity ?? initial.supporterSettings?.testCreativity ?? 2,
   );
   const [assistantHistory, setAssistantHistory] = useState(initial.assistantHistory ?? []);
+  const [assistantAttachments, setAssistantAttachments] = useState(
+    initial.assistantAttachments ?? [],
+  );
   const [testRoom, setTestRoom] = useState(initial.testRoom ?? null);
   const [personaSelection, setPersonaSelection] = useState(initial.selectedPersonaId ?? '');
   const selectedPersona = work.personas.find((p) => p.id === personaSelection) ?? work.personas[0];
@@ -251,12 +254,18 @@ function EditorContent({
     value: Work,
     updates: Pick<
       Workspace,
-      'testCreativity' | 'assistantHistory' | 'testRoom' | 'selectedPersonaId' | 'selectedOpeningId'
+      | 'testCreativity'
+      | 'assistantHistory'
+      | 'assistantAttachments'
+      | 'testRoom'
+      | 'selectedPersonaId'
+      | 'selectedOpeningId'
     > = {},
   ) => {
     setWork(value);
     if (updates.testCreativity !== undefined) setTestCreativity(updates.testCreativity);
     if (updates.assistantHistory) setAssistantHistory(updates.assistantHistory);
+    if (updates.assistantAttachments) setAssistantAttachments(updates.assistantAttachments);
     if (Object.hasOwn(updates, 'testRoom')) setTestRoom(updates.testRoom ?? null);
     if (updates.selectedPersonaId !== undefined) setPersonaSelection(updates.selectedPersonaId);
     if (updates.selectedOpeningId !== undefined) setOpeningSelection(updates.selectedOpeningId);
@@ -277,6 +286,7 @@ function EditorContent({
           work: latest.current.work,
           testCreativity: latest.current.testCreativity,
           assistantHistory: latest.current.assistantHistory,
+          assistantAttachments: latest.current.assistantAttachments,
           testRoom: latest.current.testRoom,
           selectedPersonaId: latest.current.selectedPersonaId,
           selectedOpeningId: latest.current.selectedOpeningId,
@@ -755,6 +765,16 @@ function EditorContent({
               work={work}
               workspaceId={initial.id}
               history={assistantHistory}
+              instructions={profile.creatorInstructions ?? ''}
+              onInstructionsChange={(value) =>
+                changeProfile((profile) => {
+                  profile.creatorInstructions = value;
+                })
+              }
+              attachments={assistantAttachments}
+              onAttachmentsChange={(assistantAttachments) =>
+                save(latest.current.work, { assistantAttachments })
+              }
               onHistoryChange={(assistantHistory) =>
                 save(latest.current.work, { assistantHistory })
               }

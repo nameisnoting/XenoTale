@@ -2,6 +2,7 @@ import { downloadPackage, readPackage } from './package';
 import { exposeAsset, type StoredAsset } from './assets';
 import { cleanWork, repairLegacyRisuLore } from '../domain/workContent';
 import { z } from 'zod';
+import { creatorAttachmentSchema, CREATOR_FILE_COUNT } from '../domain/creatorAttachments';
 import { gameBlockSchema } from '../domain/gamePanels';
 import { actionSchema } from '../domain/actions';
 import { risuSchema } from '../engine/risu/schema';
@@ -387,6 +388,7 @@ const profileSchema = z.object({
   summaryModel: short,
   creatorTestModel: short.optional(),
   creatorAgentModel: short.optional(),
+  creatorInstructions: z.string().max(20_000).optional(),
   carousels: arr(
     z.object({
       id: identifier,
@@ -433,11 +435,13 @@ const workspace = z.object({
       testCreativity: z.number().int().min(0).max(4),
     })
     .optional(),
+  assistantAttachments: z.array(creatorAttachmentSchema).max(CREATOR_FILE_COUNT).optional(),
   assistantHistory: arr(
     z.object({
       id: identifier,
       role: z.enum(['user', 'assistant']),
       text: str,
+      attachments: z.array(creatorAttachmentSchema).max(CREATOR_FILE_COUNT).optional(),
       applied: z.boolean().optional(),
       appliedIssues: arr(creatorIssueSchema).optional(),
       proposal: z

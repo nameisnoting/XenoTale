@@ -48,7 +48,7 @@ describe('portable image packages', () => {
     const work = finished();
     work.cover = 'asset:missing';
     await expect(createPackage({ kind: 'xenotale.work', schemaVersion: 2, work })).rejects.toThrow(
-      '이미지',
+      '내장 파일',
     );
   });
   it('keeps a legacy unfinished test conversation readable after removing its blank character placeholder', async () => {

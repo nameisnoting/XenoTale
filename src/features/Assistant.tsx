@@ -1,3 +1,11 @@
+import { AssistantAddMenu } from './AssistantAddMenu';
+import { AssistantFiles, useAssistantFiles } from './AssistantFiles';
+import {
+  acceptsImages,
+  creatorReferences,
+  type CreatorAttachment,
+} from '../domain/creatorAttachments';
+import { prepareCreatorReferences } from '../engine/creatorReferences';
 import { MessageInput } from '../components/MessageInput';
 import { SendButton } from '../components/SendButton';
 import { useMessageDraft } from '../components/useMessageDraft';
@@ -22,6 +30,10 @@ export function Assistant({
   work,
   workspaceId,
   onChange,
+  instructions,
+  onInstructionsChange,
+  attachments,
+  onAttachmentsChange,
   modelId,
   onModelChange,
   history,
@@ -36,6 +48,10 @@ export function Assistant({
   work: Work;
   workspaceId: string;
   onChange: (w: Work) => void;
+  instructions: string;
+  onInstructionsChange: (text: string) => Promise<void>;
+  attachments: CreatorAttachment[];
+  onAttachmentsChange: (files: CreatorAttachment[]) => void;
   modelId: string;
   onModelChange: (modelId: string) => void;
   history: CreatorMessage[];
@@ -61,33 +77,61 @@ export function Assistant({
     setHistory([...historyRef.current, { id: id(), ...message }]);
   const transcript = useRef<HTMLDivElement>(null);
   const notify = useNotify();
+  const uploads = useAssistantFiles(attachments, onAttachmentsChange, busy, notify);
+  const needsImages = attachments.some((file) => file.kind === 'image');
   useEffect(() => () => controller.current?.abort(), []);
   useEffect(() => {
     transcript.current?.scrollTo({ top: transcript.current.scrollHeight });
   }, [history, progress.reply]);
   const send = async () => {
-    if (!input.trim() || controller.current) return;
+    if ((!input.trim() && !attachments.length) || controller.current || uploads.reading) return;
     const active = new AbortController();
     controller.current = active;
     setBusy(true);
     setProgress({ reply: '', receivedChars: 0, thinking: false });
     progressRef.current = { reply: '', receivedChars: 0, thinking: false };
     const draft = beginSend();
-    const request = draft.text.trim();
+    const request = draft.text.trim() || '첨부한 자료를 참고해 제작을 도와주세요.';
+    const currentAttachments = [...attachments];
     const original = structuredClone(workRef.current);
     try {
       const model = await resolveModel(modelId, active.signal);
-      const conversation = historyRef.current.slice(-10).map(({ role, text }) => ({ role, text }));
+      const sourceFiles = creatorReferences(historyRef.current, currentAttachments).filter(
+        (file) =>
+          file.kind !== 'image' ||
+          acceptsImages(model) ||
+          currentAttachments.some((current) => current.asset === file.asset),
+      );
+      const referenceInput =
+        model.id === 'demo'
+          ? { parts: [] }
+          : await prepareCreatorReferences(sourceFiles, model, active.signal);
+      const fileDescription = (file: CreatorAttachment) => ({
+        name: file.name,
+        kind: file.kind,
+        reference: file.asset,
+        included: sourceFiles.some((source) => source.asset === file.asset),
+      });
+      const conversation = historyRef.current.slice(-10).map(({ role, text, attachments }) => ({
+        role,
+        text,
+        ...(attachments?.length ? { attachments: attachments.map(fileDescription) } : {}),
+      }));
       const previous = [...historyRef.current]
         .reverse()
         .find((message) => message.proposal && !message.applied);
-      append({ role: 'user', text: request });
+      append({
+        role: 'user',
+        text: request,
+        ...(currentAttachments.length ? { attachments: currentAttachments } : {}),
+      });
       if (model.id === 'demo') {
         append({
           role: 'assistant',
-          text: '현재는 예시 모드입니다. API 키와 모델을 선택하면 작품 설정을 함께 작성할 수 있습니다.',
+          text: '현재는 예시 모드입니다. API 키와 모델을 선택하면 첨부 자료를 읽고 작품 설정을 함께 작성할 수 있습니다.',
         });
         draft.complete();
+        onAttachmentsChange([]);
         return;
       }
       const snapshot = creatorRequest(original);
@@ -105,6 +149,9 @@ export function Assistant({
         assistantPrompt,
         {
           language: 'Korean',
+          sharedInstructions: instructions.trim(),
+          referenceFiles: currentAttachments.map(fileDescription),
+          availableReferences: sourceFiles.map(fileDescription),
           sections: snapshot.sections,
           draftSchema: snapshot.draftSchema,
           draft: snapshot.draft,
@@ -121,6 +168,7 @@ export function Assistant({
         active.signal,
         {
           maxTokens: 16384,
+          ...referenceInput,
           preserveInvalidOutput: true,
           onProgress: (progress) => {
             progressRef.current = progress;
@@ -142,6 +190,7 @@ export function Assistant({
             : undefined,
       });
       draft.complete();
+      onAttachmentsChange([]);
     } catch (e) {
       draft.restore();
       if ((e as Error).name !== 'AbortError') {
@@ -183,7 +232,7 @@ export function Assistant({
     }
   };
   return (
-    <div className="assistant">
+    <div className="assistant" {...uploads.dragHandlers}>
       <div className="support-transcript" ref={transcript}>
         <p>
           어떤 작품을 만들어볼까요?
@@ -193,7 +242,10 @@ export function Assistant({
         {history.map((message) => (
           <Fragment key={message.id}>
             {message.role === 'user' ? (
-              <p className="support-user">{message.text}</p>
+              <div className="support-user">
+                <p>{message.text}</p>
+                <AssistantFiles files={message.attachments ?? []} />
+              </div>
             ) : (
               <Markdown>{message.text}</Markdown>
             )}
@@ -220,7 +272,12 @@ export function Assistant({
           </div>
         )}
       </div>
-      <div className="support-composer">
+      <div className={`support-composer ${uploads.dragging ? 'support-composer-dragging' : ''}`}>
+        <AssistantFiles
+          files={attachments}
+          disabled={busy || uploads.reading}
+          onRemove={(id) => onAttachmentsChange(attachments.filter((file) => file.id !== id))}
+        />
         <MessageInput
           aria-label="서포터 메시지"
           value={input}
@@ -233,7 +290,12 @@ export function Assistant({
             }
           }}
         />
-        <div>
+        <div className="support-composer-actions">
+          <AssistantAddMenu
+            {...{ instructions, onInstructionsChange }}
+            onFiles={uploads.upload}
+            disabled={busy || uploads.reading}
+          />
           <ActionButton
             className="model-trigger"
             onClick={() => {
@@ -248,13 +310,28 @@ export function Assistant({
           </ActionButton>
           <SendButton
             busy={busy}
-            disabled={!input.trim()}
+            disabled={uploads.reading || (!input.trim() && !attachments.length)}
             label="서포터 전송"
             stopLabel="서포터 생성 중단"
             onSend={() => void send()}
             onStop={() => controller.current?.abort()}
           />
         </div>
+        {uploads.reading && (
+          <p role="status" className="support-file-hint">
+            파일을 준비하고 있습니다…
+          </p>
+        )}
+        {needsImages &&
+          modelId !== 'demo' &&
+          !acceptsImages(models.find((model) => model.id === modelId)) && (
+            <p className="support-file-hint">
+              사진을 읽으려면 이미지 입력을 지원하는 모델을 선택하세요.
+            </p>
+          )}
+        {uploads.dragging && (
+          <div className="support-drop-hint">여기에 사진이나 문서를 놓으세요</div>
+        )}
       </div>
       {picker && (
         <ModelPicker
@@ -263,6 +340,7 @@ export function Assistant({
           creativity={2}
           onSelect={onModelChange}
           onClose={() => setPicker(false)}
+          imageInput={needsImages}
           loading={loadingModels}
           onRefresh={refreshModels}
         />

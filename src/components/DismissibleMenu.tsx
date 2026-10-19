@@ -8,11 +8,15 @@ export function DismissibleMenu({
   onDismiss,
   children,
   label = '작품 메뉴',
+  placement = 'auto',
+  align = 'end',
 }: {
   id: string;
   onDismiss: () => void;
   children: ReactNode;
   label?: string;
+  placement?: 'auto' | 'above';
+  align?: 'start' | 'end';
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState({ left: 0, top: 0 });
@@ -24,14 +28,20 @@ export function DismissibleMenu({
     const anchor = trigger.getBoundingClientRect();
     const box = ref.current.getBoundingClientRect();
     setPosition({
-      left: Math.max(8, Math.min(innerWidth - box.width - 8, anchor.right - box.width)),
+      left: Math.max(
+        8,
+        Math.min(
+          innerWidth - box.width - 8,
+          align === 'start' ? anchor.left : anchor.right - box.width,
+        ),
+      ),
       top:
-        anchor.bottom + box.height + 8 <= innerHeight
+        placement !== 'above' && anchor.bottom + box.height + 8 <= innerHeight
           ? anchor.bottom + 4
           : Math.max(8, anchor.top - box.height - 4),
     });
     ref.current.querySelector<HTMLButtonElement>('button')?.focus();
-  }, [id]);
+  }, [id, placement, align]);
   useEffect(() => {
     const outside = (event: PointerEvent) => {
       const target = event.target as Element;

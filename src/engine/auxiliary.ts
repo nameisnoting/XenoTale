@@ -8,6 +8,7 @@ export { summarySources, summaryCountdown } from '../domain/memory';
 import type { Room, Model, Memory } from '../domain/types';
 import { id, selected, fingerprint } from '../domain/types';
 import { demoSummary } from '../domain/demo';
+import type { InputPart } from '../domain/creatorAttachments';
 import { readJsonStream, type JsonProgress } from './jsonStream';
 export async function requestJson(
   system: string,
@@ -17,6 +18,8 @@ export async function requestJson(
   signal: AbortSignal,
   options: {
     maxTokens?: number;
+    parts?: InputPart[];
+    pdfEngine?: 'native' | 'cloudflare-ai';
     allowTextFallback?: boolean;
     preserveInvalidOutput?: boolean;
     onProgress?: (progress: JsonProgress) => void;
@@ -28,7 +31,13 @@ export async function requestJson(
     options.maxTokens ?? 4096,
     model.top_provider?.max_completion_tokens ?? Infinity,
   );
-  if (requestContent.length + system.length + maxTokens > model.context_length * 0.94)
+  const referenceLength =
+    options.parts?.reduce((sum, part) => sum + (part.type === 'text' ? part.text.length : 0), 0) ??
+    0;
+  if (
+    requestContent.length + referenceLength + system.length + maxTokens >
+    model.context_length * 0.94
+  )
     throw new Error('모델의 컨텍스트가 부족합니다. 더 큰 모델을 선택해 주세요.');
   const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
@@ -37,9 +46,17 @@ export async function requestJson(
       model: model.id,
       messages: [
         { role: 'system', content: system },
-        { role: 'user', content: requestContent },
+        {
+          role: 'user',
+          content: options.parts?.length
+            ? [{ type: 'text', text: requestContent }, ...options.parts]
+            : requestContent,
+        },
       ],
       max_tokens: maxTokens,
+      ...(options.pdfEngine
+        ? { plugins: [{ id: 'file-parser', pdf: { engine: options.pdfEngine } }] }
+        : {}),
       ...(options.onProgress ? { stream: true } : {}),
       ...(model.supported_parameters.includes('response_format')
         ? { response_format: { type: 'json_object' } }

@@ -44,10 +44,10 @@ export async function createPackage(value: unknown): Promise<Blob> {
     throw new Error('설정 데이터가 50MB를 초과합니다. 작품별로 나누어 내보내 주세요.');
   const assets = await db.assets.bulkGet([...collectAssetIds(JSON.parse(json))]);
   if (assets.some((a) => !a))
-    throw new Error('작품에 연결된 이미지가 없습니다. 원본 파일을 다시 불러와 주세요.');
+    throw new Error('연결된 내장 파일이 없습니다. 원본 파일을 다시 불러와 주세요.');
   if (assets.length > 10000 || assets.reduce((sum, asset) => sum + asset!.size, 0) > MEDIA_LIMIT)
     throw new Error(
-      '파일 하나의 내장 이미지는 2GB·10,000개까지 지원합니다. 작품별로 나누어 내보내 주세요.',
+      '내장 파일은 패키지 하나에 2GB·10,000개까지 지원합니다. 작품별로 나누어 내보내 주세요.',
     );
   const { BlobReader, BlobWriter, TextReader, ZipWriter } = await import('@zip.js/zip.js');
   const writer = new ZipWriter(new BlobWriter('application/vnd.xenotale+zip'), {

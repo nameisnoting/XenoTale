@@ -337,6 +337,7 @@ export function Area({
   ariaLabel,
   readOnly = false,
   inputRef,
+  maxLength,
 }: {
   value: string;
   onChange: (s: string) => void;
@@ -346,6 +347,7 @@ export function Area({
   ariaLabel?: string;
   readOnly?: boolean;
   inputRef?: Ref<HTMLTextAreaElement>;
+  maxLength?: number;
 }) {
   return (
     <textarea
@@ -357,6 +359,7 @@ export function Area({
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
       rows={rows}
+      maxLength={maxLength}
     />
   );
 }

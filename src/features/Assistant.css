@@ -61,3 +61,88 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+.support-composer {
+  position: relative;
+}
+.support-composer > .support-attachments {
+  margin: 0 0 12px;
+}
+.support-attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+.support-attachment {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  max-width: 100%;
+  border: 1px solid var(--main-03);
+  border-radius: 5px;
+  padding: 8px;
+  background: #1c1c1c;
+}
+.support-attachment > img {
+  width: 36px;
+  height: 36px;
+  object-fit: cover;
+  border-radius: 3px;
+}
+.support-attachment > svg,
+.support-attachment > .icon-button {
+  flex-shrink: 0;
+}
+.support-attachment > span {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.support-attachment strong {
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 400;
+}
+.support-attachment small {
+  font-size: 10px;
+}
+.support-user > p {
+  margin: 0;
+  white-space: pre-wrap;
+}
+.support-user > .support-attachments {
+  margin-top: 8px;
+}
+.support-composer-dragging {
+  box-shadow: inset 0 0 0 2px var(--pneuma-emerald);
+}
+.support-composer > .support-drop-hint {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  background: #152f2de8;
+  color: #fff;
+  font-size: 14px;
+}
+.support-file-hint {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.support-menu-note {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 18px;
+}

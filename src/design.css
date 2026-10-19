@@ -1103,7 +1103,7 @@
   resize: none;
   font-size: 14px;
 }
-.support-composer > div {
+.support-composer > .support-composer-actions {
   display: flex;
   align-items: center;
   gap: 12px;

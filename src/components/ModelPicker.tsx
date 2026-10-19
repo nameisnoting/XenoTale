@@ -1,3 +1,4 @@
+import { acceptsImages } from '../domain/creatorAttachments';
 import { useState } from 'react';
 import { Search, Brain, Check } from 'lucide-react';
 import type { Model } from '../domain/types';
@@ -63,6 +64,7 @@ export function ModelPicker({
   onClose,
   loading,
   onRefresh,
+  imageInput = false,
 }: {
   models: Model[];
   modelId: string;
@@ -71,6 +73,7 @@ export function ModelPicker({
   onClose: () => void;
   loading?: boolean;
   onRefresh: () => void;
+  imageInput?: boolean;
 }) {
   const [q, setQ] = useState('');
   const [chosen, setChosen] = useState(modelId);
@@ -88,8 +91,10 @@ export function ModelPicker({
           onChange={(e) => setQ(e.target.value)}
         />
       </div>
+      <>{imageInput && <p className="muted">사진을 읽을 수 있는 모델을 표시합니다.</p>}</>
       <div className="model-list">
         {all
+          .filter((m) => !imageInput || m.id === 'demo' || acceptsImages(m))
           .filter((m) => `${m.name} ${m.id}`.toLowerCase().includes(q.toLowerCase()))
           .map((m) => (
             <button
@@ -120,7 +125,7 @@ export function ModelPicker({
       )}
       <Button
         className="primary full"
-        disabled={!current}
+        disabled={!current || (imageInput && current.id !== 'demo' && !acceptsImages(current))}
         onClick={() => {
           onSelect(chosen, level);
           onClose();

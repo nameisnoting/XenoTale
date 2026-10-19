@@ -1,3 +1,4 @@
+import type { CreatorAttachment } from './creatorAttachments';
 import type { CreatorMessage } from './creatorAssistant';
 import type { WorkAction } from './actions';
 import type { RisuConfig, RisuState } from '../engine/risu/types';
@@ -214,6 +215,7 @@ export type Workspace = {
     testCreativity: number;
   };
   assistantHistory?: CreatorMessage[];
+  assistantAttachments?: CreatorAttachment[];
   testRoom?: Room | null;
   selectedPersonaId?: string;
   selectedOpeningId?: string;
@@ -379,6 +381,7 @@ export type Profile = {
   summaryModel: string;
   creatorTestModel?: string;
   creatorAgentModel?: string;
+  creatorInstructions?: string;
   carousels: Carousel[];
   carouselOrder?: string[];
   folders: Folder[];
@@ -393,6 +396,7 @@ export type Model = {
   name: string;
   context_length: number;
   supported_parameters: string[];
+  architecture?: { input_modalities?: string[] };
   top_provider?: { max_completion_tokens?: number };
   reasoning?: {
     supported_efforts?: string[] | null;

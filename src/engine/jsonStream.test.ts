@@ -122,3 +122,48 @@ describe('creator JSON streaming', () => {
     ).resolves.toEqual({ reply: '완료' });
   });
 });
+
+it('keeps file bytes outside JSON state, routes PDF parsing explicitly and counts document text toward context', async () => {
+  let payload: any;
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (_url, options) => {
+      payload = JSON.parse(options.body);
+      return Response.json({
+        choices: [{ finish_reason: 'stop', message: { content: '{"reply":"완료"}' } }],
+      });
+    }),
+  );
+  await requestJson(
+    'system',
+    { sharedInstructions: '간결하게', request: '참고해줘' },
+    model,
+    'fake-key',
+    new AbortController().signal,
+    {
+      parts: [
+        { type: 'image_url', image_url: { url: 'data:image/png;base64,AAAA' } },
+        {
+          type: 'file',
+          file: { filename: '기획.pdf', file_data: 'data:application/pdf;base64,AAAA' },
+        },
+        { type: 'text', text: '문서에서 추출한 내용' },
+      ],
+      pdfEngine: 'cloudflare-ai',
+    },
+  );
+  expect(JSON.parse(payload.messages[1].content[0].text).sharedInstructions).toBe('간결하게');
+  expect(payload.messages[1].content[1].type).toBe('image_url');
+  expect(payload.messages[1].content[2].file.filename).toBe('기획.pdf');
+  expect(payload.plugins).toEqual([{ id: 'file-parser', pdf: { engine: 'cloudflare-ai' } }]);
+  await expect(
+    requestJson(
+      'system',
+      {},
+      { ...model, context_length: 6000 },
+      'fake-key',
+      new AbortController().signal,
+      { maxTokens: 1000, parts: [{ type: 'text', text: 'x'.repeat(6000) }] },
+    ),
+  ).rejects.toThrow('컨텍스트');
+});

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { CreatorAttachment } from './creatorAttachments';
 import type { Work } from './types';
 import { workSchema } from '../persistence/files';
 import { reviewCreatorProposal, same } from './creatorReview';
@@ -73,6 +74,7 @@ export type CreatorMessage = {
   id: string;
   role: 'user' | 'assistant';
   text: string;
+  attachments?: CreatorAttachment[];
   proposal?: CreatorProposal;
   applied?: boolean;
   appliedIssues?: CreatorIssue[];

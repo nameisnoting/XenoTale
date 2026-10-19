@@ -301,3 +301,13 @@ npm run test:e2e
 - `features/creator/useEventWorkshop.ts`, `EventAddContent.tsx`: 선택·추가·포커스 이동과 새 요소의 작업 대상 연결. 드롭다운은 선택을 유지하며 명시적인 추가 버튼만 데이터를 변경.
 - `features/creator/EventConnections.tsx`: 시나리오·내면 해금 조건 원본을 참조하고 편집.
 - `features/creator/EventTest.tsx`: 실제 데이터를 쓰지 않는 초기값 기반 미리보기 실행.
+
+## 제작 서포터 첨부 입력
+
+- `features/AssistantAddMenu.tsx`: 위로 열리는 + 메뉴, 파일 선택, 공통 지침 편집.
+- `features/AssistantFiles.tsx`: 첨부 표시·드롭·파일 준비 상태. `Assistant.tsx`에서 전송/복원 수명과 연결.
+- `domain/creatorAttachments.ts`: 파일 메타데이터 스키마·용량 제한·최신 자료 선택과 중복 제거.
+- `persistence/creatorAttachments.ts`: 형식 확인·Word/텍스트 추출과 기존 assets에 원본 보관.
+- `engine/creatorReferences.ts`: 파일 읽기·멀티모달 part 구성·PDF 처리 엔진 선택.
+- `engine/auxiliary.ts`: 기존 JSON/스트리밍 요청에 선택적인 content parts와 파일 파서 옵션 추가. 다른 요약 요청은 문자열 전송 유지.
+- `persistence/files.ts`: 작업공간 초안/기록 첨부와 프로필 공통 지침의 호환 가능한 선택 필드. 기존 파일 버전·DB 테이블은 그대로 사용.
