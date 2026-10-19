@@ -18,17 +18,20 @@ export const eventLibraries: { id: EventLibrary; name: string }[] = [
 export function EventResourceEditor({
   resourceKind,
   onDone,
+  autoReveal = true,
   ...state
 }: CreatorPanelState & {
   resourceKind: EventLibrary;
+  autoReveal?: boolean;
   onDone: () => void;
 }) {
   const root = useRef<HTMLElement>(null);
   const name = eventLibraries.find((entry) => entry.id === resourceKind)!.name;
   useEffect(() => {
+    if (!autoReveal) return;
     root.current?.focus({ preventScroll: true });
     root.current?.scrollIntoView({ block: 'start' });
-  }, []);
+  }, [autoReveal]);
   return (
     <section
       ref={root}

@@ -25,6 +25,9 @@ export function EventGraph({
   inspector: ReactNode;
 }) {
   const root = useRef<HTMLDivElement>(null);
+  const measuredWidth = useRef(0);
+  const [reservedHeight, setReservedHeight] = useState(0);
+  useLayoutEffect(() => setReservedHeight(0), [action.steps.length]);
   const arrow = useId().replace(/:/g, '');
   const [drawing, setDrawing] = useState({ width: 1, height: 1, paths: [] as string[] });
   const connected = eventConnections(work, action);
@@ -59,6 +62,9 @@ export function EventGraph({
     const draw = () => {
       const box = canvas.getBoundingClientRect();
       if (!box.width || !box.height) return;
+      if (measuredWidth.current && Math.abs(measuredWidth.current - box.width) > 1)
+        setReservedHeight(0);
+      measuredWidth.current = box.width;
       const elements = [...canvas.querySelectorAll<HTMLElement>('[data-event-node]')];
       const paths = elements.slice(1).map((element, index) => {
         const a = elements[index].getBoundingClientRect(),
@@ -93,7 +99,12 @@ export function EventGraph({
         노드를 누르면 그 자리에서 편집할 수 있습니다. 조건을 통과하면 작업을 순서대로 실행합니다.
         작업의 위·아래 화살표로 순서를 바꾸세요. 선은 현재 실행 순서를 보여줍니다.
       </p>
-      <div ref={root} className="event-canvas" aria-label="이벤트 노드 작업공간">
+      <div
+        ref={root}
+        className="event-canvas"
+        style={{ minHeight: reservedHeight }}
+        aria-label="이벤트 노드 작업공간"
+      >
         <svg
           className="event-wires"
           viewBox={`0 0 ${drawing.width} ${drawing.height}`}
@@ -135,7 +146,12 @@ export function EventGraph({
                 className="event-node"
                 aria-pressed={selected === node.id}
                 aria-label={`${node.kind} 편집: ${node.title}`}
-                onClick={() => onSelect(node.id)}
+                onClick={() => {
+                  // Keep the canvas height while switching editors: a shorter panel must
+                  // not shrink the scroll range and push the viewport upward.
+                  setReservedHeight(Math.ceil(root.current?.getBoundingClientRect().height ?? 0));
+                  onSelect(node.id);
+                }}
               >
                 <span className="event-node-kind">{node.kind}</span>
                 <span className="event-node-edit-label">

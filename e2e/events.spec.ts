@@ -23,6 +23,17 @@ async function savedWork(page: Page) {
   );
 }
 
+async function selectNodeInPlace(page: Page, width: number, key: string) {
+  const card = page.locator('.event-editor').first();
+  const button = card.locator(`[data-event-node="${key}"] .event-node`);
+  await button.scrollIntoViewIfNeeded();
+  const scroller = page.locator(width < 800 ? '.editor-fieldset' : '.editor-main');
+  const before = await scroller.evaluate((element) => element.scrollTop);
+  await button.click();
+  await expect(button).toHaveAttribute('aria-pressed', 'true');
+  await expect.poll(() => scroller.evaluate((element) => element.scrollTop)).toBeCloseTo(before, 0);
+}
+
 for (const width of [1440, 393])
   test(`통합 이벤트·노드 순서·블록 전환·공유 조건·기존 요소·실제 실행 ${width}`, async ({
     page,
@@ -196,8 +207,20 @@ for (const width of [1440, 393])
     ).toHaveCount(4);
     const card = page.locator('.event-editor').first();
     await card.getByRole('textbox', { name: '이벤트 이름', exact: true }).fill('마법석 줍기 수정');
+    const components = card.locator('.event-component');
+    const gaps = await components
+      .locator(':scope > .edit-card-section')
+      .evaluateAll((sections) =>
+        sections.map(
+          (section) =>
+            section.querySelector('.edit-card-section-body')!.getBoundingClientRect().top -
+            section.querySelector('h3')!.getBoundingClientRect().bottom,
+        ),
+      );
+    expect(gaps).toEqual([16, 16, 16]);
+    await expect(components.first()).toHaveCSS('border-top-width', '1px');
     await card.getByRole('radio', { name: '노드형', exact: true }).check();
-    await card.locator('[data-event-node="step:0"] .event-node').click();
+    await selectNodeInPlace(page, width, 'step:0');
     await card.getByRole('spinbutton', { name: '수량', exact: true }).fill('2');
     await card.getByRole('combobox', { name: '이벤트에 추가할 내용', exact: true }).click();
     await page.getByRole('option', { name: '숫자 상태 설정', exact: true }).click();
@@ -409,6 +432,15 @@ for (const width of [1440, 393])
     expect(
       await page.locator('.editor-main').evaluate((el) => el.scrollWidth <= el.clientWidth + 1),
     ).toBe(true);
+    for (const key of ['trigger', 'conditions', 'step:0', 'step:1', 'links'])
+      await selectNodeInPlace(page, width, key);
+    await selectNodeInPlace(page, width, 'trigger');
+    const inspectorGap = await inspector.evaluate(
+      (element) =>
+        element.querySelector('.field')!.getBoundingClientRect().top -
+        element.querySelector('h3')!.getBoundingClientRect().bottom,
+    );
+    expect(inspectorGap).toBe(16);
     await page.screenshot({ path: `docs/screenshots/event-inline-${width}.png` });
     expect(errors).toEqual([]);
   });

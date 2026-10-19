@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { newEventStep, moveEventStep, type EventStep } from '../../domain/events';
 import { id, type Work } from '../../domain/types';
 import type { WorkAction } from '../../domain/actions';
@@ -37,6 +37,23 @@ export function useEventWorkshop({
     });
     return () => cancelAnimationFrame(frame);
   }, [pending]);
+  const viewport = useRef<{ element: HTMLElement; top: number; left: number }[]>([]);
+  const selectNode = (key: string) => {
+    if (key === selected) return;
+    const positions = [];
+    for (let element = root.current?.parentElement; element; element = element.parentElement)
+      if (/(auto|scroll)/.test(getComputedStyle(element).overflowY))
+        positions.push({ element, top: element.scrollTop, left: element.scrollLeft });
+    viewport.current = positions;
+    setPending(null);
+    setSelected(key);
+  };
+  useLayoutEffect(() => {
+    // Selection changes the inline editor, never the user's viewport.
+    for (const { element, top, left } of viewport.current)
+      element.scrollTo({ top, left, behavior: 'instant' });
+    viewport.current = [];
+  }, [selected]);
   const stepIndex = selected.startsWith('step:') ? Number(selected.slice(5)) : -1;
   const step = action.steps[stepIndex];
   const view = action.workspace?.view ?? 'blocks';
@@ -140,6 +157,7 @@ export function useEventWorkshop({
     addControl,
     selected,
     setSelected,
+    selectNode,
     reveal,
     stepIndex,
     step,

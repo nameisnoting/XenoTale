@@ -42,6 +42,7 @@ export function EventsSection(state: CreatorPanelState) {
         key={`${host}.${editing.kind}`}
         {...state}
         resourceKind={editing.kind}
+        autoReveal={host === 'work'}
         onDone={() => {
           onDone?.(editing.kind);
           setEditing(null);

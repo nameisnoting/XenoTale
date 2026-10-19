@@ -55,6 +55,7 @@ export function EventEditor({
     addControl,
     selected,
     setSelected,
+    selectNode,
     reveal,
     stepIndex,
     step,
@@ -171,10 +172,7 @@ export function EventEditor({
           <>
             <EventGraph
               {...{ work, action, selected }}
-              onSelect={(key) => {
-                setSelected(key);
-                reveal('inspector');
-              }}
+              onSelect={selectNode}
               onMove={reorder}
               onAdd={() => {
                 addControl.current?.scrollIntoView({ block: 'start' });
@@ -216,60 +214,64 @@ export function EventEditor({
           </>
         ) : (
           <>
-            <CardSection title="시작 시점">{editTrigger}</CardSection>
-            <div data-event-edit="conditions" tabIndex={-1}>
+            <div className="event-component">
+              <CardSection title="시작 시점">{editTrigger}</CardSection>
+            </div>
+            <div className="event-component" data-event-edit="conditions" tabIndex={-1}>
               <CardSection title="실행 조건">{editConditions}</CardSection>
             </div>
-            <CardSection title="실행할 작업">
-              {!action.steps.length && (
-                <p className="muted">
-                  위의 ‘추가할 내용’에서 상태 변경·아이템·연출 등을 연결하세요.
-                </p>
-              )}
-              {action.steps.map((_, index) => (
-                <div key={index} data-event-edit={`step:${index}`} tabIndex={-1}>
-                  <DisclosureCard
-                    className="creator-card event-step"
-                    expanded
-                    title={`작업 ${index + 1}`}
-                    actions={
-                      <div className="event-step-order">
-                        <IconButton
-                          title={`작업 ${index + 1} 위로`}
-                          disabled={index === 0}
-                          onClick={(event) => {
-                            event.preventDefault();
-                            reorder(index, index - 1);
-                          }}
-                        >
-                          <ArrowUp size={16} />
-                        </IconButton>
-                        <IconButton
-                          title={`작업 ${index + 1} 아래로`}
-                          disabled={index === action.steps.length - 1}
-                          onClick={(event) => {
-                            event.preventDefault();
-                            reorder(index, index + 1);
-                          }}
-                        >
-                          <ArrowDown size={16} />
-                        </IconButton>
-                      </div>
-                    }
-                  >
-                    {editStep(index)}
-                  </DisclosureCard>
-                </div>
-              ))}
-              <AddButton
-                onClick={() => {
-                  reveal('add');
-                }}
-              >
-                작업 종류 선택해서 추가
-              </AddButton>
-            </CardSection>
-            <div data-event-edit="links" tabIndex={-1}>
+            <div className="event-component">
+              <CardSection title="실행할 작업">
+                {!action.steps.length && (
+                  <p className="muted">
+                    위의 ‘추가할 내용’에서 상태 변경·아이템·연출 등을 연결하세요.
+                  </p>
+                )}
+                {action.steps.map((_, index) => (
+                  <div key={index} data-event-edit={`step:${index}`} tabIndex={-1}>
+                    <DisclosureCard
+                      className="creator-card event-step"
+                      expanded
+                      title={`작업 ${index + 1}`}
+                      actions={
+                        <div className="event-step-order">
+                          <IconButton
+                            title={`작업 ${index + 1} 위로`}
+                            disabled={index === 0}
+                            onClick={(event) => {
+                              event.preventDefault();
+                              reorder(index, index - 1);
+                            }}
+                          >
+                            <ArrowUp size={16} />
+                          </IconButton>
+                          <IconButton
+                            title={`작업 ${index + 1} 아래로`}
+                            disabled={index === action.steps.length - 1}
+                            onClick={(event) => {
+                              event.preventDefault();
+                              reorder(index, index + 1);
+                            }}
+                          >
+                            <ArrowDown size={16} />
+                          </IconButton>
+                        </div>
+                      }
+                    >
+                      {editStep(index)}
+                    </DisclosureCard>
+                  </div>
+                ))}
+                <AddButton
+                  onClick={() => {
+                    reveal('add');
+                  }}
+                >
+                  작업 종류 선택해서 추가
+                </AddButton>
+              </CardSection>
+            </div>
+            <div className="event-component" data-event-edit="links" tabIndex={-1}>
               {editLinks}
             </div>
           </>
