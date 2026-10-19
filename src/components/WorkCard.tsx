@@ -73,15 +73,9 @@ export function WorkCard({
       </div>
       {menuOpen && !selection && (
         <DismissibleMenu id={menuId} onDismiss={onDismissMenu ?? onToggleMenu}>
-          {entry.owned && (
-            <button role="menuitem" onClick={onEdit}>
-              <Pencil size={15} />
-              작품 수정
-            </button>
-          )}
-          <button role="menuitem" onClick={onCopy}>
+          <button role="menuitem" onClick={entry.owned ? onEdit : onCopy}>
             <Pencil size={15} />
-            수정하기
+            작품 수정
           </button>
           <button role="menuitem" onClick={onExport}>
             <Download size={15} />

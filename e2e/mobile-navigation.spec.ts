@@ -295,12 +295,12 @@ test('로그는 오른쪽 사이드메뉴 · 바깥 터치와 Escape로 닫힘',
   await expect(drawer).toHaveCount(0);
   await expect(page.getByRole('button', { name: '대화 로그', exact: true })).toBeFocused();
 });
-test('작품 메뉴 바깥 터치 · Escape · 수정하기로 편집 시작', async ({ page }) => {
+test('작품 메뉴 바깥 터치 · Escape · 중복 없이 작품 수정으로 편집 시작', async ({ page }) => {
   await start(page);
   const menu = page.getByRole('menu', { name: '작품 메뉴', exact: true });
   const trigger = page.getByRole('button', { name: '정원 앞에서 메뉴', exact: true });
   await trigger.click();
-  await expect(menu.getByRole('menuitem', { name: '수정하기', exact: true })).toBeVisible();
+  await expect(menu.getByRole('menuitem')).toHaveText(['작품 수정', '작품 내보내기', '작품 삭제']);
   await expect(menu.getByRole('menuitem', { name: '작업 공간으로 복사' })).toHaveCount(0);
   await page.locator('.mobile-brand').click();
   await expect(menu).toHaveCount(0);
@@ -308,10 +308,10 @@ test('작품 메뉴 바깥 터치 · Escape · 수정하기로 편집 시작', a
   await page.keyboard.press('Escape');
   await expect(menu).toHaveCount(0);
   await trigger.click();
-  await menu.getByRole('menuitem', { name: '수정하기', exact: true }).click();
+  await menu.getByRole('menuitem', { name: '작품 수정', exact: true }).click();
   await expect(page).toHaveURL(/#\/create\//);
   await expect(page.getByRole('textbox', { name: '제목', exact: false })).toHaveValue(
-    '정원 앞에서 · 복사본',
+    '정원 앞에서',
   );
 });
 
