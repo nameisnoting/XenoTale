@@ -198,7 +198,7 @@ export function VisualNovel({
       {showChoices && (
         <div className="visual-novel-choices">
           {suggestions.filter(Boolean).map((choice, i) => (
-            <button key={i} onClick={() => onSuggestion(choice)}>
+            <button key={i} data-hover="none" onClick={() => onSuggestion(choice)}>
               {choice}
             </button>
           ))}

@@ -43,7 +43,7 @@
   border: 1px solid #838383;
   border-radius: 4px;
   min-height: 148px;
-  padding: 16px 16px 48px;
+  padding: 24px 16px 48px;
   cursor: pointer;
 }
 .visual-novel-copy {
@@ -60,9 +60,6 @@
   font-style: normal;
   color: #ffffff;
 }
-.visual-novel-dialogue.has-speaker .visual-novel-textbox {
-  padding-top: 32px;
-}
 .visual-novel-name {
   position: absolute;
   left: 16px;
@@ -76,7 +73,8 @@
   text-overflow: ellipsis;
   border: 1px solid #838383;
   border-radius: 999px;
-  background: var(--vn-box, rgba(28, 28, 28, 0.9));
+  background: #1c1c1c;
+  background: rgb(from var(--vn-box, #1c1c1c) r g b / 1);
   color: #fff;
   font-size: 14px;
   font-weight: 700;
@@ -143,6 +141,10 @@
   border-radius: 4px;
   text-align: center;
   font-size: 14px;
+  transition: opacity 0.15s;
+}
+.visual-novel-choices button:hover {
+  opacity: 0.9;
 }
 .visual-novel-status-overlay {
   position: fixed;
@@ -272,7 +274,7 @@
   }
   .visual-novel-textbox {
     min-height: 144px;
-    padding: 12px 12px 44px;
+    padding: 24px 12px 44px;
   }
   .visual-novel-choices {
     left: 12px;

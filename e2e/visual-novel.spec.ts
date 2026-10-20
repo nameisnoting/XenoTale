@@ -80,7 +80,17 @@ for (const width of [1440, 393])
     const badge = await vn.locator('.visual-novel-name').boundingBox();
     const copy = await vn.locator('.visual-novel-copy').boundingBox();
     expect(badge!.y + badge!.height / 2).toBeCloseTo(box!.y, 0);
-    expect(copy!.y).toBeGreaterThan(badge!.y + badge!.height + 8);
+    expect(copy!.y).toBeGreaterThanOrEqual(badge!.y + badge!.height + 6);
+    expect(
+      await vn.locator('.visual-novel-name').evaluate((element) => {
+        const canvas = document.createElement('canvas');
+        canvas.width = canvas.height = 1;
+        const ctx = canvas.getContext('2d')!;
+        ctx.fillStyle = getComputedStyle(element).backgroundColor;
+        ctx.fillRect(0, 0, 1, 1);
+        return ctx.getImageData(0, 0, 1, 1).data[3];
+      }),
+    ).toBe(255);
     const beforeHidden = await vn.boundingBox();
     await page.getByRole('button', { name: 'UI 숨기기', exact: true }).click();
     await expect(page.locator('.chat-shell')).toHaveClass(/vn-ui-hidden/);
@@ -116,8 +126,22 @@ for (const width of [1440, 393])
     await expect(vn.locator('.visual-novel-copy')).toHaveText('두 번째 대사');
     await page.getByRole('button', { name: '다음 대사', exact: true }).click();
     await expect(vn.locator('.visual-novel-choices button')).toHaveCount(2);
+    await expect(vn.locator('.visual-novel-name')).toHaveCount(0);
+    expect((await vn.locator('.visual-novel-copy').boundingBox())!.y).toBeCloseTo(copy!.y, 0);
+    expect((await vn.locator('.visual-novel-textbox').boundingBox())!.height).toBeCloseTo(
+      box!.height,
+      0,
+    );
     await expect(vn.locator('.visual-novel-copy em')).toHaveCSS('color', 'rgb(255, 255, 255)');
-    await vn.locator('.visual-novel-choices button').first().click();
+    const choice = vn.locator('.visual-novel-choices button').first();
+    const choiceBackground = await choice.evaluate(
+      (element) => getComputedStyle(element).backgroundColor,
+    );
+    await choice.hover();
+    await expect(choice).toHaveCSS('background-color', choiceBackground);
+    await expect(choice).toHaveCSS('opacity', '0.9');
+    await page.screenshot({ path: `test-results/visual-novel-hover-${width}.png` });
+    await choice.click();
     await expect(page.getByRole('textbox', { name: '메시지', exact: true })).toHaveValue('선택 A');
     await page.getByRole('button', { name: '전송', exact: true }).click();
     await expect(page.locator('.visual-novel-waiting')).toHaveCount(0);
