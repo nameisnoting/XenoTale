@@ -34,12 +34,22 @@ export function visualNovelPages(
 ): NovelPage[] {
   const pages: NovelPage[] = [];
   let background = room.work.cover;
+  let presentationBackground: string | undefined;
   const add = (
     body: string,
     source: NovelPage['source'],
     checkpoint: Checkpoint,
     player = false,
   ) => {
+    // Native background actions belong to their checkpoint, just like dialogue
+    // image tags. Apply only changes so a persistent setting does not overwrite
+    // a later emotional image or rewrite an earlier page in the conversation.
+    const requestedBackground = checkpoint.runtime.presentation?.background;
+    if (requestedBackground !== presentationBackground) {
+      presentationBackground = requestedBackground;
+      if (requestedBackground)
+        background = mediaImage(room.work, requestedBackground) || background;
+    }
     const start = pages.length;
     let offset = 0,
       actor: string | undefined;

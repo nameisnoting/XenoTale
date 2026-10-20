@@ -7,6 +7,7 @@ import {
   deleteLast,
   branchRoom,
   switchCandidate,
+  validateWork,
 } from './engine';
 import { selected } from './types';
 import { visualNovelPages, chapterMusic } from './visualNovel';
@@ -14,9 +15,80 @@ import { completeEffect } from './effects';
 import { checkPresentation } from './presentation';
 import { codeApproval, codeChecked, codeProblems } from './codeValidation';
 import { readImport } from '../persistence/files';
+import { executeAction } from './actions';
 
 const usage = { model: 'demo', cost: 0, duration: 0 };
 describe('visual novel views share the actual timeline', () => {
+  it('uses native background changes in order and retains later emotional images', () => {
+    const work = exampleWork();
+    work.media.assets = [
+      {
+        id: 'first',
+        name: '안내인/기본',
+        url: 'https://example.com/first.jpg',
+        size: 1,
+        type: 'image/jpeg',
+      },
+      {
+        id: 'second',
+        name: '사서/기본',
+        url: 'https://example.com/second.jpg',
+        size: 1,
+        type: 'image/jpeg',
+      },
+      {
+        id: 'sad',
+        name: '사서/침울',
+        url: 'https://example.com/sad.jpg',
+        size: 1,
+        type: 'image/jpeg',
+      },
+    ];
+    work.openings[0].body = '{{안내인/기본}}\n첫 인터뷰';
+    work.actions = ['first', 'second'].map((id) => ({
+      id,
+      name: id,
+      trigger: 'button',
+      mode: 'all',
+      conditions: [],
+      steps: [{ kind: 'background', target: '', value: id }],
+    }));
+    let room = executeAction(createRoom(work), 'second');
+    expect(visualNovelPages(room).at(-1)?.background).toBe('https://example.com/second.jpg');
+    room = addResponse(
+      room,
+      '질문',
+      {
+        kind: 'turn',
+        requestedCharacterIds: [],
+        body: '{{사서/침울}}\n*슬픈 기억을 떠올립니다.*',
+        choices: [],
+        delta: emptyDelta(),
+      },
+      usage,
+    );
+    expect(visualNovelPages(room).at(-1)?.background).toBe('https://example.com/sad.jpg');
+    room = addResponse(
+      room,
+      '다음 질문',
+      {
+        kind: 'turn',
+        requestedCharacterIds: [],
+        body: '*이야기를 이어갑니다.*',
+        choices: [],
+        delta: emptyDelta(),
+      },
+      usage,
+    );
+    expect(visualNovelPages(room).at(-1)?.background).toBe('https://example.com/sad.jpg');
+    room = executeAction(room, 'first');
+    const pages = visualNovelPages(room);
+    expect(pages.at(-1)?.background).toBe('https://example.com/first.jpg');
+    expect(pages[0].background).toBe('https://example.com/first.jpg');
+    expect(pages.find((page) => page.text === 'second')?.background).toBe(
+      'https://example.com/second.jpg',
+    );
+  });
   it('pages newlines, retains speakers and exact effect occurrences, changes images in order', () => {
     const work = exampleWork();
     work.effects = [{ id: 'fx', name: '빛', prompt: '', content: '빛', mode: 'auto' }];
@@ -194,6 +266,31 @@ describe('visual novel views share the actual timeline', () => {
   });
 });
 describe('authored code validation', () => {
+  it('allows person/emotion image names while keeping reserved and incomplete names invalid', () => {
+    const work = exampleWork();
+    work.media.assets = [
+      {
+        id: 'portrait',
+        name: '인물/분노',
+        url: 'https://example.com/portrait.jpg',
+        type: 'image/jpeg',
+        size: 1,
+      },
+    ];
+    expect(() => validateWork(work, true)).not.toThrow();
+    for (const name of [
+      'user',
+      'img:1/2',
+      'effect:연출',
+      '{{인물}}',
+      '인물/',
+      '/분노',
+      '인물//분노',
+    ]) {
+      work.media.assets[0].name = name;
+      expect(() => validateWork(work, true)).toThrow('이미지 이름');
+    }
+  });
   it('resource changes revoke approval and external communication/missing slots are reported', () => {
     const stamp = codeApproval('<p>연출</p>', ['https://example.com/a.png']);
     expect(codeChecked('<p>연출</p>', stamp, [])).toBe(false);

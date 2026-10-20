@@ -326,7 +326,8 @@ export function validateWork(w: Work, publish = false, report?: (issue: WorkIssu
   for (const asset of assets) {
     if (
       !asset.name.trim() ||
-      /[{}:/]/.test(asset.name) ||
+      /[{}:]/.test(asset.name) ||
+      asset.name.split('/').some((part) => !part.trim()) ||
       asset.name === 'user' ||
       names.has(asset.name) ||
       w.effects.some((e) => e.name === asset.name)
