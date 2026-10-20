@@ -10,7 +10,7 @@ import {
   validateWork,
 } from './engine';
 import { selected } from './types';
-import { visualNovelPages, chapterMusic } from './visualNovel';
+import { visualNovelPages, visualNovelView, readingEventId, chapterMusic } from './visualNovel';
 import { completeEffect } from './effects';
 import { checkPresentation } from './presentation';
 import { codeApproval, codeChecked, codeProblems } from './codeValidation';
@@ -54,7 +54,14 @@ describe('visual novel views share the actual timeline', () => {
       steps: [{ kind: 'background', target: '', value: id }],
     }));
     let room = executeAction(createRoom(work), 'second');
-    expect(visualNovelPages(room).at(-1)?.background).toBe('https://example.com/second.jpg');
+    expect(visualNovelView(room).actionBackground).toBe('https://example.com/second.jpg');
+    expect(visualNovelPages(room).map((page) => page.text)).toEqual(['첫 인터뷰']);
+    expect(room.timeline.at(-1)).toMatchObject({
+      kind: 'action',
+      body: 'second',
+      changes: ['second'],
+    });
+    expect(readingEventId(room, room.timeline.at(-1)!.id)).toBe(`opening:${room.openingId}`);
     room = addResponse(
       room,
       '질문',
@@ -68,6 +75,10 @@ describe('visual novel views share the actual timeline', () => {
       usage,
     );
     expect(visualNovelPages(room).at(-1)?.background).toBe('https://example.com/sad.jpg');
+    expect(visualNovelPages(room).find((page) => page.player)?.background).toBe(
+      'https://example.com/second.jpg',
+    );
+    expect(visualNovelView(room).actionBackground).toBeUndefined();
     room = addResponse(
       room,
       '다음 질문',
@@ -83,11 +94,51 @@ describe('visual novel views share the actual timeline', () => {
     expect(visualNovelPages(room).at(-1)?.background).toBe('https://example.com/sad.jpg');
     room = executeAction(room, 'first');
     const pages = visualNovelPages(room);
-    expect(pages.at(-1)?.background).toBe('https://example.com/first.jpg');
+    expect(visualNovelView(room).actionBackground).toBe('https://example.com/first.jpg');
+    expect(pages.at(-1)?.background).toBe('https://example.com/sad.jpg');
     expect(pages[0].background).toBe('https://example.com/first.jpg');
-    expect(pages.find((page) => page.text === 'second')?.background).toBe(
-      'https://example.com/second.jpg',
-    );
+    expect(pages.some((page) => page.text === 'second' || page.text === 'first')).toBe(false);
+    expect(readingEventId(room, room.timeline.at(-1)!.id)).toBe(pages.at(-1)!.source.eventId);
+  });
+  it('hides button labels while preserving effect sources and genuine Risu chat messages', () => {
+    const work = exampleWork();
+    work.effects = [{ id: 'fx', name: '빛', prompt: '', content: '빛', mode: 'auto' }];
+    work.actions = [
+      {
+        id: 'button',
+        name: '선택 완료',
+        trigger: 'button',
+        mode: 'all',
+        conditions: [],
+        steps: [{ kind: 'effect', target: 'fx', value: '' }],
+      },
+    ];
+    const room = executeAction(createRoom(work), 'button');
+    const action = room.timeline.at(-1)!;
+    if (action.kind !== 'action') throw Error('action');
+    const view = visualNovelView(room);
+    expect(view.pages).toEqual(visualNovelPages(createRoom(work)));
+    expect(view.actionEffects[0].source.occurrence).toBe(action.body.indexOf('{{effect:fx}}'));
+    expect(readingEventId(room, action.id)).toBe(`opening:${room.openingId}`);
+    const completed = completeEffect(room, 'fx', view.actionEffects[0].source, {
+      summary: '빛 연출 완료',
+    });
+    expect(completed.timeline.at(-1)?.kind).toBe('effect');
+    room.timeline.push({
+      ...structuredClone(action),
+      id: 'risu-state',
+      risuEvent: true,
+      body: '작품 설정 변경',
+    });
+    expect(visualNovelPages(room).at(-1)?.source.eventId).toBe(`opening:${room.openingId}`);
+    room.timeline.push({
+      ...structuredClone(action),
+      id: 'risu-chat',
+      risuEvent: true,
+      body: '실제로 추가한 대사',
+      risuChat: { role: 'char', data: '실제로 추가한 대사' },
+    });
+    expect(visualNovelPages(room).at(-1)?.text).toBe('실제로 추가한 대사');
   });
   it('pages newlines, retains speakers and exact effect occurrences, changes images in order', () => {
     const work = exampleWork();

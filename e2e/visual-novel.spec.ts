@@ -41,6 +41,190 @@ async function changeRoom(page: Page, patch: any) {
   await page.reload();
 }
 for (const width of [1440, 393])
+  test(`버튼 변경은 본문에 숨기고 로그·상태·배경·읽던 줄 유지 ${width}`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await start(page);
+    await changeRoom(page, {
+      settings: { uiType: 'visual-novel' },
+      work: {
+        openings: [
+          {
+            id: 'opening',
+            name: '정원',
+            body: '읽던 첫 줄\n읽던 다음 줄',
+            presence: [],
+            suggestions: [],
+          },
+        ],
+        media: {
+          template: '',
+          characters: [],
+          situations: [],
+          assets: [
+            {
+              id: 'scene',
+              name: '선택 장면',
+              url: '/artwork.png?selected-scene',
+              type: 'image/png',
+              size: 1,
+            },
+          ],
+        },
+        actions: [
+          {
+            id: 'choose',
+            name: '검술 선택',
+            trigger: 'button',
+            mode: 'all',
+            conditions: [],
+            steps: [
+              { kind: 'set', target: 'affinity', value: '17' },
+              { kind: 'background', target: '', value: 'scene' },
+            ],
+          },
+        ],
+      },
+    });
+    await page
+      .locator('.action-buttons')
+      .getByRole('button', { name: '검술 선택', exact: true })
+      .click();
+    await expect(page.locator('.visual-novel-copy')).toHaveText('읽던 첫 줄');
+    await expect(page.locator('.visual-novel-image')).toHaveAttribute(
+      'src',
+      '/artwork.png?selected-scene',
+    );
+    const saved = await page.evaluate(
+      () =>
+        new Promise<any>((resolve) => {
+          const request = indexedDB.open('xenotale-v1');
+          request.onsuccess = () => {
+            const db = request.result;
+            const read = db.transaction('rooms').objectStore('rooms').getAll();
+            read.onsuccess = () => {
+              db.close();
+              resolve(read.result.at(-1));
+            };
+          };
+        }),
+    );
+    expect(saved.current.runtime.status.affinity).toBe(17);
+    expect(saved.timeline.at(-1)).toMatchObject({
+      kind: 'action',
+      body: '검술 선택',
+      changes: ['검술 선택'],
+    });
+    await page.getByRole('button', { name: '상태창 보기', exact: true }).click();
+    await expect(page.getByRole('dialog', { name: '상태창', exact: true })).toContainText('17');
+    await page.getByRole('button', { name: '상태창 닫기', exact: true }).click();
+    await page.getByRole('button', { name: '다음 대사', exact: true }).click();
+    await expect(page.locator('.visual-novel-copy')).toHaveText('읽던 다음 줄');
+    await page.reload();
+    await expect(page.locator('.visual-novel-copy')).toHaveText('읽던 다음 줄');
+    await expect(page.locator('.visual-novel-image')).toHaveAttribute(
+      'src',
+      '/artwork.png?selected-scene',
+    );
+    if (width < 800) await page.getByRole('button', { name: '대화 로그', exact: true }).click();
+    const log = page.locator('.conversation-log');
+    await expect(log).toContainText('행동·설정 변경');
+    await expect(log).toContainText('검술 선택');
+    await log.getByRole('button', { name: /행동·설정 변경/ }).click();
+    await expect(page.locator('.visual-novel-copy')).toHaveText('읽던 첫 줄');
+    await page.getByRole('button', { name: '소설 모드로 전환', exact: true }).click();
+    await expect(page.locator('.chat-scroll')).toContainText('읽던 첫 줄');
+    await expect(page.locator('.chat-scroll')).not.toContainText('검술 선택');
+    await expect(page.locator('.chapter-scene')).toHaveCount(0);
+    await page.reload();
+    await expect(page.locator('.chat-scroll')).not.toContainText('검술 선택');
+    await expect(page.locator('.chapter-scene')).toHaveCount(0);
+  });
+
+test('본문에 버튼 실행 문구를 남기지 않아도 연결된 연출은 정확한 출처로 실행', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await start(page);
+  const content =
+    '<button id="finish">결과 확정</button><script>document.getElementById("finish").onclick=()=>XenoTale.complete({summary:"연출 결과 보관"});</script>';
+  await changeRoom(page, {
+    work: {
+      actions: [
+        {
+          id: 'show',
+          name: '연출 실행 기록',
+          trigger: 'button',
+          mode: 'all',
+          conditions: [],
+          steps: [{ kind: 'effect', target: 'fx', value: '' }],
+        },
+      ],
+      effects: [
+        { id: 'fx', name: '연결 화면', prompt: '', content, validation: codeApproval(content) },
+      ],
+    },
+  });
+  await page
+    .locator('.action-buttons')
+    .getByRole('button', { name: '연출 실행 기록', exact: true })
+    .click();
+  await expect(page.locator('.chat-scroll')).not.toContainText('연출 실행 기록');
+  await expect(page.locator('.chapter-scene')).toHaveCount(0);
+  await page
+    .locator('.chat-scroll')
+    .getByRole('button', { name: '연결 화면 보기', exact: true })
+    .click();
+  await page
+    .frameLocator('iframe.effect-frame')
+    .getByRole('button', { name: '결과 확정', exact: true })
+    .click();
+  await expect(page.locator('.effect-feedback')).toContainText('결과 저장완료');
+  await page.getByRole('button', { name: '연출 닫기', exact: true }).click();
+  await expect(page.locator('.conversation-log')).toContainText('연출 결과 보관');
+  await page.getByRole('button', { name: '비주얼노벨 모드로 전환', exact: true }).click();
+  const copy = (await page.locator('.visual-novel-copy').textContent())!;
+  await page
+    .locator('.action-buttons')
+    .getByRole('button', { name: '연출 실행 기록', exact: true })
+    .click();
+  await expect(page.locator('.visual-novel-copy')).toContainText(copy);
+  await page
+    .locator('.visual-novel-copy')
+    .getByRole('button', { name: '연결 화면 보기', exact: true })
+    .click();
+  await page
+    .frameLocator('iframe.effect-frame')
+    .getByRole('button', { name: '결과 확정', exact: true })
+    .click();
+  await expect(page.locator('.effect-feedback')).toContainText('결과 저장완료');
+  await page.getByRole('button', { name: '연출 닫기', exact: true }).click();
+  const autoContent =
+    '<script>XenoTale.ready.then(()=>XenoTale.complete({summary:"버튼 자동 연출 완료"}));</script>';
+  await changeRoom(page, {
+    work: {
+      effects: [
+        {
+          id: 'fx',
+          name: '연결 화면',
+          mode: 'auto',
+          prompt: '',
+          content: autoContent,
+          validation: codeApproval(autoContent),
+        },
+      ],
+    },
+  });
+  await page
+    .locator('.action-buttons')
+    .getByRole('button', { name: '연출 실행 기록', exact: true })
+    .click();
+  await expect(page.locator('.conversation-log')).toContainText('버튼 자동 연출 완료');
+  await expect(page.locator('.effect-player')).toHaveCount(0);
+  await expect(page.locator('.visual-novel-copy')).toContainText(
+    copy.replace('연결 화면 보기', '').trim(),
+  );
+  await expect(page.locator('.visual-novel-copy')).not.toContainText('연출 실행 기록');
+});
+
+for (const width of [1440, 393])
   test(`비주얼노벨 ${width}px · 줄 이동/유지 · 상태 레이어 · 화면 전환 · 페르소나 입력`, async ({
     page,
   }) => {

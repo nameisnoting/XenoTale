@@ -12,9 +12,9 @@ import { createPortal } from 'react-dom';
 import { ChevronLeft, ChevronRight, ClipboardList, Eye, ScrollText, X } from 'lucide-react';
 import type { Candidate, Room, Turn } from '../domain/types';
 import { selected } from '../domain/types';
-import { latestNovelStart, visualNovelPages, type NovelPage } from '../domain/visualNovel';
+import { latestNovelStart, visualNovelView, type NovelPage } from '../domain/visualNovel';
 import { mediaImage } from '../domain/visualNovel';
-import { recordedEffect } from '../domain/effects';
+import { canCompleteEffect, recordedEffect } from '../domain/effects';
 import { IconButton, safeUrl, Button } from '../components/UI';
 import { GamePanels } from '../components/GamePanels';
 import { StatusDisplay } from '../components/DesignControls';
@@ -56,8 +56,8 @@ export function VisualNovel({
   onHideUI: () => void;
   onAction?: (id: string) => Promise<unknown>;
 }) {
-  const pages = useMemo(
-    () => visualNovelPages(room, candidate),
+  const { pages, actionBackground, actionEffects } = useMemo(
+    () => visualNovelView(room, candidate),
     [room.work, room.timeline, room.current.context.persona, candidate],
   );
   const storageKey = `xenotale.vn-cursor.${room.id}`;
@@ -71,6 +71,9 @@ export function VisualNovel({
   const index = pages.findIndex((page) => page.key === cursor);
   const currentIndex = index < 0 ? latestNovelStart(pages) : index;
   const page = pages[currentIndex];
+  const latestPassage = page?.source.eventId === pages.at(-1)?.source.eventId;
+  const buttonEffects = latestPassage ? actionEffects : [];
+  const visibleEffects = [...(page?.effects ?? []), ...buttonEffects];
   const previousSource = useRef(pages.at(-1)?.key);
   const mounted = useRef(true);
   const playing = useRef(false);
@@ -80,7 +83,11 @@ export function VisualNovel({
   const [loadedImage, setLoadedImage] = useState('');
   const [failedImages, setFailedImages] = useState(new Set<string>());
   const [finishedEffects, setFinishedEffects] = useState(new Set<string>());
-  const scene = background ? mediaImage(room.work, background) : page?.background;
+  const scene = background
+    ? mediaImage(room.work, background)
+    : latestPassage
+      ? (actionBackground ?? page?.background)
+      : page?.background;
   const image = safeUrl(scene && !failedImages.has(scene) ? scene : room.work.cover);
   const ready = !image || loadedImage === image || failedImages.has(image);
   const go = (target: number) => {
@@ -136,7 +143,10 @@ export function VisualNovel({
       play(effects, after, i + 1);
       return;
     }
-    if (recordedEffect(room, effect.id, effect.source)) {
+    if (
+      recordedEffect(room, effect.id, effect.source) ||
+      !canCompleteEffect(room, effect.id, effect.source)
+    ) {
       play(effects, after, i + 1);
       return;
     }
@@ -151,6 +161,24 @@ export function VisualNovel({
     });
   };
   const autoSeen = useRef(new Set<string>());
+  const buttonEffectKey = buttonEffects
+    .map((e) => `${e.source.eventId}:${e.source.occurrence}`)
+    .join('|');
+  useEffect(() => {
+    if (
+      !buttonEffectKey ||
+      busy ||
+      !ready ||
+      playing.current ||
+      autoSeen.current.has(buttonEffectKey)
+    )
+      return;
+    autoSeen.current.add(buttonEffectKey);
+    // Button effects execute over the current passage, without adding a text page.
+    play(buttonEffects, () =>
+      setFinishedEffects((previous) => new Set([...previous, buttonEffectKey])),
+    );
+  }, [buttonEffectKey, busy, ready]);
   useEffect(() => {
     if (!page?.effectOnly || busy || !ready || playing.current || autoSeen.current.has(page.key))
       return;
@@ -158,12 +186,15 @@ export function VisualNovel({
     play(page.effects, () => go(currentIndex + 1));
   }, [page?.key, busy, ready]);
   const persona = room.current.context.persona;
-  const effectsPending =
-    !!page?.effects.some(
+  const pending = (effects: NovelPage['effects'], key: string) =>
+    effects.some(
       (effect) =>
         room.work.effects.find((e) => e.id === effect.id)?.mode === 'auto' &&
-        !recordedEffect(room, effect.id, effect.source),
-    ) && !finishedEffects.has(page?.key ?? '');
+        !recordedEffect(room, effect.id, effect.source) &&
+        canCompleteEffect(room, effect.id, effect.source),
+    ) && !finishedEffects.has(key);
+  const effectsPending =
+    pending(page?.effects ?? [], page?.key ?? '') || pending(buttonEffects, buttonEffectKey);
   const showChoices =
     !busy &&
     ready &&
@@ -243,7 +274,7 @@ export function VisualNovel({
               </DisplayText>
             )}
             {!busy &&
-              page?.effects
+              visibleEffects
                 .filter((e) => room.work.effects.find((x) => x.id === e.id)?.mode !== 'auto')
                 .map((e) => (
                   <Button
@@ -318,7 +349,11 @@ export function VisualNovel({
               />
               <StatusDisplay
                 work={room.work}
-                runtime={page?.checkpoint.runtime ?? room.current.runtime}
+                runtime={
+                  latestPassage
+                    ? room.current.runtime
+                    : (page?.checkpoint.runtime ?? room.current.runtime)
+                }
                 expanded
                 demo={false}
               />

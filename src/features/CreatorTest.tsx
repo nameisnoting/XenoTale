@@ -179,6 +179,7 @@ export function CreatorTest({
                 disabled={busy}
                 onEffect={setEffect}
                 source={{ eventId: t.id }}
+                effectsOnly={!t.risuChat}
               />
             ) : null,
           )}

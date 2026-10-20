@@ -23,6 +23,7 @@ export function StoryBody({
   source,
   disabled = false,
   checkpoint = room.current,
+  effectsOnly = false,
 }: {
   body: string;
   room: Room;
@@ -30,8 +31,10 @@ export function StoryBody({
   onEffect: (request: EffectRequest) => void;
   disabled?: boolean;
   checkpoint?: Checkpoint;
+  effectsOnly?: boolean;
 }) {
   if (
+    !effectsOnly &&
     room.work.risu &&
     (source.eventId.startsWith('opening:') ||
       room.timeline.some(
@@ -64,14 +67,17 @@ export function StoryBody({
   // Group ordinary/unknown tags back into one Markdown block, preserving paragraphs and positions.
   const chunks: { text: string; tag?: string; occurrence: number }[] = [];
   for (const token of storyTokens(body)) {
+    // Retain positions in the saved body: effect validation uses these offsets.
+    if (effectsOnly && !(token.tag && resolveEffect(room.work, token.tag))) continue;
     const special =
       (token.tag && mediaImage(room.work, token.tag)) ||
       (token.tag && resolveEffect(room.work, token.tag));
     if (!special && chunks.length && !chunks.at(-1)!.tag) chunks.at(-1)!.text += token.text;
     else chunks.push({ ...token, tag: special ? token.tag : undefined });
   }
+  if (!chunks.length) return null;
   return (
-    <div className="story-body">
+    <div className="story-body" id={effectsOnly ? `event-${source.eventId}` : undefined}>
       {chunks.map((chunk, i) => {
         const image = chunk.tag ? mediaImage(room.work, chunk.tag) : '';
         if (image)

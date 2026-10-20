@@ -19,7 +19,7 @@ import { CreditBalanceButton } from '../components/CreditBalanceButton';
 import { BottomSheet, SideDrawer, MobilePage } from '../components/MobileSurfaces';
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
 import { VisualNovel } from './VisualNovel';
-import { chapterMusic, type NovelPage } from '../domain/visualNovel';
+import { chapterMusic, readingEventId, type NovelPage } from '../domain/visualNovel';
 import type { Presentation } from '../domain/types';
 import {
   ArrowLeft,
@@ -341,6 +341,7 @@ export function ChatContent({
     <ConversationLog
       room={room}
       onJump={(eventId) => {
+        eventId = readingEventId(room, eventId);
         if (uiType === 'visual-novel') setNovelJump({ eventId, nonce: Date.now() });
         if (eventId.startsWith('opening:'))
           scroll.current?.scrollTo({ top: 0, behavior: 'smooth' });
@@ -759,8 +760,7 @@ export function ChatContent({
                           </div>
                         </section>
                       </article>
-                    ) : event.kind === 'chapter' ||
-                      (event.kind === 'action' && (!event.risuEvent || event.risuChat)) ? (
+                    ) : event.kind === 'chapter' || (event.kind === 'action' && event.risuChat) ? (
                       <article
                         className="chapter-scene chat-message-section"
                         id={`event-${event.id}`}
@@ -793,6 +793,17 @@ export function ChatContent({
                           </IconButton>
                         </div>
                       </article>
+                    ) : event.kind === 'action' && !event.risuEvent ? (
+                      <StoryBody
+                        key={event.id}
+                        body={event.body}
+                        room={room}
+                        checkpoint={event.after}
+                        disabled={busy}
+                        source={{ eventId: event.id }}
+                        onEffect={setEffect}
+                        effectsOnly
+                      />
                     ) : null,
                   )}
                   {requestBusy && (

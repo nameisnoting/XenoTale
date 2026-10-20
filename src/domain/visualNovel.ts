@@ -28,19 +28,20 @@ export function mediaImage(work: Work, code: string) {
     .replaceAll('{{char_code}}', match[1])
     .replaceAll('{{situation_code}}', match[2]);
 }
-export function visualNovelPages(
-  room: Room,
-  candidate: (turn: Turn) => Candidate = selected,
-): NovelPage[] {
+export function visualNovelView(room: Room, candidate: (turn: Turn) => Candidate = selected) {
   const pages: NovelPage[] = [];
   let background = room.work.cover;
+  let actionBackground: string | undefined;
+  let actionEffects: NovelPage['effects'] = [];
   let presentationBackground: string | undefined;
   const add = (
     body: string,
     source: NovelPage['source'],
     checkpoint: Checkpoint,
     player = false,
+    effectsOnly = false,
   ) => {
+    actionEffects = [];
     // Native background actions belong to their checkpoint, just like dialogue
     // image tags. Apply only changes so a persistent setting does not overwrite
     // a later emotional image or rewrite an earlier page in the conversation.
@@ -49,6 +50,7 @@ export function visualNovelPages(
       presentationBackground = requestedBackground;
       if (requestedBackground)
         background = mediaImage(room.work, requestedBackground) || background;
+      if (effectsOnly) actionBackground = background;
     }
     const start = pages.length;
     let offset = 0,
@@ -73,7 +75,7 @@ export function visualNovelPages(
               id: effect.id,
               source: { ...source, occurrence: base + token.occurrence },
             });
-          else text += token.text;
+          else if (!effectsOnly) text += token.text;
         }
       }
       const speech = text.trim().match(/^@([^:\n]+):\s*([\s\S]*)$/);
@@ -85,27 +87,34 @@ export function visualNovelPages(
       actor = actor?.replaceAll('{{user}}', checkpoint.context.persona.name);
       text = text.trim().replaceAll('{{user}}', checkpoint.context.persona.name);
       if (!text && !effects.length) continue;
-      pages.push({
-        key: `${source.eventId}:${source.candidateId ?? ''}:${player ? 'user' : 'story'}:${base}`,
-        text,
-        actor,
-        player,
-        background,
-        source,
-        checkpoint,
-        effects,
-        effectOnly:
-          !text &&
-          !!effects.length &&
-          effects.every((e) => room.work.effects.find((x) => x.id === e.id)?.mode === 'auto'),
-        last: false,
-      });
+      if (effectsOnly) actionEffects.push(...effects);
+      else {
+        actionBackground = undefined;
+        pages.push({
+          key: `${source.eventId}:${source.candidateId ?? ''}:${player ? 'user' : 'story'}:${base}`,
+          text,
+          actor,
+          player,
+          background,
+          source,
+          checkpoint,
+          effects,
+          effectOnly:
+            !text &&
+            !!effects.length &&
+            effects.every((e) => room.work.effects.find((x) => x.id === e.id)?.mode === 'auto'),
+          last: false,
+        });
+      }
       if (!player)
         for (const effect of effects) {
           const record = recordedEffect(room, effect.id, effect.source);
           const applied =
             record?.kind === 'effect' ? record.effectResult?.presentation?.background : undefined;
-          if (applied) background = mediaImage(room.work, applied) || background;
+          if (applied) {
+            background = mediaImage(room.work, applied) || background;
+            if (effectsOnly) actionBackground = background;
+          }
         }
     }
     if (pages.length > start) pages[pages.length - 1].last = true;
@@ -137,9 +146,34 @@ export function visualNovelPages(
       event.kind === 'chapter' ||
       (event.kind === 'action' && (!event.risuEvent || event.risuChat))
     )
-      add(event.body, { eventId: event.id }, event.after);
+      add(
+        event.body,
+        { eventId: event.id },
+        event.after,
+        false,
+        event.kind === 'action' && !event.risuChat,
+      );
   }
-  return pages;
+  // A button can change the current scene without adding a dialogue page.
+  // Keep this live override separate so earlier pages retain their own images.
+  return { pages, actionBackground, actionEffects };
+}
+export function visualNovelPages(room: Room, candidate: (turn: Turn) => Candidate = selected) {
+  return visualNovelView(room, candidate).pages;
+}
+export function readingEventId(room: Room, eventId: string) {
+  const index = room.timeline.findIndex((event) => event.id === eventId);
+  if (index < 0) return eventId;
+  for (let i = index; i >= 0; i--) {
+    const event = room.timeline[i];
+    if (
+      event.kind === 'turn' ||
+      event.kind === 'chapter' ||
+      (event.kind === 'action' && event.risuChat)
+    )
+      return event.id;
+  }
+  return `opening:${room.openingId}`;
 }
 export function latestNovelStart(pages: NovelPage[]) {
   const last = pages.at(-1);
