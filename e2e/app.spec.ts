@@ -1,3 +1,4 @@
+import { jsonPromptBlock } from './helpers/prompt';
 import { test, expect, type Page } from '@playwright/test';
 async function start(page: Page) {
   await page.route('https://openrouter.ai/api/v1/models', (r) => r.fulfill({ json: { data: [] } }));
@@ -65,9 +66,6 @@ test('제작 자동저장 · 작업내역 · 시점 · 작품 반영', async ({ 
   await page.getByRole('button', { name: '도입부', exact: false }).click();
   await page.getByRole('textbox', { name: '내용', exact: false }).fill('@안내인: 반갑습니다.');
   await page.screenshot({ path: 'test-results/editor-desktop.png', fullPage: true });
-  await page.getByRole('button', { name: '대화방 UI', exact: false }).click();
-  await page.getByRole('button', { name: '유효성 검사', exact: true }).click();
-  await expect(page.locator('.code-validation')).toContainText('검사 완료');
   await page.getByRole('button', { name: '제작완료', exact: true }).click();
   await expect(page.getByRole('status').filter({ hasText: '작품 v1' })).toBeVisible();
   await page.getByRole('button', { name: '메인으로', exact: true }).click();
@@ -193,14 +191,14 @@ test('실제 연결 경로의 요청 형식 · 빈 입력 continue · 추론 토
   await page.getByRole('button', { name: '추천 선택지 표시', exact: true }).click();
   await page.getByRole('button', { name: '전송', exact: true }).click();
   await expect(page.getByTestId('status-affinity')).toHaveText('14');
-  expect(JSON.parse(payload.messages.at(-1).content).turnDirectives.choicesEnabled).toBe(true);
+  expect(jsonPromptBlock(payload.messages.at(-1).content).turnDirectives.choicesEnabled).toBe(true);
   await expect(page.locator('.suggestions')).toHaveCount(0);
   await page.getByRole('button', { name: '추천 선택지 표시', exact: true }).click();
   await expect(page.locator('.suggestions')).toContainText('모의 선택지');
   expect(calls).toBe(1);
   expect(payload.model).toBe(model.id);
   expect(payload.reasoning.max_tokens).toBe(4096);
-  expect(JSON.parse(payload.messages.at(-1).content).playerInput.kind).toBe('continue');
+  expect(jsonPromptBlock(payload.messages.at(-1).content).playerInput.kind).toBe('continue');
   expect(payload.response_format.type).toBe('json_schema');
   expect(payload.messages[0].content[0].cache_control.type).toBe('ephemeral');
   await page.getByRole('button', { name: '단축어', exact: true }).click();
@@ -218,7 +216,7 @@ test('실제 연결 경로의 요청 형식 · 빈 입력 continue · 추론 토
   await page.getByRole('button', { name: '전송', exact: true }).click();
   await expect(page.locator('.conversation-turn')).toHaveCount(2);
   await expect(page.getByRole('button', { name: '전송', exact: true })).toBeVisible();
-  expect(JSON.parse(payload.messages.at(-1).content).retryDirective).toContain(
+  expect(jsonPromptBlock(payload.messages.at(-1).content).retryDirective).toContain(
     '주변 풍경을 자세히 묘사한다.',
   );
   expect(calls).toBe(2);

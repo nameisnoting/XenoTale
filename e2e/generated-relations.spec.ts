@@ -1,3 +1,4 @@
+import { jsonPromptBlock } from './helpers/prompt';
 import { readDownloadedJson } from './read-file';
 import { test, expect, type Page } from '@playwright/test';
 
@@ -52,7 +53,7 @@ for (const width of [1440, 393]) {
       if (url.endsWith('/chat/completions')) {
         const payload = route.request().postDataJSON();
         requests.push(payload);
-        const context = JSON.parse(payload.messages.at(-1).content).runtimeContext;
+        const context = jsonPromptBlock(payload.messages.at(-1).content).runtimeContext;
         const existing = context.relationships.find(
           (r: any) => r.from === 'user' && r.to === 'sera',
         );
@@ -173,7 +174,7 @@ for (const width of [1440, 393]) {
       .toBe('절친');
     expect((await rooms(page))[0].current.runtime.generatedRelations).toHaveLength(1);
     expect(
-      JSON.parse(requests[1].messages.at(-1).content).runtimeContext.relationships,
+      jsonPromptBlock(requests[1].messages.at(-1).content).runtimeContext.relationships,
     ).toContainEqual(
       expect.objectContaining({ id: edgeId, from: 'user', to: 'sera', label: '동료' }),
     );

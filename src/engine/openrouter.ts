@@ -58,6 +58,22 @@ type Message = {
   role: 'system' | 'user' | 'assistant';
   content: string | { type: 'text'; text: string; cache_control?: { type: 'ephemeral' } }[];
 };
+// Some providers require alternating user/assistant roles. Keep the semantic
+// prompt blocks intact in buildMessages and coalesce only their wire boundaries.
+function mergeAdjacentMessages(messages: Message[]): Message[] {
+  const merged: Message[] = [];
+  for (const message of messages) {
+    const previous = merged.at(-1);
+    if (
+      previous?.role === message.role &&
+      typeof previous.content === 'string' &&
+      typeof message.content === 'string'
+    )
+      previous.content += '\n\n' + message.content;
+    else merged.push({ ...message });
+  }
+  return merged;
+}
 const stable = <T extends { id: string }>(list: T[]) =>
   [...list].sort((a, b) => a.id.localeCompare(b.id));
 export function buildMessages(
@@ -303,19 +319,21 @@ export async function generate(
   if (reasoning?.max_tokens && reasoning.max_tokens >= maxTokens)
     reasoning.max_tokens = Math.max(1, maxTokens - 2048);
   for (let attempt = 0; attempt < 3; attempt++) {
-    const messages = buildMessages(room, before, input, {
-      reroll: options.reroll,
-      extra,
-      directive,
-      canRequest,
-      dice: options.dice,
-      transport,
-    });
+    const messages = mergeAdjacentMessages(
+      buildMessages(room, before, input, {
+        reroll: options.reroll,
+        extra,
+        directive,
+        canRequest,
+        dice: options.dice,
+        transport,
+      }),
+    );
     // Three stable boundaries; the final changing runtime/input block is never cached explicitly.
     if (/^~?anthropic\//.test(model.id))
       for (const index of new Set([0, 1, messages.length - 2])) {
         const message = messages[index];
-        if (message && typeof message.content === 'string')
+        if (index < messages.length - 1 && message && typeof message.content === 'string')
           message.content = [
             { type: 'text', text: message.content, cache_control: { type: 'ephemeral' } },
           ];

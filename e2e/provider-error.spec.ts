@@ -1,6 +1,133 @@
 import { test, expect } from '@playwright/test';
 
 for (const width of [1440, 393])
+  test(`strict free provider accepts first turn and consecutive button records ${width}`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: 1000 });
+    const requests: any[] = [];
+    await page.route('https://openrouter.ai/**', async (route) => {
+      const url = route.request().url();
+      if (url.endsWith('/models'))
+        return route.fulfill({
+          json: {
+            data: [
+              {
+                id: 'test/strict:free',
+                name: '무료 순서 검증',
+                context_length: 200000,
+                supported_parameters: ['structured_outputs'],
+              },
+            ],
+          },
+        });
+      if (url.endsWith('/chat/completions')) {
+        const request = route.request().postDataJSON();
+        requests.push(request);
+        const chat = request.messages.slice(1);
+        if (
+          chat.some(
+            (message: { role: string }, i: number) =>
+              message.role !== (i % 2 ? 'assistant' : 'user'),
+          )
+        )
+          return route.fulfill({
+            status: 400,
+            json: {
+              error: {
+                message: 'Conversation roles must alternate user/assistant/user/assistant/...',
+              },
+            },
+          });
+        const delta = {
+          numeric: [{ fieldId: 'affinity', amount: 2 }],
+          text: [],
+          choice: [],
+          inventory: [],
+          presence: [],
+          relationships: [],
+        };
+        return route.fulfill({
+          json: {
+            choices: [
+              {
+                finish_reason: 'stop',
+                message: {
+                  content: JSON.stringify({
+                    kind: 'turn',
+                    requestedCharacterIds: [],
+                    body: `정상 응답 ${requests.length}`,
+                    choices: [],
+                    delta,
+                  }),
+                },
+              },
+            ],
+          },
+        });
+      }
+      return route.fulfill({ json: { data: { total_credits: 100, total_usage: 0 } } });
+    });
+    await page.goto('/');
+    await page.getByRole('textbox', { name: 'API key', exact: true }).fill('fake-strict-key');
+    await page.getByRole('button', { name: '키 확인', exact: true }).click();
+    await expect(page.getByRole('button', { name: '연결 확인됨' })).toBeVisible();
+    await page.getByRole('group', { name: '채팅용 LLM', exact: true }).getByRole('button').click();
+    await page.getByRole('button', { name: /^무료 순서 검증/ }).click();
+    await page.getByRole('button', { name: '선택 완료', exact: true }).click();
+    await page.getByRole('button', { name: 'XenoTale 시작', exact: true }).click();
+    await page.getByRole('button', { name: '정원 앞에서 대화 시작', exact: true }).click();
+    await page.evaluate(
+      () =>
+        new Promise<void>((resolve, reject) => {
+          const open = indexedDB.open('xenotale-v1');
+          open.onsuccess = () => {
+            const db = open.result,
+              tx = db.transaction('rooms', 'readwrite'),
+              store = tx.objectStore('rooms'),
+              read = store.getAll();
+            read.onsuccess = () => {
+              const room = read.result.at(-1);
+              room.work.actions = [
+                {
+                  id: 'training',
+                  name: '검술 선택',
+                  trigger: 'button',
+                  mode: 'all',
+                  conditions: [],
+                  steps: [{ kind: 'add', target: 'affinity', value: '1' }],
+                },
+              ];
+              store.put(room);
+            };
+            tx.oncomplete = () => {
+              db.close();
+              resolve();
+            };
+            tx.onabort = () => reject(tx.error);
+          };
+        }),
+    );
+    await page.reload();
+    const composer = page.getByRole('textbox', { name: '메시지', exact: true });
+    await composer.fill('첫 질문');
+    await page.getByRole('button', { name: '전송', exact: true }).click();
+    await expect(page.locator('.chat-scroll')).toContainText('정상 응답 1');
+    for (let i = 0; i < 2; i++)
+      await page
+        .locator('.action-buttons')
+        .getByRole('button', { name: '검술 선택', exact: true })
+        .click();
+    await composer.fill('다음 질문');
+    await page.getByRole('button', { name: '전송', exact: true }).click();
+    await expect(page.locator('.chat-scroll')).toContainText('정상 응답 2');
+    await expect(page.getByTestId('status-affinity')).toHaveText('16');
+    expect(requests).toHaveLength(2);
+    expect(JSON.stringify(requests[1].messages)).toContain('검술 선택');
+    await expect(page.locator('.toast').filter({ hasText: '400' })).toHaveCount(0);
+  });
+
+for (const width of [1440, 393])
   test(`Gemini rejection shows provider explanation and restores input ${width}`, async ({
     page,
   }) => {

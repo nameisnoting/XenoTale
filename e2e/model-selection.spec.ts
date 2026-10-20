@@ -1,3 +1,4 @@
+import { jsonPromptBlock } from './helpers/prompt';
 import { test, expect, type Page, type Locator } from '@playwright/test';
 const models = ['A', 'B', 'C', 'D'].map((name) => ({
   id: `test/model-${name}`,
@@ -27,7 +28,7 @@ async function setup(page: Page, width: number) {
   await page.context().route('https://openrouter.ai/api/v1/chat/completions', (r) => {
     const request = r.request().postDataJSON();
     requests.push(request);
-    const user = JSON.parse(request.messages.at(-1).content);
+    const user = jsonPromptBlock(request.messages.at(-1).content);
     const content = user.draftSchema
       ? { reply: '공통 에이전트 모델 답변', proposals: [], questions: [] }
       : request.response_format?.json_schema?.name === 'xenotale_turn'

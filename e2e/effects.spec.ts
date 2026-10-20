@@ -1,3 +1,4 @@
+import { jsonPromptBlock } from './helpers/prompt';
 import { creatorSection } from './helpers/creator';
 import { test, expect, type Page } from '@playwright/test';
 import fs from 'node:fs/promises';
@@ -257,7 +258,7 @@ test('게임 결과가 실제 API 요청의 동적 프롬프트에 포함됨 (�
   await page.getByRole('button', { name: '연출 닫기', exact: true }).click();
   await page.getByRole('button', { name: '전송', exact: true }).click();
   await expect(page.locator('.conversation-turn')).toHaveCount(1);
-  const tail = JSON.parse(request.messages.at(-1).content);
+  const tail = jsonPromptBlock(request.messages.at(-1).content);
   expect(tail.runtimeContext.effectResults[0].result).toEqual({
     outcome: 'success',
     summary: '자물쇠를 풀어 문이 열렸다.',

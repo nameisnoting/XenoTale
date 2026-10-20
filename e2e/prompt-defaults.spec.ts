@@ -1,3 +1,4 @@
+import { jsonPromptBlock } from './helpers/prompt';
 import { test, expect, type Page } from '@playwright/test';
 import fs from 'node:fs/promises';
 
@@ -158,7 +159,7 @@ test('실제 전송 경로의 새 서사·언어 규칙·선택 품질 지침·�
   expect(fixed).not.toContain('STYLE:');
   expect(request.messages[0].content[0].cache_control.type).toBe('ephemeral');
   expect(typeof request.messages.at(-1).content).toBe('string');
-  const directives = JSON.parse(request.messages.at(-1).content).turnDirectives;
+  const directives = jsonPromptBlock(request.messages.at(-1).content).turnDirectives;
   expect(directives.outputLanguage).toBe('Korean');
   expect(directives.qualityInstructions.join('\n')).toContain('wuxia');
   expect(directives.qualityInstructions.join('\n')).toContain('85%');

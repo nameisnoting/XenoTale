@@ -1,3 +1,4 @@
+import { jsonPromptBlock } from './helpers/prompt';
 import { test, expect, type Page } from '@playwright/test';
 
 const model = {
@@ -42,7 +43,7 @@ async function setup(page: Page, width = 1440) {
   await page.route('https://openrouter.ai/api/v1/chat/completions', (route) => {
     const request = route.request().postDataJSON();
     state.completions.push(request);
-    const user = JSON.parse(request.messages.at(-1).content);
+    const user = jsonPromptBlock(request.messages.at(-1).content);
     const content = user.draftSchema
       ? { reply: '목록 로딩 후 제작 답변', proposals: [], questions: [] }
       : {

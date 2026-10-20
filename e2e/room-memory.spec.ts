@@ -1,3 +1,4 @@
+import { jsonPromptBlock } from './helpers/prompt';
 import { test, expect, type Page } from '@playwright/test';
 import fs from 'node:fs/promises';
 async function rooms(page: Page) {
@@ -184,7 +185,7 @@ test('AI 제목 JSON·잘못된 JSON 대체 제목·장기요약만 대화 프�
     if (url.endsWith('/credits'))
       return route.fulfill({ json: { data: { total_credits: 100, total_usage: 0 } } });
     const payload = route.request().postDataJSON();
-    const input = JSON.parse(payload.messages[1].content);
+    const input = jsonPromptBlock(payload.messages[1].content, 0);
     let content: string;
     if (input.entries) {
       summaryPayloads.push(payload);
@@ -248,7 +249,7 @@ test('AI 제목 JSON·잘못된 JSON 대체 제목·장기요약만 대화 프�
   await page.getByRole('button', { name: '요약 검증 모델', exact: false }).click();
   await page.getByRole('button', { name: '선택 완료', exact: true }).click();
   await send(page, 3);
-  expect(JSON.parse(chatPayload.messages[1].content).verifiedMemory).toEqual([
+  expect(jsonPromptBlock(chatPayload.messages[1].content, 0).verifiedMemory).toEqual([
     { title: 'AI 장기 제목', content: '두 단기요약을 통합한 장기 내용' },
   ]);
 });

@@ -3,6 +3,7 @@ import { exampleWork } from '../test/exampleWork';
 import { addResponse, createRoom, emptyDelta } from '../domain/engine';
 import { buildMessages, demoModel, generate, reasoningFor, reasoningSupported } from './openrouter';
 import type { Model } from '../domain/types';
+import { executeAction } from '../domain/actions';
 const model: Model = {
   id: 'anthropic/test',
   name: 'Mock',
@@ -29,8 +30,88 @@ const reply = (value: unknown, finish = 'stop') =>
       },
     }),
   );
+// Adjacent input blocks share one provider message; the runtime stays the final block.
+const requestTail = (content: string) => JSON.parse(content.split('\n\n').at(-1)!);
 afterEach(() => vi.unstubAllGlobals());
 describe('provider contract', () => {
+  it('satisfies strict provider role ordering without dropping context, actions or current input', async () => {
+    const work = exampleWork();
+    work.actions = [
+      {
+        id: 'choose',
+        name: '검술 선택',
+        trigger: 'button',
+        mode: 'all',
+        conditions: [],
+        steps: [{ kind: 'add', target: 'affinity', value: '1' }],
+      },
+    ];
+    let room = createRoom(work);
+    const provider = { ...model, id: 'strict-provider/test:free', reasoning: undefined };
+    const sent: any[] = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (_url, init) => {
+        const payload = JSON.parse(init.body);
+        sent.push(payload);
+        const messages = payload.messages.slice(1);
+        if (
+          messages.some(
+            (message: { role: string }, i: number) =>
+              message.role !== (i % 2 ? 'assistant' : 'user'),
+          )
+        )
+          return new Response(
+            JSON.stringify({
+              error: {
+                message: 'Conversation roles must alternate user/assistant/user/assistant/...',
+              },
+            }),
+            { status: 400 },
+          );
+        return reply(envelope());
+      }),
+    );
+    for (const scenario of ['opening', 'history-and-actions', 'reroll']) {
+      if (scenario === 'history-and-actions') {
+        room = addResponse(room, '첫 질문', envelope(), { model: 'demo', cost: 0 });
+        room = executeAction(executeAction(room, 'choose'), 'choose');
+      }
+      if (scenario === 'reroll')
+        room = addResponse(room, '두 번째 질문', envelope(), { model: 'demo', cost: 0 });
+      const before = structuredClone(room);
+      const options = { reroll: scenario === 'reroll' };
+      const result = await generate(
+        room,
+        room.current,
+        '다음 질문',
+        provider,
+        'fake',
+        new AbortController().signal,
+        options,
+      );
+      const payload = sent.at(-1);
+      const original = buildMessages(room, room.current, '다음 질문', {
+        ...options,
+        extra: [],
+        directive: '',
+        canRequest: true,
+        transport: 'json',
+      });
+      expect(
+        payload.messages.map((message: { content: string }) => message.content).join('\n\n'),
+      ).toBe(original.map((message) => message.content).join('\n\n'));
+      expect(payload.messages.at(-1).role).toBe('user');
+      expect(requestTail(payload.messages.at(-1).content).runtimeContext.currentState).toEqual(
+        room.current.runtime,
+      );
+      expect(result.result).toEqual(envelope());
+      expect(room).toEqual(before);
+    }
+    expect(sent).toHaveLength(3);
+    expect(JSON.stringify(sent[1].messages)).toContain('검술 선택');
+    expect(JSON.stringify(sent[2].messages)).not.toContain('두 번째 질문');
+  });
   it('uses Gemini JSON mode with the full local contract and the advertised thinking level', async () => {
     let sent: any;
     vi.stubGlobal(
@@ -204,7 +285,7 @@ describe('provider contract', () => {
       reroll: false,
     });
     expect(sent[0].messages.slice(0, -1)).toEqual(sent[1].messages.slice(0, -1));
-    const tail = JSON.parse(sent[1].messages.at(-1).content).turnDirectives;
+    const tail = requestTail(sent[1].messages.at(-1).content).turnDirectives;
     expect(tail.quality.style).toBe('무협');
     expect(tail.qualityInstructions.join('\n')).toContain('wuxia');
     expect(tail.qualityInstructions.join('\n')).toContain('85%');
@@ -275,7 +356,9 @@ describe('provider contract', () => {
         reroll: false,
       });
     }
-    const tails = sent.map((request) => JSON.parse(request.messages.at(-1).content).runtimeContext);
+    const tails = sent.map(
+      (request) => requestTail(request.messages.at(-1).content).runtimeContext,
+    );
     expect(tails[0].additionalCharacterDetails).toEqual([]);
     expect(tails[1].additionalCharacterDetails).toEqual([
       { id: 'sera', name: supporting.name, prompt: supporting.prompt },
@@ -371,7 +454,7 @@ describe('provider contract', () => {
     expect(out.result.body).toContain('세라');
     expect(payload.messages.at(-1).content).toContain('기록과 약속을 중요하게');
     expect(
-      JSON.parse(payload.messages.at(-1).content).runtimeContext.currentState.presence,
+      requestTail(payload.messages.at(-1).content).runtimeContext.currentState.presence,
     ).not.toContain('sera');
     expect(JSON.stringify(payload.messages.slice(0, -1))).not.toContain(
       r.work.characters.find((character) => character.id === 'sera')!.prompt,
