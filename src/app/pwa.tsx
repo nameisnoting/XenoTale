@@ -22,7 +22,7 @@ export function useWebApp(ready: boolean, profile: Profile | undefined) {
   const notify = useNotify();
   useEffect(() => {
     if (import.meta.env.PROD && 'serviceWorker' in navigator)
-      void navigator.serviceWorker.register('/sw.js').catch(() => {});
+      void navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' }).catch(() => {});
     const receive = (event: Event) => {
       event.preventDefault();
       installPrompt = event as InstallPrompt;

@@ -299,6 +299,16 @@ npm run test:e2e
 - [`components/HtmlContent.tsx`](../src/components/HtmlContent.tsx): HTML 정제와 격리 표시.
 - [`app/pwa.tsx`](../src/app/pwa.tsx): 웹앱 설치 안내와 파일 실행 연결.
 
+온라인 새로고침에서는 `public/sw.js`가 HTML을 `no-store`로 다시 받고, 해시가 붙은
+`/assets/` 파일만 캐시를 우선 사용합니다. 오프라인에서는 마지막으로 받은 화면을 엽니다.
+서비스 워커 갱신은 HTTP 캐시를 거치지 않으며, 새 워커는 이전 XenoTale 셸 캐시만 정리합니다.
+작품·대화가 든 IndexedDB와 다른 캐시는 건드리지 않습니다. `vercel.json`과 로컬
+`scripts/serve.mjs`에서도 HTML 캐시 정책을 맞춥니다. 작성 중인 입력 보호를 위해 강제 자동
+새로고침은 하지 않습니다.
+
+마이페이지 GitHub와 대화방 아이템 메뉴는 별도 PNG 요청 대신 인라인 SVG를 사용합니다.
+`components/GithubIcon.tsx`와 `components/IconRail.tsx`에서 각각 확인할 수 있습니다.
+
 지원 범위와 예시 파일 분석은 [제작·가져오기 안내](creation-and-import.md)를 참고하세요.
 
 ## 통합 이벤트 제작

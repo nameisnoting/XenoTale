@@ -11,6 +11,7 @@ import {
   Settings,
   SlidersHorizontal,
   VenetianMask,
+  ShoppingBag,
 } from 'lucide-react';
 import './IconRail.css';
 
@@ -22,6 +23,7 @@ const vectorIcons: Record<string, ReactNode> = {
   'book-open': <BookOpen strokeWidth={1.75} />,
   'venetian-mask': <VenetianMask strokeWidth={1.75} />,
   image: <Image strokeWidth={1.75} />,
+  'circum_bag-1': <ShoppingBag strokeWidth={1.75} />,
   network: <Network strokeWidth={1.75} />,
   settings: <Settings strokeWidth={1.75} />,
   'settings-2': <SlidersHorizontal strokeWidth={1.75} />,

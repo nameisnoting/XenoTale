@@ -40,6 +40,8 @@ for (const width of [1440, 393]) {
       await expect(row).toHaveCSS('padding-top', '16px');
     }
     await expect(github).toHaveAttribute('href', 'https://github.com/nameisnoting');
+    await expect(github.locator('img')).toHaveCount(0);
+    await expect(github.locator('svg').first()).toBeVisible();
     await page.evaluate(async () => {
       await document.fonts.ready;
     });

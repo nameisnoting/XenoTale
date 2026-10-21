@@ -6,6 +6,7 @@ import { SelectionPill } from '../components/SelectionPill';
 export { NoteLibrary } from '../components/NoteLibrary';
 import { PageHeader } from '../components/Headers';
 import { SettingsMenuItem } from '../components/SettingsMenuItem';
+import { GithubIcon } from '../components/GithubIcon';
 import { AddButton } from '../components/AddButton';
 import './ProfileLibrary.css';
 import { useEffect, useState } from 'react';
@@ -261,7 +262,7 @@ export function ProfilePage({
                 onClick={() => navigate('/profile/notices')}
               />
               <SettingsMenuItem
-                icon={<img src="/icons/chat/github.png" width="24" height="24" alt="" />}
+                icon={<GithubIcon />}
                 label="개발자 GitHub"
                 href="https://github.com/nameisnoting"
               />

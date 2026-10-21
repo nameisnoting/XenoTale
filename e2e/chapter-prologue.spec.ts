@@ -58,10 +58,24 @@ for (const width of [1440, 393]) {
     await expect(dialog.getByRole('radio', { name: 'AI 출력', exact: true })).toBeChecked();
     await dialog.getByRole('radio', { name: '직접 작성', exact: true }).check();
     await expect(prologue.getByRole('textbox')).toHaveValue('직접 작성한 도입 장면');
+    await dialog.getByRole('button', { name: '엔딩', exact: true }).click();
+    const endingScene = dialog.getByRole('group', { name: '엔딩 장면', exact: true });
+    await expect(endingScene.getByRole('radio', { name: '직접 작성', exact: true })).toBeChecked();
+    await expect(endingScene.getByRole('textbox')).toHaveValue('직접 작성한 도입 장면');
+    await endingScene.getByRole('radio', { name: 'AI 출력', exact: true }).check();
+    await expect(endingScene.getByRole('textbox')).toHaveCount(0);
+    await dialog.getByRole('button', { name: '완료', exact: true }).click();
+    await expect(page.getByText('저장완료', { exact: true })).toBeVisible();
+    await page.reload();
+    await creatorSection(page, width, '시나리오');
+    await page.getByRole('button', { name: '챕터 1 엔딩', exact: true }).click();
+    await expect(endingScene.getByRole('radio', { name: 'AI 출력', exact: true })).toBeChecked();
     await page.screenshot({ path: `docs/screenshots/chapter-prologue-editor-${width}.png` });
   });
 
-  test(`AI 프롤로그 원자적 이동·실패/취소·수정·리롤·후보·삭제 ${width}`, async ({ page }) => {
+  test(`AI ${width === 393 ? '엔딩' : '프롤로그'} 원자적 이동·실패/취소·수정·리롤·후보·삭제 ${width}`, async ({
+    page,
+  }) => {
     await page.setViewportSize({ width, height: 1000 });
     const requests: Route[] = [];
     await page.route('https://openrouter.ai/**', (route) => {
@@ -145,6 +159,8 @@ for (const width of [1440, 393]) {
                   ...room.work.chapters[0],
                   conditions: [],
                   prologueMode: 'ai',
+                  type: vn ? 'ending' : 'chapter',
+                  afterstory: !vn,
                   prologue: '이 고정 장면은 AI에 전달하지 않는다.',
                   prompt: '방금 맺은 약속을 이어 지하 서고로 들어간다.',
                 },
@@ -213,10 +229,16 @@ for (const width of [1440, 393]) {
         ? page.locator('.visual-novel-copy')
         : page.locator('.chapter-scene .story-body');
     await expect(text).toContainText('아까의 약속을 떠올리며');
-    await expect(field).toHaveValue('작성하던 초안');
+    if (width === 393) {
+      await expect(field).toHaveValue('');
+      await expect(field).toBeDisabled();
+    } else await expect(field).toHaveValue('작성하던 초안');
     let saved = await stored(page);
     expect(saved.current.runtime.nodeId).toBe('archive');
     expect(saved.current.runtime.status.affinity).toBe(12);
+    expect(saved.current.runtime.ending).toEqual(
+      width === 393 ? { id: 'archive', allowAfterstory: false } : null,
+    );
     expect(saved.timeline).toHaveLength(2);
     expect(saved.timeline[1]).toMatchObject({ kind: 'turn', chapterId: 'archive', input: '' });
     expect(saved.timeline[1].candidates).toHaveLength(1);

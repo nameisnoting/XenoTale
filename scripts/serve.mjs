@@ -47,7 +47,9 @@ const server = http.createServer((req, res) => {
       'X-XenoTale': 'local',
       'Cache-Control': pathname.startsWith('/assets/')
         ? 'public, max-age=31536000, immutable'
-        : 'no-cache',
+        : pathname === '/' || pathname === '/index.html'
+          ? 'no-store'
+          : 'no-cache',
     });
     if (req.method === 'HEAD') res.end();
     else fs.createReadStream(target).pipe(res);
