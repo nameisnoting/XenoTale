@@ -75,7 +75,6 @@ import { CollapsedPanel, PanelHeader } from '../components/Headers';
 import { ChatShortcuts } from './ChatShortcuts';
 import { ChatUsage } from './ChatUsage';
 import { exportBackup } from '../persistence/files';
-import { GamePanels } from '../components/GamePanels';
 import { StatusPanels } from '../components/StatusPanels';
 import { GenerationStatus, ResponseSection } from '../components/GenerationStatus';
 import { SuggestionButtons } from '../components/SuggestionButtons';
@@ -646,11 +645,12 @@ export function ChatContent({
                       <WorkInfoPrompt onOpen={() => showMenu('info', true)} />
                     )}
                     {!latestTurn && (
-                      <GamePanels
+                      <StatusPanels
                         work={room.work}
                         runtime={room.current.runtime}
                         busy={busy || endingLocked}
                         onAction={playAction}
+                        expanded={cfg.statusExpanded}
                       />
                     )}
                     <StoryIntro title={op.name}>

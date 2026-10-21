@@ -191,10 +191,24 @@ for (const width of [1440, 393]) {
     await expect(page.locator('.conversation-turn')).toHaveCount(1);
     await expect(page.getByRole('button', { name: '전송', exact: true })).toBeEnabled();
     const assistant = page.locator('.conversation-turn .assistant-section').last();
-    await expect(assistant.locator('.status-display, .game-panel')).toHaveCount(3);
+    const group = assistant.locator('.status-panels');
+    await expect(group).toHaveCount(1);
+    await expect(group.locator(':scope > summary')).toHaveText('헌터 기록 / 활동 단말 / 추가 기록');
+    const sections = group.locator(':scope > .status-content > .status-panel-section');
     expect(
-      await assistant.locator('.status-display summary, .game-panel > h3').allTextContents(),
+      await sections.evaluateAll((nodes) => nodes.map((node) => node.getAttribute('aria-label'))),
     ).toEqual(['헌터 기록', '활동 단말', '추가 기록']);
+    await expect(group.locator('details')).toHaveCount(0);
+    await group.locator(':scope > summary').click();
+    await expect(group.getByRole('button', { name: '수련하기', exact: true })).toBeHidden();
+    await expect(sections.first()).toBeHidden();
+    await expect(sections.last()).toBeHidden();
+    await field.fill('접은 동안 입력 편집');
+    await expect(group.locator(':scope > .status-content')).toBeHidden();
+    await expect(group.locator(':scope > summary')).toBeVisible();
+    await page.screenshot({ path: `docs/screenshots/grouped-status-collapsed-${width}.png` });
+    await group.locator(':scope > summary').click();
+    await expect(group.getByRole('button', { name: '수련하기', exact: true })).toBeVisible();
     await page.getByRole('button', { name: '리롤', exact: true }).click();
     await expect(scroll.getByText('검증 응답 1', { exact: true })).toHaveCount(0);
     await expect(scroll.locator('.user-section')).toContainText('전송 직후 보여야 할 질문');
@@ -255,9 +269,18 @@ for (const width of [1440, 393]) {
     const { pending, reply } = await start(page, width, true);
     await page.getByRole('button', { name: '상태창 보기', exact: true }).click();
     const modal = page.getByRole('dialog', { name: '상태창', exact: true });
+    const group = modal.locator('.status-panels');
+    await expect(group).toHaveCount(1);
+    await expect(group.locator(':scope > summary')).toHaveText('헌터 기록 / 활동 단말 / 추가 기록');
     expect(
-      await modal.locator('.status-display summary, .game-panel > h3').allTextContents(),
+      await group
+        .locator('.status-panel-section')
+        .evaluateAll((nodes) => nodes.map((node) => node.getAttribute('aria-label'))),
     ).toEqual(['헌터 기록', '활동 단말', '추가 기록']);
+    await group.locator(':scope > summary').click();
+    await expect(modal.getByRole('button', { name: '수련하기', exact: true })).toBeHidden();
+    await expect(group.locator(':scope > .status-content')).toBeHidden();
+    await group.locator(':scope > summary').click();
     const before = await modal.locator('.status-content').first().textContent();
     await modal.getByRole('button', { name: '수련하기', exact: true }).click();
     await expect

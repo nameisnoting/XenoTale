@@ -30,7 +30,7 @@ export function GamePanels({
   );
 }
 
-function GamePanel({
+export function GamePanel({
   panel,
   work,
   runtime,

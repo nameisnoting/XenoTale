@@ -1,0 +1,29 @@
+.status-panels > summary {
+  height: auto;
+  min-height: 24px;
+  align-items: flex-start;
+}
+.status-panels > summary .status-panel-name {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  overflow: visible;
+  text-overflow: clip;
+  line-height: 24px;
+}
+.status-panels > .status-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.status-panel-section {
+  min-width: 0;
+}
+.status-panel-section > h3 {
+  margin: 0 0 8px;
+  font-size: 14px;
+  line-height: 24px;
+}
+.status-panel-section > .status-preview,
+.status-panel-section > .game-panel {
+  margin: 0;
+}

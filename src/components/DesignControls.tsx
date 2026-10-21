@@ -261,7 +261,7 @@ export function StatusDisplay({
   );
 }
 
-function StatusPanelDisplay({
+export function StatusPanelDisplay({
   work,
   runtime,
   panel,
@@ -309,22 +309,28 @@ function StatusPanelDisplay({
       className={`status-display ${work.statusPanels ? 'status-display--named' : ''}`}
       open={expanded}
     >
-      <summary
-        aria-label={`${panel.name || '상태창'} 접기/펼치기`}
-        title={`${panel.name || '상태창'} 접기/펼치기`}
-      >
-        <span className="status-toggle-icon" aria-hidden="true">
-          <svg width="16" height="16" viewBox="0 0 16 16">
-            <path d="M5 3 L11 8 L5 13 Z" fill="currentColor" />
-          </svg>
-        </span>
-        {work.statusPanels ? (
-          <span className="status-panel-name">{panel.name || '상태창'}</span>
-        ) : (
-          <span className="status-expand-label">상태창 펼치기</span>
-        )}
-      </summary>
+      <StatusSummary title={work.statusPanels ? panel.name || '상태창' : undefined} />
       <div className="status-content">{body}</div>
     </details>
+  );
+}
+
+export function StatusSummary({ title }: { title?: string }) {
+  return (
+    <summary
+      aria-label={`${title || '상태창'} 접기/펼치기`}
+      title={`${title || '상태창'} 접기/펼치기`}
+    >
+      <span className="status-toggle-icon" aria-hidden="true">
+        <svg width="16" height="16" viewBox="0 0 16 16">
+          <path d="M5 3 L11 8 L5 13 Z" fill="currentColor" />
+        </svg>
+      </span>
+      {title ? (
+        <span className="status-panel-name">{title}</span>
+      ) : (
+        <span className="status-expand-label">상태창 펼치기</span>
+      )}
+    </summary>
   );
 }

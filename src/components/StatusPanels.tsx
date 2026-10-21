@@ -1,8 +1,9 @@
-import { Fragment } from 'react';
 import type { Runtime, Work } from '../domain/types';
-import { statusPanels } from '../domain/statusTemplate';
-import { GamePanels } from './GamePanels';
-import { StatusDisplay } from './DesignControls';
+import { panelStatuses, statusPanels } from '../domain/statusTemplate';
+import { conditionsMet } from '../domain/conditions';
+import { GamePanel } from './GamePanels';
+import { StatusPanelDisplay, StatusSummary } from './DesignControls';
+import './StatusPanels.css';
 
 // One authored order for both interactive blocks and ordinary status templates.
 export function StatusPanels({
@@ -20,14 +21,43 @@ export function StatusPanels({
   busy?: boolean;
   onAction?: (id: string) => Promise<unknown> | void;
 }) {
+  const panels = statusPanels(work)
+    .map((panel) => ({
+      panel,
+      information: !!panel.template.trim() || panelStatuses(panel, work.statuses).length > 0,
+      interactive: !!panel.blocks?.some((block) =>
+        conditionsMet(work, runtime, block.conditions, block.mode),
+      ),
+    }))
+    .filter((entry) => entry.information || entry.interactive);
+  if (!panels.length) return null;
+  const title = work.statusPanels
+    ? panels.map(({ panel }) => panel.name || '상태창').join(' / ')
+    : undefined;
   return (
-    <>
-      {statusPanels(work).map((panel) => (
-        <Fragment key={panel.id}>
-          <GamePanels {...{ work, runtime, busy, onAction }} panelId={panel.id} />
-          <StatusDisplay {...{ work, runtime, expanded, demo }} panelId={panel.id} />
-        </Fragment>
-      ))}
-    </>
+    <details
+      className={`status-display status-panels ${title ? 'status-display--named' : ''}`}
+      open={expanded}
+    >
+      <StatusSummary title={title} />
+      <div className="status-content">
+        {panels.map(({ panel, information, interactive }) => (
+          <section
+            className="status-panel-section"
+            aria-label={panel.name || '상태창'}
+            key={panel.id}
+          >
+            {!interactive && title && <h3>{panel.name || '상태창'}</h3>}
+            {interactive && <GamePanel {...{ panel, work, runtime, busy, onAction }} />}
+            {information && (
+              <StatusPanelDisplay
+                {...{ panel, work, runtime, expanded, demo }}
+                collapsible={false}
+              />
+            )}
+          </section>
+        ))}
+      </div>
+    </details>
   );
 }
