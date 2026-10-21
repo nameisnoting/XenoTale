@@ -17,7 +17,14 @@ import { useScrollHeader } from '../components/useScrollHeader';
 
 import { CreditBalanceButton } from '../components/CreditBalanceButton';
 import { BottomSheet, SideDrawer, MobilePage } from '../components/MobileSurfaces';
-import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+} from 'react';
 import { VisualNovel } from './VisualNovel';
 import { chapterMusic, readingEventId, type NovelPage } from '../domain/visualNovel';
 import type { Presentation } from '../domain/types';
@@ -182,6 +189,7 @@ export function ChatContent({
   const composerRef = useRef<HTMLTextAreaElement>(null);
   const footerRef = useRef<HTMLElement>(null);
   const followFooterResize = useRef(false);
+  const resetScrollAnchor = useRef<(() => void) | null>(null);
   const [sheet, setSheet] = useState(false);
   const [log, setLog] = useState(false);
   const [picker, setPicker] = useState<'chat' | 'summary' | null>(null);
@@ -202,7 +210,11 @@ export function ChatContent({
   const [effect, setEffect] = useState<EffectRequest | null>(null);
   const [effectPresentation, setEffectPresentation] = useState<Presentation>({});
   const [novelPage, setNovelPage] = useState<NovelPage | undefined>();
-  const [novelJump, setNovelJump] = useState<{ eventId: string; nonce: number }>();
+  const [novelJump, setNovelJump] = useState<{
+    eventId: string;
+    nonce: number;
+    player?: boolean;
+  }>();
   const [uiHidden, setUiHidden] = useState(false);
   const [opening, setOpening] = useState(false);
   const end = useRef<HTMLDivElement>(null);
@@ -216,6 +228,26 @@ export function ChatContent({
   const op = room.work.openings.find((o) => o.id === room.openingId)!;
   const presentation = { ...room.current.runtime.presentation, ...effectPresentation };
   const uiType = presentation.uiType ?? cfg.uiType ?? 'novel';
+  const previousUiType = useRef(uiType);
+  useLayoutEffect(() => {
+    if (previousUiType.current === uiType) return;
+    previousUiType.current = uiType;
+    const turn = [...room.timeline].reverse().find((event) => event.kind === 'turn');
+    if (uiType === 'visual-novel') {
+      setNovelJump({
+        eventId: turn?.id ?? `opening:${room.openingId}`,
+        nonce: performance.now(),
+        player: !!turn,
+      });
+    } else if (turn) {
+      document
+        .getElementById(`event-${turn.id}`)
+        ?.scrollIntoView({ block: 'start', behavior: 'instant' });
+    } else {
+      scroll.current?.scrollTo({ top: 0, behavior: 'instant' });
+    }
+    resetScrollAnchor.current?.();
+  }, [uiType, room.timeline, room.openingId]);
   const bgm = safeUrl(
     (presentation.music !== undefined
       ? (presentation.music ?? '')
@@ -903,6 +935,7 @@ export function ChatContent({
                 <MessageInput
                   ref={composerRef}
                   followFooterResize={followFooterResize}
+                  resetScrollAnchor={resetScrollAnchor}
                   aria-label="메시지"
                   placeholder={
                     endingLocked

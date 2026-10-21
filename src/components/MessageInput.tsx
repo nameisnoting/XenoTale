@@ -9,8 +9,12 @@ export function MessageInput({
   value,
   className = '',
   followFooterResize,
+  resetScrollAnchor,
   ...props
-}: ComponentPropsWithRef<'textarea'> & { followFooterResize?: RefObject<boolean> }) {
+}: ComponentPropsWithRef<'textarea'> & {
+  followFooterResize?: RefObject<boolean>;
+  resetScrollAnchor?: RefObject<(() => void) | null>;
+}) {
   const footerPolicy = useRef(followFooterResize);
   footerPolicy.current = followFooterResize;
   const field = useRef<HTMLTextAreaElement | null>(null);
@@ -46,13 +50,19 @@ export function MessageInput({
     const container = element.closest('.chat-main, .assistant, .creator-test');
     const transcript = container?.querySelector<HTMLElement>('.chat-scroll, .support-transcript');
     transcriptRef.current = transcript ?? null;
-    anchor.current = {
-      top: transcript?.scrollTop ?? 0,
-      atBottom:
-        !transcript ||
-        transcript.scrollHeight - transcript.clientHeight - transcript.scrollTop <= 2,
-      height: transcript?.clientHeight ?? 0,
+    // Explicit navigation establishes a new reading position before resize
+    // anchoring resumes; the old mode's viewport must not restore its position.
+    const reset = () => {
+      anchor.current = {
+        top: transcript?.scrollTop ?? 0,
+        atBottom:
+          !transcript ||
+          transcript.scrollHeight - transcript.clientHeight - transcript.scrollTop <= 2,
+        height: transcript?.clientHeight ?? 0,
+      };
     };
+    reset();
+    if (resetScrollAnchor) resetScrollAnchor.current = reset;
     const remember = () => {
       if (!transcript) return;
       // Preserve resize anchoring, but let the reader interrupt an expanding tray
@@ -93,6 +103,7 @@ export function MessageInput({
     const composer = element.closest('.resizable-composer');
     if (composer) manual.observe(composer, { attributes: true, attributeFilter: ['data-manual'] });
     return () => {
+      if (resetScrollAnchor?.current === reset) resetScrollAnchor.current = null;
       viewport.disconnect();
       sizing.disconnect();
       manual.disconnect();

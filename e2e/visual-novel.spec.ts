@@ -307,6 +307,8 @@ for (const width of [1440, 393])
     await page.reload();
     await expect(vn).toHaveCount(0);
     await page.getByRole('button', { name: '비주얼노벨 모드로 전환' }).click();
+    await expect(vn.locator('.visual-novel-copy')).toHaveText('첫 번째 대사');
+    await page.getByRole('button', { name: '다음 대사', exact: true }).click();
     await expect(vn.locator('.visual-novel-copy')).toHaveText('두 번째 대사');
     await page.getByRole('button', { name: '다음 대사', exact: true }).click();
     await expect(vn.locator('.visual-novel-choices button')).toHaveCount(2);

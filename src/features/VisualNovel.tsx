@@ -51,7 +51,7 @@ export function VisualNovel({
   candidate?: (turn: Turn) => Candidate;
   actions: (page: NovelPage) => ReactNode;
   onPage?: (page: NovelPage | undefined) => void;
-  jump?: { eventId: string; nonce: number };
+  jump?: { eventId: string; nonce: number; player?: boolean };
   background?: string;
   onHideUI: () => void;
   onAction?: (id: string) => Promise<unknown>;
@@ -117,10 +117,10 @@ export function VisualNovel({
   useEffect(() => {
     onPage?.(page);
   }, [page?.key]);
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (jump) {
       const target = pages.findIndex(
-        (page) => page.source.eventId === jump.eventId && !page.player,
+        (page) => page.source.eventId === jump.eventId && !!page.player === !!jump.player,
       );
       if (target >= 0) go(target);
     }
