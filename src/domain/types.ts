@@ -113,6 +113,7 @@ export type Chapter = {
   mode: 'all' | 'any';
   conditions: Condition[];
   prologue: string;
+  prologueMode?: 'ai' | 'written';
   prompt: string;
   afterstory: boolean;
   bgm?: string;
@@ -305,6 +306,7 @@ export type Candidate = {
   createdAt: number;
 };
 export type Turn = {
+  chapterId?: string;
   id: string;
   kind: 'turn';
   input: string;

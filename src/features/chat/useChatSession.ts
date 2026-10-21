@@ -2,7 +2,14 @@ import { useEffect, useRef, useState } from 'react';
 import type { Room, Turn, Checkpoint, Profile } from '../../domain/types';
 import { withChatModels } from '../../domain/modelSettings';
 import { clone } from '../../domain/types';
-import { addResponse, branchRoom, rewindResponseEffects } from '../../domain/engine';
+import {
+  addResponse,
+  branchRoom,
+  rewindResponseEffects,
+  enterChapter,
+  prepareChapter,
+} from '../../domain/engine';
+import { generateChapter } from '../../engine/chapter';
 import { db, commitRoom } from '../../persistence/db';
 import { generate } from '../../engine/openrouter';
 import { summarize as summarizeRoom, summarySources } from '../../engine/auxiliary';
@@ -34,8 +41,10 @@ export function useChatSession({
   const [pendingResponse, setPendingResponse] = useState<{
     input: string;
     turnId?: string;
+    chapter?: boolean;
   } | null>(null);
   const [phase, setPhase] = useState('');
+  const [pendingChapter, setPendingChapter] = useState<string | null>(null);
   const controller = useRef<AbortController | null>(null);
   const queue = useRef(Promise.resolve());
   const lock = useRef(false);
@@ -109,6 +118,7 @@ export function useChatSession({
       input:
         isReroll && previous?.kind === 'turn' ? previous.input : draft?.text.trim() || CONTINUE,
       turnId: isReroll && previous?.kind === 'turn' ? previous.id : undefined,
+      chapter: isReroll && previous?.kind === 'turn' && !!previous.chapterId,
     });
     try {
       await queue.current;
@@ -118,10 +128,15 @@ export function useChatSession({
       const snapshot = isReroll ? rewindResponseEffects(latest) : latest;
       const settings = snapshot.current.context.settings;
       const model = await resolveModel(settings.modelId, controller.current.signal);
-      if (snapshot.current.runtime.ending && !snapshot.current.runtime.ending.allowAfterstory)
-        throw new Error('이 이야기는 끝났습니다. 이전 대화에서 분기할 수 있습니다.');
       const last = snapshot.timeline.at(-1);
       if (isReroll && last?.kind !== 'turn') throw new Error('마지막 응답에서 리롤할 수 있습니다.');
+      const chapterId = isReroll && last?.kind === 'turn' ? last.chapterId : undefined;
+      if (
+        snapshot.current.runtime.ending &&
+        !snapshot.current.runtime.ending.allowAfterstory &&
+        !chapterId
+      )
+        throw new Error('이 이야기는 끝났습니다. 이전 대화에서 분기할 수 있습니다.');
       const typed = draft?.text.trim();
       const text = isReroll ? (last as Turn).input : typed || CONTINUE;
       const dice = isReroll
@@ -139,28 +154,39 @@ export function useChatSession({
             context: clone(snapshot.current.context),
           }
         : clone(snapshot.current);
-      const result = await generate(
-        snapshot,
-        before,
-        text,
-        model,
-        apiKey,
-        controller.current.signal,
-        {
-          reroll: isReroll,
-          directive: [extra, shortcut?.prompt].filter(Boolean).join('\n'),
-          dice,
-          onPhase: setPhase,
-        },
-      );
-      let saved = await commitRoom(
-        addResponse(snapshot, text, result.result, result.usage, {
+      let next: Room;
+      if (chapterId)
+        next = await generateChapter(
+          snapshot,
+          chapterId,
+          model,
+          apiKey,
+          controller.current.signal,
+          setPhase,
+          { reroll: true, directive: extra },
+        );
+      else {
+        const result = await generate(
+          snapshot,
+          before,
+          text,
+          model,
+          apiKey,
+          controller.current.signal,
+          {
+            reroll: isReroll,
+            directive: [extra, shortcut?.prompt].filter(Boolean).join('\n'),
+            dice,
+            onPhase: setPhase,
+          },
+        );
+        next = addResponse(snapshot, text, result.result, result.usage, {
           reroll: isReroll,
           dice,
           risuState: result.risuState,
-        }),
-        snapshot.revision,
-      );
+        });
+      }
+      let saved = await commitRoom(next, snapshot.revision);
       current.current = saved;
       setRoom(saved);
       setPendingResponse(null);
@@ -211,6 +237,60 @@ export function useChatSession({
       setPendingResponse(null);
       controller.current = null;
       lock.current = false;
+      setBusy(false);
+      balance.refresh();
+    }
+  };
+  const changeChapter = async (chapterId: string): Promise<string | undefined> => {
+    if (lock.current) return;
+    if (preview) {
+      if (
+        current.current.work.chapters.find((chapter) => chapter.id === chapterId)?.prologueMode ===
+        'ai'
+      ) {
+        notify('AI 프롤로그는 작품 대화방에서 생성해 주세요.');
+        return;
+      }
+      await mutate((r) => enterChapter(r, chapterId));
+      return current.current.timeline.at(-1)?.id;
+    }
+    lock.current = true;
+    setBusy(true);
+    setPendingChapter(chapterId);
+    setPhase('챕터 프롤로그를 준비하고 있습니다…');
+    controller.current = new AbortController();
+    try {
+      await queue.current;
+      const stored = await db.rooms.get(room.id);
+      if (!stored) throw new Error('대화방이 없습니다.');
+      const snapshot = withChatModels(stored, (await db.profiles.get('profile')) ?? profile);
+      const { chapter } = prepareChapter(snapshot, chapterId);
+      const next =
+        chapter.prologueMode === 'ai'
+          ? await generateChapter(
+              snapshot,
+              chapterId,
+              await resolveModel(
+                snapshot.current.context.settings.modelId,
+                controller.current.signal,
+              ),
+              apiKey,
+              controller.current.signal,
+              setPhase,
+            )
+          : enterChapter(snapshot, chapterId);
+      controller.current.signal.throwIfAborted();
+      const saved = await commitRoom(next, snapshot.revision);
+      current.current = saved;
+      setRoom(saved);
+      return saved.timeline.at(-1)?.id;
+    } catch (e) {
+      if ((e as Error).name !== 'AbortError') notify((e as Error).message);
+      return;
+    } finally {
+      controller.current = null;
+      lock.current = false;
+      setPendingChapter(null);
       setBusy(false);
       balance.refresh();
     }
@@ -266,11 +346,13 @@ export function useChatSession({
     setInput,
     busy,
     pendingResponse,
+    pendingChapter,
     submittedInput: pendingResponse?.input ?? '',
     phase,
     balance,
     mutate,
     send,
+    changeChapter,
     summarize,
     makeBranch,
     cancel: () => controller.current?.abort(),

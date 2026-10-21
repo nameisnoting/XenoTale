@@ -72,6 +72,7 @@ export function requiresDeleteConfirmation(kind: DeleteKind, value: any): boolea
     case 'chapter':
       return (
         hasText([value.prologue, value.prompt]) ||
+        value.prologueMode === 'written' ||
         !!value.conditions?.length ||
         value.type !== 'chapter' ||
         value.mode !== 'all' ||

@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import type { Room, Profile, RoomSettings, Work } from '../domain/types';
 
-import { availableChapters, enhance, enterChapter } from '../domain/engine';
+import { availableChapters, enhance } from '../domain/engine';
 import { exportRoom } from '../persistence/files';
 import {
   Button,
@@ -86,6 +86,7 @@ export function ChatPanel({
   summaryModelName,
   selection,
   onSelectionChange,
+  onChapter,
 }: {
   panel: string;
   room: Room;
@@ -97,6 +98,7 @@ export function ChatPanel({
   summaryModelName?: string;
   selection: ChatPanelSelection;
   onSelectionChange: (patch: Partial<ChatPanelSelection>) => void;
+  onChapter: (chapterId: string) => Promise<void>;
 }) {
   const run = useAction();
   const w = room.work;
@@ -406,7 +408,7 @@ export function ChatPanel({
                 <Button
                   className="full"
                   disabled={!availableChapters(w, state).some((x) => x.id === c.id)}
-                  onClick={() => run(mutate((r) => enterChapter(r, c.id)))}
+                  onClick={() => run(onChapter(c.id))}
                 >
                   {availableChapters(w, state).some((x) => x.id === c.id)
                     ? '챕터 이동'

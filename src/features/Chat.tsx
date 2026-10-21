@@ -123,10 +123,12 @@ export function ChatContent({
     busy: requestBusy,
     submittedInput,
     pendingResponse,
+    pendingChapter,
     phase,
     balance,
     mutate,
     send: sendRequest,
+    changeChapter,
     summarize,
     makeBranch,
     cancel,
@@ -210,6 +212,7 @@ export function ChatContent({
   const [effect, setEffect] = useState<EffectRequest | null>(null);
   const [effectPresentation, setEffectPresentation] = useState<Presentation>({});
   const [novelPage, setNovelPage] = useState<NovelPage | undefined>();
+  const [chapterJump, setChapterJump] = useState<string>();
   const [novelJump, setNovelJump] = useState<{
     eventId: string;
     nonce: number;
@@ -238,7 +241,7 @@ export function ChatContent({
         setNovelJump({
           eventId: turn?.id ?? `opening:${room.openingId}`,
           nonce: performance.now(),
-          player: !!turn,
+          player: !!turn && !turn.chapterId,
         });
       resetScrollAnchor.current?.();
     } else if (turn) {
@@ -253,6 +256,17 @@ export function ChatContent({
   useLayoutEffect(() => {
     if (busy) resetScrollAnchor.current?.();
   }, [busy]);
+  useLayoutEffect(() => {
+    if (!chapterJump || (mobile && pageMenu)) return;
+    if (uiType === 'visual-novel') setNovelJump({ eventId: chapterJump, nonce: performance.now() });
+    else {
+      const target = document.getElementById(`event-${chapterJump}`);
+      if (!target) return;
+      target.scrollIntoView({ block: 'start', behavior: 'instant' });
+      resetScrollAnchor.current?.(target);
+    }
+    setChapterJump(undefined);
+  }, [chapterJump, uiType, room.timeline, mobile, pageMenu]);
   const bgm = safeUrl(
     (presentation.music !== undefined
       ? (presentation.music ?? '')
@@ -393,38 +407,55 @@ export function ChatContent({
     />
   );
   const panelContent = (
-    <fieldset
-      disabled={
-        busy ||
-        (preview &&
-          ['persona', 'notes', 'memory', 'quality', 'usage', 'inventory'].includes(activePanel))
-      }
-      className="panel-fieldset"
-    >
-      {activePanel === 'usage' ? (
-        <ChatUsage room={room} balance={balance} />
-      ) : (
-        <ChatPanel
-          key={activePanel}
-          panel={activePanel}
-          selection={panelSelection}
-          onSelectionChange={(patch) =>
-            setPanelSelection((selection) => ({ ...selection, ...patch }))
-          }
-          relationView={{ view: relationView, onViewChange: setRelationView }}
-          summaryModelName={findModel(cfg.summaryModelId)?.name}
-          room={room}
-          profile={profile}
-          mutate={mutate}
-          summarize={(long) => void summarize(long)}
-          chooseSummaryModel={() => {
-            if (preview) return;
-            refreshModels();
-            setPicker('summary');
-          }}
-        />
+    <>
+      <fieldset
+        disabled={
+          busy ||
+          (preview &&
+            ['persona', 'notes', 'memory', 'quality', 'usage', 'inventory'].includes(activePanel))
+        }
+        className="panel-fieldset"
+      >
+        {activePanel === 'usage' ? (
+          <ChatUsage room={room} balance={balance} />
+        ) : (
+          <ChatPanel
+            key={activePanel}
+            panel={activePanel}
+            selection={panelSelection}
+            onSelectionChange={(patch) =>
+              setPanelSelection((selection) => ({ ...selection, ...patch }))
+            }
+            relationView={{ view: relationView, onViewChange: setRelationView }}
+            summaryModelName={findModel(cfg.summaryModelId)?.name}
+            room={room}
+            profile={profile}
+            mutate={mutate}
+            onChapter={async (chapterId) => {
+              const eventId = await changeChapter(chapterId);
+              if (!eventId) return;
+              setChapterJump(eventId);
+              if (mobile && pageMenu) {
+                if (preview) setPreviewPanel(undefined);
+                else navigateBack(`/chat/${room.id}`);
+              }
+            }}
+            summarize={(long) => void summarize(long)}
+            chooseSummaryModel={() => {
+              if (preview) return;
+              refreshModels();
+              setPicker('summary');
+            }}
+          />
+        )}
+      </fieldset>
+      {pendingChapter && (
+        <div className="chat-panel-content">
+          <GenerationStatus phase={phase} />
+          <Button onClick={cancel}>챕터 생성 중단</Button>
+        </div>
       )}
-    </fieldset>
+    </>
   );
   const insertNarration = () => {
     const field = composerRef.current;
@@ -579,6 +610,7 @@ export function ChatContent({
                 room={room}
                 busy={busy}
                 responding={!!pendingResponse}
+                preparingScene={!!pendingChapter || !!pendingResponse?.chapter}
                 submittedInput={submittedInput}
                 phase={phase}
                 suggestions={suggestions}
@@ -700,37 +732,47 @@ export function ChatContent({
                   {room.timeline.map((event, index) =>
                     event.kind === 'turn' ? (
                       <article
-                        className="conversation-turn"
+                        className={`conversation-turn ${event.chapterId ? 'chapter-scene' : ''}`}
                         id={`event-${event.id}`}
                         key={event.id}
                       >
-                        <section className="chat-message-section user-section">
-                          <div className="user-message">
-                            {cfg.profiles && (
-                              <Avatar src={event.before.context.persona.image} size={56} />
-                            )}
-                            <div>
-                              <strong>{event.before.context.persona.name}</strong>
-                              <Markdown>
-                                {event.input === CONTINUE ? '이어서 내용 전개' : event.input}
-                              </Markdown>
+                        {!event.chapterId && (
+                          <section className="chat-message-section user-section">
+                            <div className="user-message">
+                              {cfg.profiles && (
+                                <Avatar src={event.before.context.persona.image} size={56} />
+                              )}
+                              <div>
+                                <strong>{event.before.context.persona.name}</strong>
+                                <Markdown>
+                                  {event.input === CONTINUE ? '이어서 내용 전개' : event.input}
+                                </Markdown>
+                              </div>
+                              <IconButton
+                                title="입력 수정"
+                                disabled={busy}
+                                onClick={() =>
+                                  setEditing({ turn: event, kind: 'user', body: event.input })
+                                }
+                              >
+                                <Pencil size={13} />
+                              </IconButton>
                             </div>
-                            <IconButton
-                              title="입력 수정"
-                              disabled={busy}
-                              onClick={() =>
-                                setEditing({ turn: event, kind: 'user', body: event.input })
-                              }
-                            >
-                              <Pencil size={13} />
-                            </IconButton>
-                          </div>
-                        </section>
+                          </section>
+                        )}
                         <ResponseSection
                           pending={pendingResponse?.turnId === event.id}
                           phase={phase}
                           preserveHeight={event.id === editableTurn?.id}
                         >
+                          {event.chapterId && (
+                            <StoryIntro
+                              title={
+                                room.work.chapters.find((chapter) => chapter.id === event.chapterId)
+                                  ?.name ?? '챕터'
+                              }
+                            />
+                          )}
                           {event.dice && (
                             <div className="local-event">주사위 d20 · {event.dice}</div>
                           )}
@@ -1215,21 +1257,29 @@ export function ChatContent({
             <Button
               className="full"
               onClick={() => {
-                run(mutate((r) => deleteLast(r, true)).then(() => setInput(editableTurn!.input)));
+                run(
+                  mutate((r) => deleteLast(r, true)).then(() =>
+                    setInput(editableTurn!.chapterId ? '' : editableTurn!.input),
+                  ),
+                );
                 setDel(false);
               }}
             >
-              AI 응답 삭제 · 내 입력 유지
+              {editableTurn?.chapterId
+                ? '프롤로그 삭제 · 챕터 이동 취소'
+                : 'AI 응답 삭제 · 내 입력 유지'}
             </Button>
-            <Button
-              className="full danger-text"
-              onClick={() => {
-                run(mutate((r) => deleteLast(r, false)).then(() => setInput('')));
-                setDel(false);
-              }}
-            >
-              입력과 응답 모두 삭제
-            </Button>
+            {!editableTurn?.chapterId && (
+              <Button
+                className="full danger-text"
+                onClick={() => {
+                  run(mutate((r) => deleteLast(r, false)).then(() => setInput('')));
+                  setDel(false);
+                }}
+              >
+                입력과 응답 모두 삭제
+              </Button>
+            )}
           </Modal>
         )}
         {editing && (

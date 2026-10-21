@@ -6,7 +6,7 @@ export function risuChatEntries(room: Room) {
   return room.timeline.flatMap((event) =>
     event.kind === 'turn'
       ? [
-          { role: 'user', data: event.input, eventId: event.id },
+          ...(!event.chapterId ? [{ role: 'user', data: event.input, eventId: event.id }] : []),
           { role: 'char', data: selected(event).body, eventId: event.id },
         ]
       : event.risuChat

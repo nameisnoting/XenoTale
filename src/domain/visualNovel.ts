@@ -135,12 +135,13 @@ export function visualNovelView(room: Room, candidate: (turn: Turn) => Candidate
   for (const event of room.timeline) {
     if (event.kind === 'turn') {
       const response = candidate(event);
-      add(
-        event.input === '[이어서 내용 전개]' ? '이어서 내용 전개' : event.input,
-        { eventId: event.id, candidateId: response.id },
-        event.before,
-        true,
-      );
+      if (!event.chapterId)
+        add(
+          event.input === '[이어서 내용 전개]' ? '이어서 내용 전개' : event.input,
+          { eventId: event.id, candidateId: response.id },
+          event.before,
+          true,
+        );
       add(response.body, { eventId: event.id, candidateId: response.id }, response.checkpoint);
     } else if (
       event.kind === 'chapter' ||

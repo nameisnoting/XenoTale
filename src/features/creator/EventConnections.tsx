@@ -110,6 +110,7 @@ export function EventConnections({
               mode: 'all',
               conditions: [],
               prologue: '',
+              prologueMode: 'ai',
               prompt: '',
               afterstory: true,
             };

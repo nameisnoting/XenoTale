@@ -1,13 +1,12 @@
 import type { Room } from '../domain/types';
+import { roomUsage } from '../domain/usage';
 import { reportedCost } from './ChatWorkspace';
 import type { CreditBalance } from '../components/useCreditBalance';
 import { formatCredits } from '../engine/credits';
 import { Button } from '../components/UI';
 import './ChatUsage.css';
 export function ChatUsage({ room, balance }: { room: Room; balance: CreditBalance }) {
-  const uses = room.timeline.flatMap((t) =>
-    t.kind === 'turn' ? t.candidates.map((c) => c.usage) : [],
-  );
+  const uses = roomUsage(room);
   return (
     <section className="chat-usage" aria-label="대화 사용량">
       <div className="account-credit">
@@ -34,7 +33,7 @@ export function ChatUsage({ room, balance }: { room: Room; balance: CreditBalanc
         )}
       </div>
       <p className="muted">
-        아래 사용량과 누적 비용은 이 대화에 저장된 모든 응답 후보의 합계입니다.
+        아래 사용량과 누적 비용은 이 대화에 저장된 모든 응답 후보와 AI 챕터 도입부의 합계입니다.
       </p>
       <dl className="stat-list">
         <dt>입력 토큰</dt>

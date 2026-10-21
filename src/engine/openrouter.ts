@@ -164,7 +164,17 @@ export function buildMessages(
     if (event.kind === 'turn') {
       if (covered.has(fingerprint(event)) && !recentRaw.has(event.id)) continue;
       result.push(
-        { role: 'user', content: event.input },
+        {
+          role: 'user',
+          content: event.chapterId
+            ? JSON.stringify({
+                chapterTransition: {
+                  id: event.chapterId,
+                  name: w.chapters.find((c) => c.id === event.chapterId)?.name,
+                },
+              })
+            : event.input,
+        },
         { role: 'assistant', content: selected(event).body },
       );
     } else

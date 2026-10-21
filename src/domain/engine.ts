@@ -529,14 +529,38 @@ export function availableChapters(work: Work, state: Runtime) {
     (c) => c.from === state.nodeId && conditionsMet(work, state, c.conditions, c.mode),
   );
 }
+function responseState(
+  work: Work,
+  before: Runtime,
+  result: Envelope,
+  risuState?: Record<string, string>,
+) {
+  const { state, log } = applyDelta(work, before, result.delta);
+  if (risuState) state.risu = clone(risuState);
+  const automatic = resolveAutomaticActions(work, before, state, true);
+  Object.assign(state, automatic.state);
+  log.push(...automatic.performed.map((a) => a.name), ...automatic.problems);
+  for (const tag of actionEffectTags(automatic.performed)) result.body += `\n${tag}`;
+  return { state, log };
+}
+
 export function addResponse(
   room: Room,
   input: string,
   raw: unknown,
   usage: Usage,
-  options: { reroll?: boolean; dice?: number; risuState?: Record<string, string> } = {},
+  options: {
+    reroll?: boolean;
+    dice?: number;
+    risuState?: Record<string, string>;
+    chapterId?: string;
+  } = {},
 ): Room {
-  if (room.current.runtime.ending && !room.current.runtime.ending.allowAfterstory)
+  if (
+    room.current.runtime.ending &&
+    !room.current.runtime.ending.allowAfterstory &&
+    !(options.reroll && editableLastTurn(room)?.chapterId)
+  )
     fail('이 이야기는 끝났습니다. 이전 대화에서 분기할 수 있습니다.');
   const result = envelopeSchema.parse(raw);
   if (result.kind !== 'turn' || result.requestedCharacterIds.length || !result.body.trim())
@@ -545,12 +569,21 @@ export function addResponse(
   const last = next.timeline.at(-1);
   if (options.reroll && last?.kind !== 'turn') fail('가장 최근 대화에서만 리롤할 수 있습니다.');
   const before = options.reroll ? clone((last as Turn).before) : clone(next.current);
-  const { state, log } = applyDelta(next.work, before.runtime, result.delta);
-  if (options.risuState) state.risu = clone(options.risuState);
-  const automatic = resolveAutomaticActions(next.work, before.runtime, state, true);
-  Object.assign(state, automatic.state);
-  log.push(...automatic.performed.map((a) => a.name), ...automatic.problems);
-  for (const tag of actionEffectTags(automatic.performed)) result.body += `\n${tag}`;
+  const chapterId = options.reroll ? (last as Turn).chapterId : options.chapterId;
+  const transition = chapterId
+    ? prepareChapter({ ...next, current: before }, chapterId)
+    : undefined;
+  const { state, log } = responseState(
+    next.work,
+    transition?.after.runtime ?? before.runtime,
+    result,
+    options.risuState,
+  );
+  if (transition) {
+    log.unshift(`${transition.chapter.name} 이동`);
+    if (transition.chapter.type === 'ending')
+      state.ending = { id: transition.chapter.id, allowAfterstory: transition.chapter.afterstory };
+  }
   const context = clone(next.current.context);
   context.memories = repairMemoryActivity(
     validMemories(next, context.memories, next.timeline.slice(0, options.reroll ? -1 : undefined)),
@@ -571,7 +604,8 @@ export function addResponse(
     next.timeline.push({
       id: id(),
       kind: 'turn',
-      input,
+      input: chapterId ? '' : input,
+      ...(chapterId ? { chapterId } : {}),
       before,
       candidates: [candidate],
       selectedId: candidate.id,
@@ -698,20 +732,43 @@ export function deleteLast(room: Room, keepInput: boolean): Room {
   next.timeline.pop();
   next.current = clone(last.before);
   preserveUi(room, next);
-  next.pendingInput = keepInput ? last.input : '';
+  next.pendingInput = keepInput && !last.chapterId ? last.input : '';
   return next;
 }
-export function enterChapter(room: Room, chapterId: string): Room {
+// Prepare the destination checkpoint without committing a transition or terminal ending.
+// AI generation can use the destination context while retaining all preceding dialogue.
+export function prepareChapter(room: Room, chapterId: string) {
   const chapter = availableChapters(room.work, room.current.runtime).find(
     (c) => c.id === chapterId,
   );
   if (!chapter) fail('지금은 이동할 수 없는 챕터입니다.');
+  const after = clone(room.current);
+  after.runtime.nodeId = chapter.id;
+  if (chapter.bgm !== undefined && after.runtime.presentation)
+    delete after.runtime.presentation.music;
+  after.runtime.visited.push(chapter.id);
+  return { chapter, after };
+}
+export function enterChapter(
+  room: Room,
+  chapterId: string,
+  generated?: {
+    result: Envelope;
+    usage: Usage;
+    risuState?: Record<string, string>;
+  },
+): Room {
+  const { chapter, after } = prepareChapter(room, chapterId);
+  if (chapter.prologueMode === 'ai' && !generated) fail('챕터 프롤로그를 먼저 생성해 주세요.');
+  if (generated)
+    return addResponse(room, '', generated.result, generated.usage, {
+      chapterId,
+      risuState: generated.risuState,
+    });
   const next = clone(room);
   const before = clone(next.current);
-  next.current.runtime.nodeId = chapter.id;
-  if (chapter.bgm !== undefined && next.current.runtime.presentation)
-    delete next.current.runtime.presentation.music;
-  next.current.runtime.visited.push(chapter.id);
+  next.current = after;
+  const changes = [`${chapter.name} 이동`];
   if (chapter.type === 'ending')
     next.current.runtime.ending = { id: chapter.id, allowAfterstory: chapter.afterstory };
   next.timeline.push({
@@ -720,7 +777,7 @@ export function enterChapter(room: Room, chapterId: string): Room {
     body: chapter.prologue,
     before,
     after: clone(next.current),
-    changes: [`${chapter.name} 이동`],
+    changes,
     createdAt: Date.now(),
   });
   return next;

@@ -1,6 +1,7 @@
 import { type ReactNode } from 'react';
 import { PanelLeftClose, PanelLeftOpen, PanelRightClose, Info } from 'lucide-react';
 import type { Room } from '../domain/types';
+import { roomUsage } from '../domain/usage';
 import { after, selected } from '../domain/types';
 import { availableChapters } from '../domain/engine';
 import { PanelHeader } from '../components/Headers';
@@ -91,11 +92,12 @@ export function ChatWorkspace({
 }
 
 export function reportedCost(room: Room) {
-  const reported = room.timeline
-    .flatMap((t) => (t.kind === 'turn' ? t.candidates.map((c) => c.usage.cost) : []))
+  const uses = roomUsage(room);
+  const reported = uses
+    .map((usage) => usage.cost)
     .filter((c): c is number => typeof c === 'number');
   const total = reported.reduce((sum, cost) => sum + cost, 0);
-  if (!room.timeline.some((t) => t.kind === 'turn')) return '0';
+  if (!uses.length) return '0';
   if (!reported.length) return '미보고';
   return total === 0 ? '0' : `$${total.toFixed(6).replace(/0+$/, '').replace(/\.$/, '')}`;
 }
@@ -167,7 +169,12 @@ export function ConversationLog({
               >
                 {candidate ? (
                   <>
-                    <strong>• {checkpoint.runtime.turnCount}턴 종료</strong>
+                    <strong>
+                      •{' '}
+                      {event.kind === 'turn' && event.chapterId
+                        ? `챕터 이동 · ${room.work.chapters.find((chapter) => chapter.id === event.chapterId)?.name ?? '챕터'}`
+                        : `${checkpoint.runtime.turnCount}턴 종료`}
+                    </strong>
                     <span className="log-turn-cost">
                       {' '}
                       (비용:{' '}
@@ -190,7 +197,7 @@ export function ConversationLog({
                   </strong>
                 )}
               </button>
-              {event.kind === 'turn' && (
+              {event.kind === 'turn' && !event.chapterId && (
                 <p className="log-player-input">
                   {event.input === '[이어서 내용 전개]' ? '이어서 내용 전개' : event.input}
                 </p>

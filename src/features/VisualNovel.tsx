@@ -25,6 +25,7 @@ export function VisualNovel({
   room,
   busy,
   responding = busy,
+  preparingScene = false,
   submittedInput,
   phase,
   suggestions,
@@ -42,6 +43,7 @@ export function VisualNovel({
   room: Room;
   busy: boolean;
   responding?: boolean;
+  preparingScene?: boolean;
   submittedInput: string;
   phase: string;
   suggestions: string[];
@@ -186,7 +188,7 @@ export function VisualNovel({
     play(page.effects, () => go(currentIndex + 1));
   }, [page?.key, busy, ready]);
   const persona = room.current.context.persona;
-  const generationMessage = useGenerationMessage(phase, responding);
+  const generationMessage = useGenerationMessage(phase, responding || preparingScene);
   const pending = (effects: NovelPage['effects'], key: string) =>
     effects.some(
       (effect) =>
@@ -250,7 +252,7 @@ export function VisualNovel({
             <ScrollText size={18} />
           </IconButton>
         </div>
-        {(responding ? persona.name : page?.actor) && (
+        {(responding ? !preparingScene && persona.name : page?.actor) && (
           <div className={`visual-novel-name ${responding || page?.player ? 'is-player' : ''}`}>
             {responding ? persona.name : page?.actor}
           </div>
@@ -268,9 +270,11 @@ export function VisualNovel({
             ) : (
               <DisplayText rules={room.work.displayRules}>
                 {responding
-                  ? submittedInput === '[이어서 내용 전개]'
-                    ? '이어서 내용 전개'
-                    : submittedInput
+                  ? preparingScene
+                    ? '챕터 도입부를 다시 작성하고 있습니다…'
+                    : submittedInput === '[이어서 내용 전개]'
+                      ? '이어서 내용 전개'
+                      : submittedInput
                   : page?.text || '이야기를 시작해 주세요.'}
               </DisplayText>
             )}
@@ -298,9 +302,9 @@ export function VisualNovel({
             >
               <ChevronLeft size={24} />
             </IconButton>
-            {responding || !ready ? (
+            {responding || preparingScene || !ready ? (
               <span className="visual-novel-waiting" role="status">
-                {responding ? generationMessage : '이미지 준비 중입니다…'}
+                {responding || preparingScene ? generationMessage : '이미지 준비 중입니다…'}
               </span>
             ) : page?.last && !page.player && !effectsPending ? (
               <div className="visual-novel-turn-actions">

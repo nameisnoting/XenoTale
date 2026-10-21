@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import fs from 'node:fs/promises';
+import { creatorSection } from './helpers/creator';
 const out = 'docs/screenshots/scene-controls';
 async function start(page: Page) {
   await page.setViewportSize({ width: 1440, height: 900 });
@@ -162,7 +163,7 @@ test('챕터 공통 드롭다운 · 입력창 경계 · 16px 화살표 · 8px �
 }) => {
   await start(page);
   await page.getByRole('button', { name: '작품 만들기', exact: true }).click();
-  await page.getByRole('button', { name: '시나리오', exact: true }).click();
+  await creatorSection(page, 1440, '시나리오');
   await page.getByRole('button', { name: '도입부 1 다음 챕터 추가', exact: true }).click();
   let modal = page.getByRole('dialog', { name: '' });
   await expect(modal.getByRole('heading', { name: '챕터 설정', exact: true })).toBeVisible();
@@ -219,7 +220,7 @@ test('챕터 공통 드롭다운 · 입력창 경계 · 16px 화살표 · 8px �
   await expect(page.getByText('저장완료')).toBeVisible();
   await page.reload();
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.getByRole('button', { name: '시나리오', exact: true }).click();
+  await creatorSection(page, 1440, '시나리오');
   await page.getByRole('button', { name: '챕터 2 조건 1개', exact: true }).click();
   await expect(page.getByRole('combobox', { name: '이전 노드', exact: true })).toHaveText('챕터 1');
 });

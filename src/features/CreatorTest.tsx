@@ -158,9 +158,11 @@ export function CreatorTest({
           {room?.timeline.map((t) =>
             t.kind === 'turn' ? (
               <div key={t.id}>
-                <p className="support-user">
-                  {t.input === '[이어서 내용 전개]' ? '이어서 내용 전개' : t.input}
-                </p>
+                {!t.chapterId && (
+                  <p className="support-user">
+                    {t.input === '[이어서 내용 전개]' ? '이어서 내용 전개' : t.input}
+                  </p>
+                )}
                 <StoryBody
                   room={room}
                   body={selected(t).body}

@@ -165,8 +165,9 @@ export async function summarize(
           .map((e) =>
             e.kind === 'turn'
               ? {
-                  kind: 'turn',
-                  input: e.input,
+                  kind: e.chapterId ? 'chapter' : 'turn',
+                  chapterId: e.chapterId,
+                  input: e.chapterId ? undefined : e.input,
                   body: selected(e).body,
                   validatedEvents: selected(e).changes,
                 }

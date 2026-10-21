@@ -162,6 +162,7 @@ export const workSchema = z.object({
         }),
       ),
       prologue: str,
+      prologueMode: z.enum(['ai', 'written']).optional(),
       prompt: str,
       afterstory: z.boolean(),
       bgm: str.optional(),
@@ -334,6 +335,7 @@ const event = z.union([
   z.object({
     id: identifier,
     kind: z.literal('turn'),
+    chapterId: identifier.optional(),
     input: str,
     before: checkpoint,
     candidates: arr(candidate).min(1),
@@ -661,10 +663,20 @@ function validateRoom(room: Room, publish = true) {
     check(event.before.runtime, index - 1);
     if (event.before.runtime.turnCount !== turns) throw new Error('대화 순서가 올바르지 않습니다.');
     if (event.kind === 'turn') {
+      if (
+        event.chapterId &&
+        !room.work.chapters.some(
+          (chapter) =>
+            chapter.id === event.chapterId && chapter.from === event.before.runtime.nodeId,
+        )
+      )
+        throw new Error('AI 챕터의 이전 노드가 올바르지 않습니다.');
       turns++;
       if (new Set(event.candidates.map((c) => c.id)).size !== event.candidates.length)
         throw new Error('중복 응답 ID가 있습니다.');
       event.candidates.forEach((c) => {
+        if (event.chapterId && c.checkpoint.runtime.nodeId !== event.chapterId)
+          throw new Error('AI 챕터의 응답 위치가 올바르지 않습니다.');
         check(c.checkpoint.runtime, index);
         if (c.checkpoint.runtime.turnCount !== turns)
           throw new Error('응답 순서가 올바르지 않습니다.');

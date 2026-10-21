@@ -7,6 +7,7 @@ import type { Chapter } from '../../domain/types';
 import { id } from '../../domain/types';
 import { Field, TextInput, Area, Segmented, Button, Modal, Toggle } from '../../components/UI';
 import { ScenarioGraph } from '../Graphs';
+import { RadioOptions } from '../../components/DesignControls';
 import type { CreatorPanelState } from './useCreatorPanelState';
 
 export function ScenarioSection({
@@ -37,6 +38,7 @@ export function ScenarioSection({
             mode: 'all',
             conditions: [],
             prologue: '',
+            prologueMode: 'ai',
             prompt: '',
             afterstory: true,
           };
@@ -126,10 +128,32 @@ export function ScenarioSection({
                 조건 추가
               </Button>
               <Field label={c.type === 'ending' ? '엔딩 장면' : '프롤로그'}>
-                <Area value={c.prologue} onChange={(prologue) => changeChapter(i, { prologue })} />
+                <RadioOptions
+                  value={c.prologueMode === 'ai' ? 'AI 출력' : '직접 작성'}
+                  values={['AI 출력', '직접 작성']}
+                  onChange={(value) =>
+                    changeChapter(i, { prologueMode: value === 'AI 출력' ? 'ai' : 'written' })
+                  }
+                />
+                {c.prologueMode === 'ai' ? (
+                  <p className="muted">
+                    플레이어가 챕터 이동을 선택하면 현재 대화와 상태, 추가 프롬프트를 바탕으로
+                    장면을 이어 씁니다. 대화방에서 선택한 모델을 사용하며 응답 1회에 해당하는 이용
+                    비용이 발생할 수 있습니다.
+                  </p>
+                ) : (
+                  <Area
+                    value={c.prologue}
+                    onChange={(prologue) => changeChapter(i, { prologue })}
+                  />
+                )}
               </Field>
               <Field label="추가 프롬프트">
-                <Area value={c.prompt} onChange={(prompt) => changeChapter(i, { prompt })} />
+                <Area
+                  value={c.prompt}
+                  onChange={(prompt) => changeChapter(i, { prompt })}
+                  placeholder="챕터의 배경, 도입 상황과 이어질 이야기의 방향을 적어 주세요."
+                />
               </Field>
               {c.type === 'ending' && (
                 <Toggle

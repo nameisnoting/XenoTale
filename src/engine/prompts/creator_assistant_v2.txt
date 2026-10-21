@@ -68,7 +68,10 @@ are nonnegative, keep/reset weights nonnegative with a positive sum.
 scenarios: chapters represent chapters/endings. from references an opening/chapter
 ID, never a name. No cycles. mode all/any combines conditions. number/choice ref is
 a status ID, item/level ref is an item ID (level requires enhancement). choice/item
-operators eq/ne; item value boolean. prologue is a visible chapter introduction;
+operators eq/ne; item value boolean. New chapters use prologueMode "ai" by default:
+leave prologue empty and put the destination scene and transition guidance in prompt.
+Use prologueMode "written" for a fixed introduction supplied in prologue.
+Preserve the mode and prologue of existing chapters unless a change is requested;
 For choice conditions, value must exactly match a string in that status's options
 (including spelling and spacing). Never invent a synonym or use a numeric operator.
 prompt guides subsequent narration. afterstory permits play after an ending.
