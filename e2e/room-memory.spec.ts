@@ -145,7 +145,6 @@ for (const width of [1440, 393])
     await expect(
       page.getByText('현재 요약용 LLM이 지정되지 않았습니다.', { exact: true }),
     ).toBeVisible();
-    await expect(page.getByText(/내용이 없는 예시 요약은 기억에서 제외했습니다/)).toBeVisible();
     await expect(page.locator('.memory-card')).toHaveCount(0);
     await expect(page.locator('.memory-countdown')).toHaveText('다음 요약까지 0턴');
     await page.getByRole('button', { name: '요약용 LLM 선택', exact: true }).click();

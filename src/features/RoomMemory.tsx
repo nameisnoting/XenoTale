@@ -170,12 +170,6 @@ export function RoomMemory({
           {settings.summaryModelId === 'demo' && (
             <p className="muted">현재 요약용 LLM이 지정되지 않았습니다.</p>
           )}
-          {context.memories.some(isPlaceholderMemory) && (
-            <p className="muted" role="status">
-              내용이 없는 예시 요약은 기억에서 제외했습니다. 실제 모델로 다시 요약하면 원래 대화를
-              정리합니다.
-            </p>
-          )}
           <div className="memory-list">
             {memories
               .filter((m) => m.kind === tab)
