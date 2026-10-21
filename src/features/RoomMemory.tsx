@@ -12,6 +12,7 @@ import {
   activeShortMemories,
   memoryTitle,
   repairMemoryActivity,
+  isPlaceholderMemory,
 } from '../domain/memory';
 import { DisclosureCard } from '../components/DisclosureCard';
 import {
@@ -49,6 +50,9 @@ export function RoomMemory({
   const run = useAction();
   const context = room.current.context,
     settings = context.settings;
+  const memories = repairMemoryActivity(
+    context.memories.filter((memory) => !isPlaceholderMemory(memory)),
+  );
   const set = (patch: Partial<RoomSettings>) =>
     run(
       mutate((r) => {
@@ -60,7 +64,7 @@ export function RoomMemory({
     run(
       mutate((r) => {
         const target = r.current.context.memories.find((m) => m.id === memory.id);
-        if (target) Object.assign(target, patch);
+        if (target) Object.assign(target, patch, patch.body !== undefined ? { manual: true } : {});
         return r;
       }),
     );
@@ -84,8 +88,9 @@ export function RoomMemory({
           <Field label="요약용 LLM">
             <ActionButton className="memory-model" onClick={chooseSummaryModel}>
               <span>
-                {summaryModelName ??
-                  (settings.summaryModelId === 'demo' ? '예시 요약' : settings.summaryModelId)}
+                {settings.summaryModelId === 'demo'
+                  ? '현재 요약용 LLM이 지정되지 않았습니다.'
+                  : (summaryModelName ?? settings.summaryModelId)}
               </span>
               <ChevronRight size={16} />
             </ActionButton>
@@ -147,14 +152,32 @@ export function RoomMemory({
           <Button
             className="full memory-summarize"
             disabled={
-              tab === 'short' ? !summarySources(room).length : activeShortMemories(room).length < 2
+              settings.summaryModelId !== 'demo' &&
+              (tab === 'short'
+                ? !summarySources(room).length
+                : activeShortMemories(room).length < 2)
             }
-            onClick={() => summarize(tab === 'long')}
+            onClick={() =>
+              settings.summaryModelId === 'demo' ? chooseSummaryModel() : summarize(tab === 'long')
+            }
           >
-            {tab === 'short' ? '지금 요약' : '지금 단기기억 전체 요약'}
+            {settings.summaryModelId === 'demo'
+              ? '요약용 LLM 선택'
+              : tab === 'short'
+                ? '지금 요약'
+                : '지금 단기기억 전체 요약'}
           </Button>
+          {settings.summaryModelId === 'demo' && (
+            <p className="muted">현재 요약용 LLM이 지정되지 않았습니다.</p>
+          )}
+          {context.memories.some(isPlaceholderMemory) && (
+            <p className="muted" role="status">
+              내용이 없는 예시 요약은 기억에서 제외했습니다. 실제 모델로 다시 요약하면 원래 대화를
+              정리합니다.
+            </p>
+          )}
           <div className="memory-list">
-            {context.memories
+            {memories
               .filter((m) => m.kind === tab)
               .slice()
               .reverse()

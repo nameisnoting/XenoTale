@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import {
   createRoom,
   addResponse,
@@ -67,8 +67,8 @@ describe('memory intervals', () => {
         { model: 'demo' },
       );
     expect(summarySources(room)).toHaveLength(20);
-    const memories = await summarize(room, demoModel, '', new AbortController().signal);
-    expect(memories[0].body).toBe('여기에 단기기억 요약이 나옵니다.');
+    const memories = await summarize(room, summaryModel, 'test-only', new AbortController().signal);
+    expect(memories[0].body).toBe('대화 내용을 정리했습니다.');
     expect(memories[0].sources).toHaveLength(20);
     room.current.context.memories = memories;
     expect(summarySources(room)).toHaveLength(0);
@@ -96,15 +96,22 @@ describe('memory intervals', () => {
       { id: 'a', body: '첫 사건', kind: 'short', sources: [], manual: false, createdAt: 1 },
       { id: 'b', body: '둘째 사건', kind: 'short', sources: [], manual: false, createdAt: 2 },
     ];
-    const result = await summarize(room, demoModel, '', new AbortController().signal, true);
+    const result = await summarize(
+      room,
+      summaryModel,
+      'test-only',
+      new AbortController().signal,
+      true,
+    );
     expect(result).toHaveLength(4);
     expect(result.find((m) => m.id === 'manual')?.body).toBe('직접 고친 기억');
     expect(result.find((m) => m.id === 'manual')?.active).toBe(false);
-    expect(result.find((m) => m.kind === 'long')?.body).toBe('여기에 장기기억 요약이 나옵니다.');
+    expect(result.find((m) => m.kind === 'long')?.body).toBe('대화 내용을 정리했습니다.');
     expect(result.find((m) => m.id === 'b')?.body).toBe('둘째 사건');
   });
 });
 
+beforeEach(() => mockSummary('{"content":"대화 내용을 정리했습니다."}'));
 afterEach(() => vi.unstubAllGlobals());
 const nextTurn = (room: ReturnType<typeof createRoom>) =>
   addResponse(
@@ -134,6 +141,104 @@ const summaryModel = {
   id: 'summary-test',
   supported_parameters: ['response_format'],
 };
+it('never records demo summaries even when actual dialogue already exists', async () => {
+  const room = addResponse(
+    createRoom(exampleWork()),
+    '실제 질문',
+    {
+      kind: 'turn',
+      requestedCharacterIds: [],
+      body: '열쇠를 찾아 서고로 갔다.',
+      choices: [],
+      delta: emptyDelta(),
+    },
+    { model: 'actual-chat-model' },
+  );
+  const before = structuredClone(room);
+  const fetchMock = mockSummary('{"content":"호출되면 안 됨"}');
+  await expect(
+    summarize(room, demoModel, 'test-only', new AbortController().signal),
+  ).rejects.toThrow('현재 요약용 LLM이 지정되지 않았습니다.');
+  expect(fetchMock).not.toHaveBeenCalled();
+  expect(room).toEqual(before);
+  expect(summarySources(room)).toHaveLength(1);
+});
+it('excludes old placeholders from prompts and coverage, and replaces them using the original turns', async () => {
+  let room = createRoom(exampleWork());
+  for (let i = 0; i < 20; i++) room = nextTurn(room);
+  const turns = summarySources(room);
+  room.current.context.memories = [
+    {
+      id: 'bad-short',
+      body: '여기에 단기기억 요약이 나옵니다.',
+      kind: 'short',
+      sources: turns.slice(0, 10).map(fingerprint),
+      manual: false,
+      active: false,
+      consolidatedInto: 'bad-long',
+      createdAt: 1,
+    },
+    {
+      id: 'real-short',
+      body: '서고에서 열쇠를 찾았다.',
+      kind: 'short',
+      sources: turns.slice(10).map(fingerprint),
+      manual: false,
+      active: false,
+      consolidatedInto: 'bad-long',
+      createdAt: 2,
+    },
+    {
+      id: 'bad-long',
+      body: '여기에 장기기억 요약이 나옵니다.',
+      kind: 'long',
+      sources: turns.map(fingerprint),
+      manual: false,
+      createdAt: 3,
+    },
+  ];
+  expect(summarySources(room)).toHaveLength(10);
+  expect(activeShortMemories(room).map((memory) => memory.id)).toEqual(['real-short']);
+  const messages = buildMessages(room, room.current, '다음', {
+    reroll: false,
+    extra: [],
+    directive: '',
+    canRequest: true,
+    transport: 'json',
+  });
+  expect(JSON.stringify(messages)).not.toContain('여기에 단기기억 요약이 나옵니다.');
+  expect(JSON.stringify(messages)).not.toContain('여기에 장기기억 요약이 나옵니다.');
+  expect(messages.filter((message) => message.role === 'assistant')).toHaveLength(20);
+  const before = structuredClone(room);
+  const fetchMock = mockSummary(
+    '{"title":"원래 대화 복구","content":"첫 대화에서 안내인과 약속을 나눴다."}',
+  );
+  const memories = await summarize(room, summaryModel, 'test-only', new AbortController().signal);
+  const payload = JSON.parse(
+    (fetchMock.mock.calls[0] as unknown as [string, RequestInit])[1].body as string,
+  );
+  expect(
+    JSON.parse(payload.messages[1].content).entries.filter(
+      (entry: { kind: string }) => entry.kind === 'turn',
+    ),
+  ).toHaveLength(10);
+  expect(memories.map((memory) => memory.id)).not.toContain('bad-short');
+  expect(memories.map((memory) => memory.id)).not.toContain('bad-long');
+  expect(memories.find((memory) => memory.id === 'real-short')?.active).toBe(true);
+  expect(memories.at(-1)?.body).toBe('첫 대화에서 안내인과 약속을 나눴다.');
+  expect(summarySources(applyMemories(room, memories))).toHaveLength(0);
+  expect(room).toEqual(before);
+});
+it('rejects placeholder output from a real model without marking any turns remembered', async () => {
+  const room = nextTurn(createRoom(exampleWork()));
+  const before = structuredClone(room);
+  mockSummary('{"title":"요약","content":"여기에 단기기억 요약이 나옵니다."}');
+  await expect(
+    summarize(room, summaryModel, 'test-only', new AbortController().signal),
+  ).rejects.toThrow('예시 문구');
+  expect(room).toEqual(before);
+  expect(summarySources(room)).toHaveLength(1);
+});
 it('extracts titles/content and supports legacy and invalid output fallback', async () => {
   expect(
     parseSummary({ title: '발견', content: '약속', unresolved: ['열쇠'], uncertainties: [] }),
@@ -212,10 +317,16 @@ it('counts down long memory in turns and excludes archived short memories from p
   let room = createRoom(exampleWork());
   expect(longSummaryCountdown(room)).toBe(100);
   for (let i = 0; i < 10; i++) room = nextTurn(room);
-  room = applyMemories(room, await summarize(room, demoModel, '', new AbortController().signal));
+  room = applyMemories(
+    room,
+    await summarize(room, summaryModel, 'test-only', new AbortController().signal),
+  );
   expect(longSummaryCountdown(room)).toBe(90);
   for (let i = 0; i < 10; i++) room = nextTurn(room);
-  room = applyMemories(room, await summarize(room, demoModel, '', new AbortController().signal));
+  room = applyMemories(
+    room,
+    await summarize(room, summaryModel, 'test-only', new AbortController().signal),
+  );
   room.current.context.memories[0].body = '수정된 첫 요약';
   const fetchMock = mockSummary('{"content":"수정된 첫 요약을 반영한 장기기억"}');
   room = applyMemories(
@@ -248,13 +359,19 @@ it('counts down long memory in turns and excludes archived short memories from p
 });
 it('branches with the short/long activity state at the completed summary checkpoint', async () => {
   let room = nextTurn(createRoom(exampleWork()));
-  room = applyMemories(room, await summarize(room, demoModel, '', new AbortController().signal));
-  const shortPoint = room.timeline.at(-1)!;
-  room = nextTurn(room);
-  room = applyMemories(room, await summarize(room, demoModel, '', new AbortController().signal));
   room = applyMemories(
     room,
-    await summarize(room, demoModel, '', new AbortController().signal, true),
+    await summarize(room, summaryModel, 'test-only', new AbortController().signal),
+  );
+  const shortPoint = room.timeline.at(-1)!;
+  room = nextTurn(room);
+  room = applyMemories(
+    room,
+    await summarize(room, summaryModel, 'test-only', new AbortController().signal),
+  );
+  room = applyMemories(
+    room,
+    await summarize(room, summaryModel, 'test-only', new AbortController().signal, true),
   );
   const longPoint = room.timeline.at(-1)!;
   room = nextTurn(room);
@@ -282,8 +399,8 @@ it('summarizes on the tenth turn and resets countdown after a successful summary
   }
   room.current.context.memories = await summarize(
     room,
-    demoModel,
-    '',
+    summaryModel,
+    'test-only',
     new AbortController().signal,
   );
   expect(summaryCountdown(room)).toBe(10);

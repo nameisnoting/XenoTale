@@ -3,11 +3,12 @@ import {
   activeShortMemories,
   validMemories,
   SUMMARY_PROMPTS,
+  isPlaceholderMemory,
+  repairMemoryActivity,
 } from '../domain/memory';
 export { summarySources, summaryCountdown } from '../domain/memory';
 import type { Room, Model, Memory } from '../domain/types';
 import { id, selected, fingerprint } from '../domain/types';
-import { demoSummary } from '../domain/demo';
 import type { InputPart } from '../domain/creatorAttachments';
 import { readJsonStream, type JsonProgress } from './jsonStream';
 import { modelError, readModelError } from './providerError';
@@ -103,6 +104,8 @@ export function parseSummary(value: unknown) {
         ? value
         : JSON.stringify(value);
   if (!body?.trim()) throw new Error('요약 내용이 비어 있습니다.');
+  if (isPlaceholderMemory({ body, manual: false }))
+    throw new Error('실제 대화 요약 대신 예시 문구가 반환되어 저장하지 않았습니다.');
   const lines = (field: string, label: string) =>
     Array.isArray(record?.[field])
       ? (record[field] as unknown[])
@@ -124,7 +127,10 @@ export async function summarize(
   signal: AbortSignal,
   consolidate = false,
 ): Promise<Memory[]> {
-  const existing = room.current.context.memories;
+  if (model.id === 'demo') throw new Error('현재 요약용 LLM이 지정되지 않았습니다.');
+  const existing = repairMemoryActivity(
+    room.current.context.memories.filter((memory) => !isPlaceholderMemory(memory)),
+  );
   const entries = consolidate ? activeShortMemories(room) : [];
   const turns = consolidate ? [] : summarySources(room);
   if (consolidate ? entries.length < 2 : turns.length === 0)
@@ -167,29 +173,22 @@ export async function summarize(
               : { kind: e.kind, turn: 0, body: e.body, validatedEvents: e.changes },
           ),
       ];
-  let body: string;
-  let title: string | undefined;
-  if (model.id === 'demo') body = demoSummary(consolidate);
-  else {
-    const value = parseSummary(
-      await requestJson(
-        consolidate
-          ? (room.current.context.settings.longSummaryPrompt ?? SUMMARY_PROMPTS.long)
-          : (room.current.context.settings.shortSummaryPrompt ?? SUMMARY_PROMPTS.short),
-        {
-          outputLanguage: 'Korean',
-          summaryCharLimit: consolidate ? 5000 : 2500,
-          entries: sourceData,
-        },
-        model,
-        key,
-        signal,
-        { allowTextFallback: true },
-      ),
-    );
-    body = value.body;
-    title = value.title;
-  }
+  const { body, title } = parseSummary(
+    await requestJson(
+      consolidate
+        ? (room.current.context.settings.longSummaryPrompt ?? SUMMARY_PROMPTS.long)
+        : (room.current.context.settings.shortSummaryPrompt ?? SUMMARY_PROMPTS.short),
+      {
+        outputLanguage: 'Korean',
+        summaryCharLimit: consolidate ? 5000 : 2500,
+        entries: sourceData,
+      },
+      model,
+      key,
+      signal,
+      { allowTextFallback: true },
+    ),
+  );
   const memoryId = id();
   return [
     ...existing.map((m) =>

@@ -160,7 +160,11 @@ export function useChatSession({
       current.current = saved;
       setRoom(saved);
       draft?.complete();
-      if (settings.autoSummary && summarySources(saved).length >= settings.summaryEvery) {
+      if (
+        settings.autoSummary &&
+        settings.summaryModelId !== 'demo' &&
+        summarySources(saved).length >= settings.summaryEvery
+      ) {
         setPhase('대화를 기억에 정리하고 있습니다…');
         try {
           const summaryModel = await resolveModel(

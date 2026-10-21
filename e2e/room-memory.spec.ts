@@ -31,12 +31,149 @@ async function send(page: Page, count: number) {
   await expect(page.locator('.conversation-turn')).toHaveCount(count);
   await expect(page.getByRole('button', { name: '전송', exact: true })).toBeVisible();
 }
+async function setupSummary(page: Page) {
+  const requests: any[] = [];
+  await page.route('https://openrouter.ai/**', (route) => {
+    const url = route.request().url();
+    if (url.endsWith('/models'))
+      return route.fulfill({
+        json: {
+          data: [
+            {
+              id: 'test/summary',
+              name: '실제 요약 검증 모델',
+              context_length: 200000,
+              supported_parameters: ['response_format'],
+            },
+          ],
+        },
+      });
+    if (url.endsWith('/chat/completions')) {
+      requests.push(route.request().postDataJSON());
+      return route.fulfill({
+        json: {
+          choices: [
+            {
+              finish_reason: 'stop',
+              message: {
+                content: JSON.stringify({
+                  content: '안내인과 정원에서 나눈 대화와 서고에 대한 약속을 기억한다.',
+                }),
+              },
+            },
+          ],
+        },
+      });
+    }
+    return route.fulfill({ json: { data: { total_credits: 100, total_usage: 0 } } });
+  });
+  await page.goto('/');
+  await page.getByRole('textbox', { name: 'API key', exact: true }).fill('fake-summary-only');
+  await page.getByRole('button', { name: '키 확인', exact: true }).click();
+  await expect(page.getByRole('button', { name: '연결 확인됨' })).toBeVisible();
+  await page.getByRole('group', { name: '요약용 LLM', exact: true }).getByRole('button').click();
+  await page.getByRole('button', { name: /^실제 요약 검증 모델/ }).click();
+  await page.getByRole('button', { name: '선택 완료', exact: true }).click();
+  await page.getByRole('button', { name: 'XenoTale 시작', exact: true }).click();
+  return requests;
+}
+for (const width of [1440, 393])
+  test(`요약 모델 미지정 안내·예시 기억 제외·원래 10턴으로 복구 (${width})`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 1000 });
+    const requests = await setupSummary(page);
+    await page.getByRole('button', { name: '정원 앞에서 대화 시작', exact: true }).click();
+    await page.evaluate(
+      () =>
+        new Promise<void>((resolve) => {
+          const request = indexedDB.open('xenotale-v1');
+          request.onsuccess = () => {
+            const db = request.result,
+              tx = db.transaction('profiles', 'readwrite'),
+              store = tx.objectStore('profiles'),
+              read = store.get('profile');
+            read.onsuccess = () => {
+              const profile = read.result;
+              profile.summaryModel = 'demo';
+              store.put(profile);
+            };
+            tx.oncomplete = () => {
+              db.close();
+              resolve();
+            };
+          };
+        }),
+    );
+    await page.reload();
+    for (let i = 1; i <= 10; i++) await send(page, i);
+    expect(requests).toHaveLength(0);
+    expect((await rooms(page))[0].current.context.memories).toEqual([]);
+    await page.evaluate(
+      () =>
+        new Promise<void>((resolve) => {
+          const request = indexedDB.open('xenotale-v1');
+          request.onsuccess = () => {
+            const db = request.result,
+              tx = db.transaction('rooms', 'readwrite'),
+              store = tx.objectStore('rooms'),
+              read = store.getAll();
+            read.onsuccess = () => {
+              const room = read.result[0];
+              room.current.context.memories = [
+                {
+                  id: 'legacy-placeholder',
+                  body: '여기에 단기기억 요약이 나옵니다.',
+                  kind: 'short',
+                  manual: false,
+                  active: true,
+                  createdAt: 1,
+                  sources: room.timeline
+                    .filter((event: any) => event.kind === 'turn')
+                    .map((event: any) => `${event.id}:${event.selectedId}`),
+                },
+              ];
+              store.put(room);
+            };
+            tx.oncomplete = () => {
+              db.close();
+              resolve();
+            };
+          };
+        }),
+    );
+    await page.reload();
+    await open(page, width);
+    await expect(
+      page.getByText('현재 요약용 LLM이 지정되지 않았습니다.', { exact: true }),
+    ).toBeVisible();
+    await expect(page.getByText(/내용이 없는 예시 요약은 기억에서 제외했습니다/)).toBeVisible();
+    await expect(page.locator('.memory-card')).toHaveCount(0);
+    await expect(page.locator('.memory-countdown')).toHaveText('다음 요약까지 0턴');
+    await page.getByRole('button', { name: '요약용 LLM 선택', exact: true }).click();
+    await page.getByRole('button', { name: /^실제 요약 검증 모델/ }).click();
+    await page.getByRole('button', { name: '선택 완료', exact: true }).click();
+    await page.getByRole('button', { name: '지금 요약', exact: true }).click();
+    await expect(page.locator('.memory-card summary')).toContainText('1 ~ 10턴');
+    expect(requests).toHaveLength(1);
+    expect(
+      jsonPromptBlock(requests[0].messages[1].content).entries.filter(
+        (entry: any) => entry.kind === 'turn',
+      ),
+    ).toHaveLength(10);
+    const saved = (await rooms(page))[0];
+    expect(saved.current.context.memories).toHaveLength(1);
+    expect(saved.current.context.memories[0].body).toBe(
+      '안내인과 정원에서 나눈 대화와 서고에 대한 약속을 기억한다.',
+    );
+    expect(saved.current.context.memories[0].id).not.toBe('legacy-placeholder');
+    await page.reload();
+    if (width !== 393) await open(page, width);
+    await expect(page.locator('.memory-card summary')).toContainText('1 ~ 10턴');
+    await expect(page.getByText(/내용이 없는 예시 요약은 기억에서 제외했습니다/)).toHaveCount(0);
+  });
 for (const width of [1440, 393])
   test(`기억 카드·설정 초기화·단기 기록 보존과 장기 턴 표시 (${width})`, async ({ page }) => {
     await page.setViewportSize({ width, height: 1000 });
-    await page.route('https://openrouter.ai/**', (r) => r.fulfill({ json: { data: [] } }));
-    await page.goto('/');
-    await page.getByRole('button', { name: '키 없이 먼저 둘러보기', exact: true }).click();
+    await setupSummary(page);
     await page.getByRole('button', { name: '정원 앞에서 대화 시작', exact: true }).click();
     await expect(page).toHaveURL(/#\/chat\/[^/]+$/);
     await open(page, width);
@@ -145,7 +282,7 @@ for (const width of [1440, 393])
       .toBe(2);
     await page.locator('.memory-card summary').click();
     await expect(page.getByRole('textbox', { name: '요약내용', exact: true })).toContainText(
-      '여기에 장기기억 요약이 나옵니다.',
+      '안내인과 정원에서 나눈 대화와 서고에 대한 약속을 기억한다.',
     );
     await page.screenshot({ path: `docs/screenshots/room-memory/long-${width}.png` });
     await page.getByRole('tab', { name: '단기요약', exact: true }).click();

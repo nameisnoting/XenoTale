@@ -21,6 +21,3 @@ export function demoStatusContent(count: number) {
   );
   return ['```Status', ...lines, '```'].join('\n');
 }
-
-export const demoSummary = (consolidate: boolean) =>
-  consolidate ? '여기에 장기기억 요약이 나옵니다.' : '여기에 단기기억 요약이 나옵니다.';

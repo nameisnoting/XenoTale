@@ -9,6 +9,14 @@ export const SUMMARY_POLICY = {
 } as const;
 // Recent prose remains available independently of when a summary is generated.
 export const RECENT_RAW_TURNS = 10;
+export function isPlaceholderMemory(memory: Pick<Memory, 'body' | 'manual'>) {
+  return (
+    !memory.manual &&
+    ['여기에 단기기억 요약이 나옵니다.', '여기에 장기기억 요약이 나옵니다.'].includes(
+      memory.body.trim(),
+    )
+  );
+}
 export function validMemories(
   room: Room,
   memories = room.current.context.memories,
@@ -19,9 +27,13 @@ export function validMemories(
     `opening:${room.openingId}`,
     ...timeline.filter((e) => e.kind !== 'turn').map((e) => e.id),
   ]);
-  return memories.filter(
-    (m) =>
-      m.sources.every((s) => keys.has(s)) && (m.eventSources ?? []).every((s) => events.has(s)),
+  return repairMemoryActivity(
+    memories.filter(
+      (m) =>
+        !isPlaceholderMemory(m) &&
+        m.sources.every((s) => keys.has(s)) &&
+        (m.eventSources ?? []).every((s) => events.has(s)),
+    ),
   );
 }
 export function activeMemories(
