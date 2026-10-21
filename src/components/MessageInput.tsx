@@ -13,7 +13,7 @@ export function MessageInput({
   ...props
 }: ComponentPropsWithRef<'textarea'> & {
   followFooterResize?: RefObject<boolean>;
-  resetScrollAnchor?: RefObject<(() => void) | null>;
+  resetScrollAnchor?: RefObject<((target?: HTMLElement) => void) | null>;
 }) {
   const footerPolicy = useRef(followFooterResize);
   footerPolicy.current = followFooterResize;
@@ -50,9 +50,11 @@ export function MessageInput({
     const container = element.closest('.chat-main, .assistant, .creator-test');
     const transcript = container?.querySelector<HTMLElement>('.chat-scroll, .support-transcript');
     transcriptRef.current = transcript ?? null;
+    let content: HTMLElement | null | undefined;
+    let readingTarget: { element: HTMLElement; offset: number } | undefined;
     // Explicit navigation establishes a new reading position before resize
     // anchoring resumes; the old mode's viewport must not restore its position.
-    const reset = () => {
+    const snapshot = () => {
       anchor.current = {
         top: transcript?.scrollTop ?? 0,
         atBottom:
@@ -61,8 +63,7 @@ export function MessageInput({
         height: transcript?.clientHeight ?? 0,
       };
     };
-    reset();
-    if (resetScrollAnchor) resetScrollAnchor.current = reset;
+    snapshot();
     const remember = () => {
       if (!transcript) return;
       // Preserve resize anchoring, but let the reader interrupt an expanding tray
@@ -77,7 +78,22 @@ export function MessageInput({
         transcript.scrollHeight - transcript.clientHeight - transcript.scrollTop <= 2;
     };
     const viewport = new ResizeObserver(() => {
-      if (!transcript || transcript.clientHeight === anchor.current.height) return;
+      if (!transcript) return;
+      if (readingTarget) {
+        if (readingTarget.element.isConnected) {
+          // HTML status frames and images above the requested passage can grow
+          // after navigation. Anchor to the passage, not an obsolete pixel top.
+          const shift =
+            readingTarget.element.getBoundingClientRect().top -
+            transcript.getBoundingClientRect().top -
+            readingTarget.offset;
+          if (Math.abs(shift) > 0.5) transcript.scrollTop += shift;
+          snapshot();
+          return;
+        }
+        reset();
+      }
+      if (transcript.clientHeight === anchor.current.height) return;
       anchor.current.height = transcript.clientHeight;
       if (!anchor.current.height) return;
       transcript.scrollTop =
@@ -87,8 +103,33 @@ export function MessageInput({
           : anchor.current.top;
       anchor.current.top = transcript.scrollTop;
     });
+    const reset = (target?: HTMLElement) => {
+      if (content) viewport.unobserve(content);
+      readingTarget = target
+        ? {
+            element: target,
+            offset: parseFloat(getComputedStyle(target).scrollMarginTop) || 0,
+          }
+        : undefined;
+      // The novel column is recreated when switching back from visual novel.
+      content = target ? transcript?.querySelector<HTMLElement>(':scope > .chat-column') : null;
+      if (content) viewport.observe(content);
+      snapshot();
+    };
+    if (resetScrollAnchor) resetScrollAnchor.current = reset;
+    const release = () => {
+      if (readingTarget) reset();
+    };
+    const releaseOnKey = (event: KeyboardEvent) => {
+      if (['ArrowDown', 'ArrowUp', 'PageDown', 'PageUp', 'Home', 'End', ' '].includes(event.key))
+        release();
+    };
     if (transcript) {
       transcript.addEventListener('scroll', remember, { passive: true });
+      transcript.addEventListener('wheel', release, { passive: true });
+      transcript.addEventListener('touchstart', release, { passive: true });
+      transcript.addEventListener('pointerdown', release, { passive: true });
+      transcript.addEventListener('keydown', releaseOnKey);
       viewport.observe(transcript);
     }
     let width = element.clientWidth;
@@ -108,6 +149,10 @@ export function MessageInput({
       sizing.disconnect();
       manual.disconnect();
       transcript?.removeEventListener('scroll', remember);
+      transcript?.removeEventListener('wheel', release);
+      transcript?.removeEventListener('touchstart', release);
+      transcript?.removeEventListener('pointerdown', release);
+      transcript?.removeEventListener('keydown', releaseOnKey);
     };
   }, []);
   useLayoutEffect(resize, [value]);

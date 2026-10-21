@@ -189,7 +189,7 @@ export function ChatContent({
   const composerRef = useRef<HTMLTextAreaElement>(null);
   const footerRef = useRef<HTMLElement>(null);
   const followFooterResize = useRef(false);
-  const resetScrollAnchor = useRef<(() => void) | null>(null);
+  const resetScrollAnchor = useRef<((target?: HTMLElement) => void) | null>(null);
   const [sheet, setSheet] = useState(false);
   const [log, setLog] = useState(false);
   const [picker, setPicker] = useState<'chat' | 'summary' | null>(null);
@@ -239,15 +239,19 @@ export function ChatContent({
         nonce: performance.now(),
         player: !!turn,
       });
+      resetScrollAnchor.current?.();
     } else if (turn) {
-      document
-        .getElementById(`event-${turn.id}`)
-        ?.scrollIntoView({ block: 'start', behavior: 'instant' });
+      const target = document.getElementById(`event-${turn.id}`);
+      target?.scrollIntoView({ block: 'start', behavior: 'instant' });
+      resetScrollAnchor.current?.(target ?? undefined);
     } else {
       scroll.current?.scrollTo({ top: 0, behavior: 'instant' });
+      resetScrollAnchor.current?.();
     }
-    resetScrollAnchor.current?.();
   }, [uiType, room.timeline, room.openingId]);
+  useLayoutEffect(() => {
+    if (busy) resetScrollAnchor.current?.();
+  }, [busy]);
   const bgm = safeUrl(
     (presentation.music !== undefined
       ? (presentation.music ?? '')
@@ -377,6 +381,7 @@ export function ChatContent({
     <ConversationLog
       room={room}
       onJump={(eventId) => {
+        resetScrollAnchor.current?.();
         eventId = readingEventId(room, eventId);
         if (uiType === 'visual-novel') setNovelJump({ eventId, nonce: Date.now() });
         if (eventId.startsWith('opening:'))

@@ -30,8 +30,24 @@ for (const width of [1440, 393]) {
             const read = store.getAll();
             read.onsuccess = () => {
               const room = read.result.at(-1);
+              room.work.statusPanels = [
+                {
+                  id: 'record',
+                  name: '활동 기록',
+                  statusIds: [],
+                  template: '<div style="height:600px">활동 기록 내용</div>',
+                },
+                {
+                  id: 'terminal',
+                  name: '활동 단말',
+                  statusIds: [],
+                  template: '<div style="height:500px">활동 단말 내용</div>',
+                },
+              ];
+              room.current.context.settings.statusExpanded = true;
               for (const turn of room.timeline.filter((event: any) => event.kind === 'turn')) {
                 for (const candidate of turn.candidates) {
+                  candidate.usage.model = 'test/status-layout';
                   candidate.body = Array.from(
                     { length: 70 },
                     (_, i) => `응답 ${i + 1}번째 문단입니다. 차분히 읽어 주세요.`,
@@ -65,12 +81,48 @@ for (const width of [1440, 393]) {
     await page.getByRole('button', { name: '소설 모드로 전환', exact: true }).click();
     const scroll = page.locator('.chat-scroll');
     const user = page.locator('.conversation-turn').last().locator('.user-section');
+    await expect
+      .poll(() =>
+        page
+          .locator('.conversation-turn')
+          .first()
+          .locator('.authored-html')
+          .evaluateAll((frames) =>
+            frames.reduce((sum, frame) => sum + frame.getBoundingClientRect().height, 0),
+          ),
+      )
+      .toBeGreaterThan(1000);
     await expect(user).toBeInViewport();
     await expect
       .poll(async () => Math.abs((await user.boundingBox())!.y - (await scroll.boundingBox())!.y))
       .toBeLessThan(40);
     expect(await scroll.evaluate((element) => element.scrollTop)).toBeGreaterThan(500);
     await page.screenshot({ path: `docs/screenshots/mode-switch-user-${width}.png` });
+    // A late image/font/layout update in an older HTML panel must not move
+    // the requested user input. After manual scrolling it must not pull back.
+    const olderFrame = page.locator('.conversation-turn').first().locator('.authored-html').first();
+    await olderFrame.evaluate((element) => {
+      element.style.height = '1000px';
+    });
+    await expect
+      .poll(() => olderFrame.evaluate((element) => element.getBoundingClientRect().height))
+      .toBe(1000);
+    await expect
+      .poll(async () => Math.abs((await user.boundingBox())!.y - (await scroll.boundingBox())!.y))
+      .toBeLessThan(40);
+    if (width === 393) await scroll.dispatchEvent('touchstart', { touches: [] });
+    else await scroll.dispatchEvent('wheel', { deltaY: -300 });
+    await scroll.evaluate((element) => {
+      element.scrollTop = 700;
+    });
+    await expect.poll(() => scroll.evaluate((element) => element.scrollTop)).toBe(700);
+    await olderFrame.evaluate((element) => {
+      element.style.height = '1400px';
+    });
+    await expect
+      .poll(() => olderFrame.evaluate((element) => element.getBoundingClientRect().height))
+      .toBe(1400);
+    expect(await scroll.evaluate((element) => element.scrollTop)).toBe(700);
     await page.getByRole('button', { name: '비주얼노벨 모드로 전환', exact: true }).click();
     await expect(copy).toHaveText('마지막 질문 첫 줄');
     await page.getByRole('button', { name: '다음 대사', exact: true }).click();
