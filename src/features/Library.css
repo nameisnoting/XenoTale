@@ -142,9 +142,14 @@
   }
 }
 
-@media (max-width: 480px) {
-  .library-layout {
-    --work-card-width: min(169px, calc((100vw - 51px) / 2));
+@media (max-width: 800px) {
+  .library-content .work-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px 15px;
+  }
+  .library-content .work-grid .work-card {
+    width: 100%;
+    max-width: none;
   }
 }
 @media (max-width: 540px) {
