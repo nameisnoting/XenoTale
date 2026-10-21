@@ -36,12 +36,14 @@ export function GamePanel({
   runtime,
   busy,
   onAction,
+  showTitle = true,
 }: {
   panel: StatusPanel;
   work: Work;
   runtime: Runtime;
   busy: boolean;
   onAction?: (id: string) => Promise<unknown> | void;
+  showTitle?: boolean;
 }) {
   const [pending, setPending] = useState(false),
     [error, setError] = useState('');
@@ -51,7 +53,7 @@ export function GamePanel({
   if (!blocks?.length) return null;
   return (
     <section className="game-panel" aria-label={panel.name || '게임 화면'}>
-      <h3>{panel.name || '게임 화면'}</h3>
+      {showTitle && <h3>{panel.name || '게임 화면'}</h3>}
       {blocks.map((block) => (
         <section className="game-block" key={block.id} aria-label={block.title || '선택 버튼'}>
           {block.title && <h4>{gameText(block.title, work, runtime)}</h4>}

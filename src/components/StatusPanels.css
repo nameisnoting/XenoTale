@@ -18,11 +18,6 @@
 .status-panel-section {
   min-width: 0;
 }
-.status-panel-section > h3 {
-  margin: 0 0 8px;
-  font-size: 14px;
-  line-height: 24px;
-}
 .status-panel-section > .status-preview,
 .status-panel-section > .game-panel {
   margin: 0;

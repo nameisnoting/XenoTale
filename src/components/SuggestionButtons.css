@@ -1,27 +1,13 @@
-.chat-shell .suggestions[data-layout] {
+.chat-shell .suggestions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: start;
   overflow: visible;
 }
-.chat-shell .suggestions[data-layout] button {
+.chat-shell .suggestions button {
   max-width: 100%;
   min-width: 0;
   white-space: normal;
   overflow-wrap: anywhere;
   text-align: left;
-}
-.chat-shell .suggestions[data-layout='inline'] {
-  flex-wrap: nowrap;
-}
-.chat-shell .suggestions[data-layout='split'] {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  justify-items: start;
-}
-.chat-shell .suggestions[data-layout='split'] button:first-child {
-  grid-column: 1 / -1;
-  justify-self: start;
-}
-.chat-shell .suggestions[data-layout='stack'] {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  justify-items: start;
 }

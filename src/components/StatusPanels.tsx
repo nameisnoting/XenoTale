@@ -47,8 +47,9 @@ export function StatusPanels({
             aria-label={panel.name || '상태창'}
             key={panel.id}
           >
-            {!interactive && title && <h3>{panel.name || '상태창'}</h3>}
-            {interactive && <GamePanel {...{ panel, work, runtime, busy, onAction }} />}
+            {interactive && (
+              <GamePanel {...{ panel, work, runtime, busy, onAction }} showTitle={false} />
+            )}
             {information && (
               <StatusPanelDisplay
                 {...{ panel, work, runtime, expanded, demo }}

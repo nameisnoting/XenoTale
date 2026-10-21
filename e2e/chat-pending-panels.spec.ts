@@ -164,13 +164,15 @@ for (const width of [1440, 393]) {
     const { pending, reply } = await start(page, width);
     const scroll = page.locator('.chat-scroll');
     const field = page.getByRole('textbox', { name: '메시지', exact: true });
-    await expect(page.locator('.suggestions')).toHaveAttribute('data-layout', 'split');
     const buttons = await page.locator('.suggestions button').all();
+    expect(buttons).toHaveLength(3);
     const positions = await Promise.all(
       buttons.map(async (button) => (await button.boundingBox())!),
     );
     expect(positions[1].y).toBeGreaterThan(positions[0].y);
-    expect(positions[1].y).toBeCloseTo(positions[2].y, 0);
+    expect(positions[2].y).toBeGreaterThan(positions[1].y);
+    expect(positions[1].x).toBeCloseTo(positions[0].x, 0);
+    expect(positions[2].x).toBeCloseTo(positions[0].x, 0);
     await page.screenshot({ path: `docs/screenshots/chat-choice-layout-${width}.png` });
     await field.fill('전송 직후 보여야 할 질문');
     await page.getByRole('button', { name: '전송', exact: true }).click();
@@ -199,6 +201,10 @@ for (const width of [1440, 393]) {
       await sections.evaluateAll((nodes) => nodes.map((node) => node.getAttribute('aria-label'))),
     ).toEqual(['헌터 기록', '활동 단말', '추가 기록']);
     await expect(group.locator('details')).toHaveCount(0);
+    for (const name of ['헌터 기록', '활동 단말', '추가 기록']) {
+      await expect(group.getByRole('heading', { name, exact: true })).toHaveCount(0);
+    }
+    await expect(group.getByRole('heading', { name: '일과', exact: true })).toBeVisible();
     await group.locator(':scope > summary').click();
     await expect(group.getByRole('button', { name: '수련하기', exact: true })).toBeHidden();
     await expect(sections.first()).toBeHidden();
