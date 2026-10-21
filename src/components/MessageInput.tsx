@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, type ComponentPropsWithRef } from 'react';
+import { useLayoutEffect, useRef, type ComponentPropsWithRef, type RefObject } from 'react';
 import './MessageInput.css';
 
 // All conversation inputs share two-to-eight visible lines, including wrapped text.
@@ -8,8 +8,11 @@ export function MessageInput({
   ref,
   value,
   className = '',
+  followFooterResize,
   ...props
-}: ComponentPropsWithRef<'textarea'>) {
+}: ComponentPropsWithRef<'textarea'> & { followFooterResize?: RefObject<boolean> }) {
+  const footerPolicy = useRef(followFooterResize);
+  footerPolicy.current = followFooterResize;
   const field = useRef<HTMLTextAreaElement | null>(null);
   const anchor = useRef({ top: 0, atBottom: true, height: 0 });
   const transcriptRef = useRef<HTMLElement | null>(null);
@@ -52,8 +55,13 @@ export function MessageInput({
     };
     const remember = () => {
       if (!transcript) return;
-      // A viewport resize is restored before its resulting scroll event is remembered.
-      if (transcript.clientHeight !== anchor.current.height) return;
+      // Preserve resize anchoring, but let the reader interrupt an expanding tray
+      // by scrolling upward before its next ResizeObserver notification.
+      if (
+        transcript.clientHeight !== anchor.current.height &&
+        !(footerPolicy.current?.current && transcript.scrollTop < anchor.current.top - 1)
+      )
+        return;
       anchor.current.top = transcript.scrollTop;
       anchor.current.atBottom =
         transcript.scrollHeight - transcript.clientHeight - transcript.scrollTop <= 2;
@@ -63,7 +71,8 @@ export function MessageInput({
       anchor.current.height = transcript.clientHeight;
       if (!anchor.current.height) return;
       transcript.scrollTop =
-        anchor.current.atBottom && transcript.classList.contains('support-transcript')
+        anchor.current.atBottom &&
+        (transcript.classList.contains('support-transcript') || footerPolicy.current?.current)
           ? transcript.scrollHeight
           : anchor.current.top;
       anchor.current.top = transcript.scrollTop;

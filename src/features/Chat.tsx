@@ -78,6 +78,7 @@ import { exportBackup } from '../persistence/files';
 import { StatusPanels } from '../components/StatusPanels';
 import { GenerationStatus, ResponseSection } from '../components/GenerationStatus';
 import { SuggestionButtons } from '../components/SuggestionButtons';
+import { ScrollSuggestions } from '../components/ScrollSuggestions';
 import { StoryBody, type EffectRequest } from './StoryBody';
 import { EffectPlayer } from '../components/EffectPlayer';
 import { canCompleteEffect, completeEffect } from '../domain/effects';
@@ -180,6 +181,7 @@ export function ChatContent({
   const [roomName, setRoomName] = useState(room.name);
   const composerRef = useRef<HTMLTextAreaElement>(null);
   const footerRef = useRef<HTMLElement>(null);
+  const followFooterResize = useRef(false);
   const [sheet, setSheet] = useState(false);
   const [log, setLog] = useState(false);
   const [picker, setPicker] = useState<'chat' | 'summary' | null>(null);
@@ -873,9 +875,19 @@ export function ChatContent({
                   </span>
                 ))}
               </div>
-              {!inputDisabled && cfg.choices && suggestions.filter(Boolean).length > 0 && (
-                <SuggestionButtons choices={suggestions} onSelect={setInput} />
-              )}
+              {!inputDisabled &&
+                cfg.choices &&
+                suggestions.filter(Boolean).length > 0 &&
+                (uiType === 'novel' ? (
+                  <ScrollSuggestions
+                    scroll={scroll}
+                    choices={suggestions}
+                    onSelect={setInput}
+                    followFooterResize={followFooterResize}
+                  />
+                ) : (
+                  <SuggestionButtons choices={suggestions} onSelect={setInput} />
+                ))}
               {!room.timeline.length && (
                 <div className="opening-actions">
                   <Button onClick={() => showMenu('persona')}>페르소나 변경</Button>
@@ -890,6 +902,7 @@ export function ChatContent({
               <ResizableComposer>
                 <MessageInput
                   ref={composerRef}
+                  followFooterResize={followFooterResize}
                   aria-label="메시지"
                   placeholder={
                     endingLocked

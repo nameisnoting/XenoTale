@@ -104,7 +104,7 @@ async function start(page: Page, width: number, visualNovel = false) {
     visualNovel,
   );
   await page.reload();
-  const reply = async (index: number, error = false) => {
+  const reply = async (index: number, error = false, body = `검증 응답 ${index + 1}`) => {
     await expect.poll(() => pending.length).toBeGreaterThan(index);
     await pending[index]
       .fulfill(
@@ -119,8 +119,8 @@ async function start(page: Page, width: number, visualNovel = false) {
                       content: JSON.stringify({
                         kind: 'turn',
                         requestedCharacterIds: [],
-                        body: `검증 응답 ${index + 1}`,
-                        choices: [],
+                        body,
+                        choices: ['주변을 살핀다.', '동료에게 묻는다.', '잠시 기다린다.'],
                         delta: {
                           numeric: [{ fieldId: 'affinity', amount: 1 }],
                           text: [],
@@ -160,10 +160,100 @@ async function storedTurns(page: Page) {
 }
 
 for (const width of [1440, 393]) {
+  test(`선택지는 읽는 동안 접히고 대화 끝에서만 펼쳐짐 ${width}`, async ({ page }) => {
+    const { reply } = await start(page, width);
+    const field = page.getByRole('textbox', { name: '메시지', exact: true });
+    const scroll = page.locator('.chat-scroll');
+    const tray = page.locator('.scroll-suggestions');
+    await field.fill('긴 이야기');
+    await page.getByRole('button', { name: '전송', exact: true }).click();
+    await reply(
+      0,
+      false,
+      Array.from(
+        { length: 80 },
+        (_, i) => `${i + 1}번째 문단입니다. 정원의 이야기를 천천히 읽습니다.`,
+      ).join('\n\n'),
+    );
+    await expect(page.locator('.pending-turn')).toHaveCount(0);
+    await expect(tray).toHaveAttribute('data-expanded', 'false');
+    await expect(tray).toHaveAttribute('inert', '');
+    await scroll.evaluate((element) => {
+      element.scrollTop = 700;
+    });
+    await expect.poll(() => scroll.evaluate((element) => element.scrollTop)).toBe(700);
+    const readingHeight = await scroll.evaluate((element) => element.clientHeight);
+    await scroll.evaluate((element) => {
+      element.scrollTop = element.scrollHeight;
+    });
+    await expect(tray).toHaveAttribute('data-expanded', 'true');
+    await expect
+      .poll(() => tray.evaluate((element) => Math.round(element.getBoundingClientRect().height)))
+      .toBeGreaterThan(90);
+    await expect
+      .poll(() =>
+        scroll.evaluate(
+          (element) => element.scrollHeight - element.clientHeight - element.scrollTop,
+        ),
+      )
+      .toBeLessThan(8);
+    expect(await scroll.evaluate((element) => element.clientHeight)).toBeLessThan(readingHeight);
+    await page.screenshot({ path: `docs/screenshots/choices-at-end-${width}.png` });
+    await scroll.evaluate((element) => {
+      element.scrollTop = 700;
+    });
+    await expect(tray).toHaveAttribute('data-expanded', 'false');
+    await expect
+      .poll(() => tray.evaluate((element) => element.getBoundingClientRect().height))
+      .toBe(0);
+    expect(await scroll.evaluate((element) => element.scrollTop)).toBe(700);
+    await expect(tray.getByRole('button', { name: '동료에게 묻는다.', exact: true })).toHaveCount(
+      0,
+    );
+    await page.screenshot({ path: `docs/screenshots/choices-reading-${width}.png` });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await scroll.evaluate((element) => {
+      element.scrollTop = element.scrollHeight;
+    });
+    await expect(tray).toHaveAttribute('data-expanded', 'true');
+    await tray.getByRole('button', { name: '동료에게 묻는다.', exact: true }).click();
+    await expect(field).toHaveValue('동료에게 묻는다.');
+    await field.fill('계속 직접 입력');
+    await expect(tray).toHaveAttribute('data-expanded', 'true');
+    await scroll.evaluate((element) => {
+      element.scrollTop -= 4;
+    });
+    await expect(tray).toHaveAttribute('data-expanded', 'false');
+    await expect
+      .poll(() => tray.evaluate((element) => element.getBoundingClientRect().height))
+      .toBe(0);
+    if (width === 393) {
+      await scroll.evaluate((element) => {
+        for (const [type, clientY] of [
+          ['touchstart', 200],
+          ['touchmove', 150],
+        ] as const) {
+          element.dispatchEvent(
+            new TouchEvent(type, {
+              touches: [new Touch({ identifier: 1, target: element, clientY })],
+            }),
+          );
+        }
+      });
+    } else {
+      await scroll.dispatchEvent('wheel', { deltaY: 20 });
+    }
+    await expect(tray).toHaveAttribute('data-expanded', 'true');
+  });
+
   test(`즉시 입력·대기 문구·리롤 교체와 복구·모든 상태창 ${width}`, async ({ page }) => {
     const { pending, reply } = await start(page, width);
     const scroll = page.locator('.chat-scroll');
     const field = page.getByRole('textbox', { name: '메시지', exact: true });
+    await scroll.evaluate((element) => {
+      element.scrollTop = element.scrollHeight;
+    });
+    await expect(page.locator('.scroll-suggestions')).toHaveAttribute('data-expanded', 'true');
     const buttons = await page.locator('.suggestions button').all();
     expect(buttons).toHaveLength(3);
     const positions = await Promise.all(

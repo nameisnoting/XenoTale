@@ -1,0 +1,32 @@
+.scroll-suggestions {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    grid-template-rows 200ms ease,
+    opacity 200ms ease,
+    visibility 200ms;
+}
+.scroll-suggestions[data-expanded='true'] {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  visibility: visible;
+}
+.scroll-suggestions-inner {
+  min-height: 0;
+  overflow: hidden;
+}
+.scroll-suggestions .suggestions {
+  transform: translateY(8px);
+  transition: transform 200ms ease;
+}
+.scroll-suggestions[data-expanded='true'] .suggestions {
+  transform: translateY(0);
+}
+@media (prefers-reduced-motion: reduce) {
+  .scroll-suggestions,
+  .scroll-suggestions .suggestions {
+    transition: none;
+  }
+}
