@@ -2,7 +2,7 @@ import fs from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { chromium } from '@playwright/test';
 
-// Render every app icon from the editable SVG; no background is added.
+// Render every app icon, including its rounded background, from the editable SVG.
 const publicDir = new URL('../public/', import.meta.url);
 const svg = await fs.readFile(new URL('favicon.svg', publicDir), 'utf8');
 const browser = await chromium.launch({ channel: 'msedge', headless: true });
@@ -48,7 +48,7 @@ try {
     Buffer.concat([header, ...sizes.map((size) => frames.get(size))]),
   );
   console.log(
-    `Generated transparent PNG and Windows icons from ${fileURLToPath(new URL('favicon.svg', publicDir))}`,
+    `Generated PNG and Windows icons from ${fileURLToPath(new URL('favicon.svg', publicDir))}`,
   );
 } finally {
   await browser.close();
