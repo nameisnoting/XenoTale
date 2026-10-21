@@ -16,8 +16,8 @@ import { latestNovelStart, visualNovelView, type NovelPage } from '../domain/vis
 import { mediaImage } from '../domain/visualNovel';
 import { canCompleteEffect, recordedEffect } from '../domain/effects';
 import { IconButton, safeUrl, Button } from '../components/UI';
-import { GamePanels } from '../components/GamePanels';
-import { StatusDisplay } from '../components/DesignControls';
+import { StatusPanels } from '../components/StatusPanels';
+import { useGenerationMessage } from '../components/GenerationStatus';
 import { StoryBody, type EffectRequest } from './StoryBody';
 import './VisualNovel.css';
 
@@ -186,6 +186,7 @@ export function VisualNovel({
     play(page.effects, () => go(currentIndex + 1));
   }, [page?.key, busy, ready]);
   const persona = room.current.context.persona;
+  const generationMessage = useGenerationMessage(phase, responding);
   const pending = (effects: NovelPage['effects'], key: string) =>
     effects.some(
       (effect) =>
@@ -299,8 +300,7 @@ export function VisualNovel({
             </IconButton>
             {responding || !ready ? (
               <span className="visual-novel-waiting" role="status">
-                {responding ? '응답 중입니다…' : '이미지 준비 중입니다…'}
-                <span className="sr-only">{phase}</span>
+                {responding ? generationMessage : '이미지 준비 중입니다…'}
               </span>
             ) : page?.last && !page.player && !effectsPending ? (
               <div className="visual-novel-turn-actions">
@@ -341,19 +341,11 @@ export function VisualNovel({
               <X size={24} />
             </IconButton>
             <div className="visual-novel-status-content" onClick={(e) => e.stopPropagation()}>
-              <GamePanels
+              <StatusPanels
                 work={room.work}
                 runtime={room.current.runtime}
                 busy={busy}
                 onAction={onAction}
-              />
-              <StatusDisplay
-                work={room.work}
-                runtime={
-                  latestPassage
-                    ? room.current.runtime
-                    : (page?.checkpoint.runtime ?? room.current.runtime)
-                }
                 expanded
                 demo={false}
               />

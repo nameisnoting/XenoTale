@@ -131,7 +131,8 @@ for (const width of [1440, 393]) {
     await chooseModel(page);
     await page.getByRole('textbox', { name: '서포터 메시지' }).fill('서포터 요청');
     await stop('서포터 전송', '서포터 생성 중단');
-    await expect(page.getByRole('button', { name: '서포터 전송', exact: true })).toBeDisabled();
+    await expect(page.getByRole('textbox', { name: '서포터 메시지' })).toHaveValue('서포터 요청');
+    await expect(page.getByRole('button', { name: '서포터 전송', exact: true })).toBeEnabled();
     await page.getByRole('tab', { name: '대화 테스트', exact: true }).click();
     await chooseModel(page);
     await stop('테스트 전송', '테스트 생성 중단');

@@ -31,7 +31,10 @@ export function useChatSession({
   const pendingMutations = useRef(0);
   const [input, setInput, beginSend] = useMessageDraft(`room.${room.id}`, room.pendingInput);
   const [busy, setBusy] = useState(false);
-  const [submittedInput, setSubmittedInput] = useState('');
+  const [pendingResponse, setPendingResponse] = useState<{
+    input: string;
+    turnId?: string;
+  } | null>(null);
   const [phase, setPhase] = useState('');
   const controller = useRef<AbortController | null>(null);
   const queue = useRef(Promise.resolve());
@@ -101,11 +104,12 @@ export function useChatSession({
     setPhase('답변을 준비하고 있습니다…');
     controller.current = new AbortController();
     const draft = isReroll ? undefined : beginSend();
-    setSubmittedInput(
-      isReroll
-        ? ((current.current.timeline.at(-1) as Turn)?.input ?? '')
-        : draft?.text.trim() || CONTINUE,
-    );
+    const previous = current.current.timeline.at(-1);
+    setPendingResponse({
+      input:
+        isReroll && previous?.kind === 'turn' ? previous.input : draft?.text.trim() || CONTINUE,
+      turnId: isReroll && previous?.kind === 'turn' ? previous.id : undefined,
+    });
     try {
       await queue.current;
       const stored = await db.rooms.get(room.id);
@@ -159,6 +163,7 @@ export function useChatSession({
       );
       current.current = saved;
       setRoom(saved);
+      setPendingResponse(null);
       draft?.complete();
       if (
         settings.autoSummary &&
@@ -203,6 +208,7 @@ export function useChatSession({
       draft?.restore();
       if ((e as Error).name !== 'AbortError') notify((e as Error).message);
     } finally {
+      setPendingResponse(null);
       controller.current = null;
       lock.current = false;
       setBusy(false);
@@ -259,7 +265,8 @@ export function useChatSession({
     input,
     setInput,
     busy,
-    submittedInput,
+    pendingResponse,
+    submittedInput: pendingResponse?.input ?? '',
     phase,
     balance,
     mutate,

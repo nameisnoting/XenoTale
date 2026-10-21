@@ -76,7 +76,9 @@ import { ChatShortcuts } from './ChatShortcuts';
 import { ChatUsage } from './ChatUsage';
 import { exportBackup } from '../persistence/files';
 import { GamePanels } from '../components/GamePanels';
-import { StatusDisplay } from '../components/DesignControls';
+import { StatusPanels } from '../components/StatusPanels';
+import { GenerationStatus, ResponseSection } from '../components/GenerationStatus';
+import { SuggestionButtons } from '../components/SuggestionButtons';
 import { StoryBody, type EffectRequest } from './StoryBody';
 import { EffectPlayer } from '../components/EffectPlayer';
 import { canCompleteEffect, completeEffect } from '../domain/effects';
@@ -113,6 +115,7 @@ export function ChatContent({
     setInput,
     busy: requestBusy,
     submittedInput,
+    pendingResponse,
     phase,
     balance,
     mutate,
@@ -542,7 +545,7 @@ export function ChatContent({
               <VisualNovel
                 room={room}
                 busy={busy}
-                responding={requestBusy}
+                responding={!!pendingResponse}
                 submittedInput={submittedInput}
                 phase={phase}
                 suggestions={suggestions}
@@ -642,12 +645,14 @@ export function ChatContent({
                     {mobile && !room.timeline.length && (
                       <WorkInfoPrompt onOpen={() => showMenu('info', true)} />
                     )}
-                    <GamePanels
-                      work={room.work}
-                      runtime={room.current.runtime}
-                      busy={busy || endingLocked}
-                      onAction={playAction}
-                    />
+                    {!latestTurn && (
+                      <GamePanels
+                        work={room.work}
+                        runtime={room.current.runtime}
+                        busy={busy || endingLocked}
+                        onAction={playAction}
+                      />
+                    )}
                     <StoryIntro title={op.name}>
                       <StoryBody
                         body={op.body}
@@ -687,7 +692,11 @@ export function ChatContent({
                             </IconButton>
                           </div>
                         </section>
-                        <section className="chat-message-section assistant-section">
+                        <ResponseSection
+                          pending={pendingResponse?.turnId === event.id}
+                          phase={phase}
+                          preserveHeight={event.id === editableTurn?.id}
+                        >
                           {event.dice && (
                             <div className="local-event">주사위 d20 · {event.dice}</div>
                           )}
@@ -699,11 +708,23 @@ export function ChatContent({
                             source={{ eventId: event.id, candidateId: displayed(event).id }}
                             onEffect={setEffect}
                           />
-                          <StatusDisplay
+                          <StatusPanels
                             work={room.work}
-                            runtime={displayed(event).checkpoint.runtime}
+                            runtime={
+                              event.id === latestTurn?.id &&
+                              displayed(event).id === event.selectedId
+                                ? room.current.runtime
+                                : displayed(event).checkpoint.runtime
+                            }
                             expanded={cfg.statusExpanded}
                             demo={displayed(event).usage.model === 'demo'}
+                            busy={busy || endingLocked}
+                            onAction={
+                              event.id === latestTurn?.id &&
+                              displayed(event).id === event.selectedId
+                                ? playAction
+                                : undefined
+                            }
                           />
                           <div className="response-tools">
                             {canBrowseLatest && event.id === latestTurn?.id && (
@@ -732,7 +753,10 @@ export function ChatContent({
                               title="이 지점에서 분기"
                               disabled={busy}
                               onClick={() =>
-                                setBranch({ eventId: event.id, candidateId: displayed(event).id })
+                                setBranch({
+                                  eventId: event.id,
+                                  candidateId: displayed(event).id,
+                                })
                               }
                             >
                               <GitBranch size={15} />
@@ -758,7 +782,7 @@ export function ChatContent({
                               </>
                             )}
                           </div>
-                        </section>
+                        </ResponseSection>
                       </article>
                     ) : event.kind === 'chapter' || (event.kind === 'action' && event.risuChat) ? (
                       <article
@@ -806,11 +830,30 @@ export function ChatContent({
                       />
                     ) : null,
                   )}
-                  {requestBusy && (
-                    <div className="generation-status" role="status">
-                      <span className="pulse" />
-                      {phase}
-                    </div>
+                  {pendingResponse && !pendingResponse.turnId && (
+                    <article className="pending-turn" aria-label="전송 중인 메시지">
+                      <section className="chat-message-section user-section">
+                        <div className="user-message">
+                          {cfg.profiles && (
+                            <Avatar src={room.current.context.persona.image} size={56} />
+                          )}
+                          <div>
+                            <strong>{room.current.context.persona.name}</strong>
+                            <Markdown>
+                              {pendingResponse.input === CONTINUE
+                                ? '이어서 내용 전개'
+                                : pendingResponse.input}
+                            </Markdown>
+                          </div>
+                        </div>
+                      </section>
+                      <section className="chat-message-section assistant-section">
+                        <GenerationStatus phase={phase} />
+                      </section>
+                    </article>
+                  )}
+                  {requestBusy && !pendingResponse && (
+                    <GenerationStatus phase={phase} rotating={false} />
                   )}
                   <div ref={end} />
                 </div>
@@ -831,13 +874,7 @@ export function ChatContent({
                 ))}
               </div>
               {!inputDisabled && cfg.choices && suggestions.filter(Boolean).length > 0 && (
-                <div className="suggestions">
-                  {suggestions.filter(Boolean).map((s, i) => (
-                    <button key={i} onClick={() => setInput(s)}>
-                      {s}
-                    </button>
-                  ))}
-                </div>
+                <SuggestionButtons choices={suggestions} onSelect={setInput} />
               )}
               {!room.timeline.length && (
                 <div className="opening-actions">
