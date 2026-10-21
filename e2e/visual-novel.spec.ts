@@ -434,6 +434,8 @@ test('연출의 배경·음악·테마 변경 저장 · 응답 삭제로 복원'
       }),
   );
   await page.reload();
+  await expect(page.locator('.visual-novel-copy')).toHaveText('테스트');
+  await page.getByRole('button', { name: '다음 대사', exact: true }).click();
   await page.getByRole('button', { name: '화면 연출 보기', exact: true }).click();
   await page.frameLocator('iframe.effect-frame').getByRole('button', { name: '화면 변경' }).click();
   await expect(page.locator('.effect-player')).toHaveCount(0);
@@ -452,6 +454,9 @@ test('연출의 배경·음악·테마 변경 저장 · 응답 삭제로 복원'
     'background-color',
     'rgb(18, 52, 86)',
   );
+  await expect(page.locator('.visual-novel-copy')).toHaveText('테스트');
+  await page.getByRole('button', { name: '다음 대사', exact: true }).click();
+  await page.getByRole('button', { name: '다음 대사', exact: true }).click();
   await page.getByRole('button', { name: '마지막 대화 삭제', exact: true }).click();
   await page.getByRole('button', { name: 'AI 응답 삭제 · 내 입력 유지', exact: true }).click();
   await expect(page.getByRole('textbox', { name: '메시지', exact: true })).toHaveValue('테스트');

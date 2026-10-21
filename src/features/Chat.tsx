@@ -217,7 +217,6 @@ export function ChatContent({
   }>();
   const [uiHidden, setUiHidden] = useState(false);
   const [opening, setOpening] = useState(false);
-  const end = useRef<HTMLDivElement>(null);
   const scroll = useRef<HTMLDivElement>(null);
   const headerHidden = useScrollHeader(scroll) && !renaming;
 
@@ -228,17 +227,19 @@ export function ChatContent({
   const op = room.work.openings.find((o) => o.id === room.openingId)!;
   const presentation = { ...room.current.runtime.presentation, ...effectPresentation };
   const uiType = presentation.uiType ?? cfg.uiType ?? 'novel';
-  const previousUiType = useRef(uiType);
+  const previousUiType = useRef<typeof uiType | undefined>(undefined);
   useLayoutEffect(() => {
     if (previousUiType.current === uiType) return;
+    const entering = previousUiType.current === undefined;
     previousUiType.current = uiType;
     const turn = [...room.timeline].reverse().find((event) => event.kind === 'turn');
     if (uiType === 'visual-novel') {
-      setNovelJump({
-        eventId: turn?.id ?? `opening:${room.openingId}`,
-        nonce: performance.now(),
-        player: !!turn,
-      });
+      if (turn || !entering)
+        setNovelJump({
+          eventId: turn?.id ?? `opening:${room.openingId}`,
+          nonce: performance.now(),
+          player: !!turn,
+        });
       resetScrollAnchor.current?.();
     } else if (turn) {
       const target = document.getElementById(`event-${turn.id}`);
@@ -296,12 +297,6 @@ export function ChatContent({
     setEffectPresentation({});
     next?.();
   };
-
-  useEffect(() => {
-    // Open at the latest conversation once; new responses never move the reader.
-    if (mobile && !room.timeline.length) scroll.current?.scrollTo({ top: 0 });
-    else end.current?.scrollIntoView({ block: 'end' });
-  }, []);
 
   const findModel = (modelId: string) =>
     modelId === 'demo' ? demoModel : models.find((m) => m.id === modelId);
@@ -894,7 +889,6 @@ export function ChatContent({
                   {requestBusy && !pendingResponse && (
                     <GenerationStatus phase={phase} rotating={false} />
                   )}
-                  <div ref={end} />
                 </div>
               </>
             )}

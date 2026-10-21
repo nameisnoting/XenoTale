@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 for (const width of [1440, 393]) {
-  test(`모드 전환은 마지막 유저 입력부터, 재접속은 읽던 대사부터 ${width}`, async ({ page }) => {
+  test(`모드 전환·재입장·새로고침은 마지막 유저 입력부터 ${width}`, async ({ page }) => {
     await page.setViewportSize({ width, height: 1000 });
     await page.route('https://openrouter.ai/**', (route) => route.fulfill({ json: { data: [] } }));
     await page.goto('/');
@@ -123,11 +123,39 @@ for (const width of [1440, 393]) {
       .poll(() => olderFrame.evaluate((element) => element.getBoundingClientRect().height))
       .toBe(1400);
     expect(await scroll.evaluate((element) => element.scrollTop)).toBe(700);
+    await page.getByRole('button', { name: '메인으로', exact: true }).click();
+    await expect(page.locator('.chat-shell')).toHaveCount(0);
+    await page.goBack();
+    await expect(user).toBeInViewport();
+    await expect
+      .poll(async () => Math.abs((await user.boundingBox())!.y - (await scroll.boundingBox())!.y))
+      .toBeLessThan(40);
+    await page.reload();
+    await expect
+      .poll(() =>
+        page
+          .locator('.conversation-turn')
+          .first()
+          .locator('.authored-html')
+          .evaluateAll((frames) =>
+            frames.reduce((sum, frame) => sum + frame.getBoundingClientRect().height, 0),
+          ),
+      )
+      .toBeGreaterThan(1000);
+    await expect
+      .poll(async () => Math.abs((await user.boundingBox())!.y - (await scroll.boundingBox())!.y))
+      .toBeLessThan(40);
     await page.getByRole('button', { name: '비주얼노벨 모드로 전환', exact: true }).click();
     await expect(copy).toHaveText('마지막 질문 첫 줄');
     await page.getByRole('button', { name: '다음 대사', exact: true }).click();
     await expect(copy).toHaveText('마지막 질문 둘째 줄');
     await page.reload();
+    await expect(copy).toHaveText('마지막 질문 첫 줄');
+    await page.getByRole('button', { name: '다음 대사', exact: true }).click();
     await expect(copy).toHaveText('마지막 질문 둘째 줄');
+    await page.getByRole('button', { name: '메인으로', exact: true }).click();
+    await expect(page.locator('.chat-shell')).toHaveCount(0);
+    await page.goBack();
+    await expect(copy).toHaveText('마지막 질문 첫 줄');
   });
 }
