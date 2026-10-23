@@ -374,7 +374,10 @@
   display: flow-root;
   margin: 0 0 24px;
   padding: 0 0 16px;
-  border-bottom: 1px solid #2b2b2b;
+  border-bottom: 1px solid var(--main-04);
+}
+.chat-shell .chat-scroll hr {
+  border-top-color: var(--main-04);
 }
 .chat-shell .chat-message-section > .story-body > :first-child,
 .chat-shell .chat-message-section > .story-body > div:first-child > .markdown:first-child {
