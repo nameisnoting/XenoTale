@@ -987,12 +987,7 @@ export function ChatContent({
                   value={endingLocked ? '' : input}
                   disabled={inputDisabled}
                   onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
-                      e.preventDefault();
-                      if (!inputDisabled) void send();
-                    }
-                  }}
+                  onSend={() => void send()}
                 />
                 <div className="composer-controls">
                   {uiType === 'visual-novel' && (mobile || !wide) && (

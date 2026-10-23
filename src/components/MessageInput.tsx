@@ -1,4 +1,5 @@
 import { useLayoutEffect, useRef, type ComponentPropsWithRef, type RefObject } from 'react';
+import { useMediaQuery } from './useMediaQuery';
 import './MessageInput.css';
 
 // All conversation inputs share two-to-eight visible lines, including wrapped text.
@@ -10,11 +11,15 @@ export function MessageInput({
   className = '',
   followFooterResize,
   resetScrollAnchor,
+  onSend,
   ...props
-}: ComponentPropsWithRef<'textarea'> & {
+}: Omit<ComponentPropsWithRef<'textarea'>, 'onKeyDown' | 'enterKeyHint'> & {
+  onSend: () => void;
   followFooterResize?: RefObject<boolean>;
   resetScrollAnchor?: RefObject<((target?: HTMLElement) => void) | null>;
 }) {
+  // Touch-first devices also need newline Enter in landscape or tablet layouts.
+  const mobileKeyboard = useMediaQuery('(max-width: 800px), (pointer: coarse)');
   const footerPolicy = useRef(followFooterResize);
   footerPolicy.current = followFooterResize;
   const field = useRef<HTMLTextAreaElement | null>(null);
@@ -161,6 +166,19 @@ export function MessageInput({
       {...props}
       rows={2}
       value={value}
+      enterKeyHint={mobileKeyboard ? 'enter' : 'send'}
+      onKeyDown={(event) => {
+        if (
+          !mobileKeyboard &&
+          event.key === 'Enter' &&
+          !event.shiftKey &&
+          !event.nativeEvent.isComposing &&
+          event.nativeEvent.keyCode !== 229
+        ) {
+          event.preventDefault();
+          if (!props.disabled) onSend();
+        }
+      }}
       className={`message-input ${className}`}
       ref={(element) => {
         field.current = element;

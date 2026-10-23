@@ -283,12 +283,7 @@ export function Assistant({
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="원하는 설정이나 수정할 내용을 입력하세요"
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
-              e.preventDefault();
-              void send();
-            }
-          }}
+          onSend={() => void send()}
         />
         <div className="support-composer-actions">
           <AssistantAddMenu

@@ -137,7 +137,7 @@ for (const width of [1440, 393]) {
     await expect(page.locator('.resizable-composer')).toHaveAttribute('data-manual', 'false');
     await expect.poll(() => input.evaluate((e) => e.getBoundingClientRect().height)).toBe(48);
     await input.fill('대화 테스트');
-    await input.press('Enter');
+    await page.getByRole('button', { name: '전송', exact: true }).click();
     await expect(input).toHaveValue('');
     await page.goto('/');
     await page
