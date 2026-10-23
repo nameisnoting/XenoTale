@@ -246,7 +246,7 @@
 .chat-scroll.novel-scroll {
   position: relative;
 }
-.novel-mode-switch.is-scroll-hidden {
+.novel-mode-switch-position.is-scroll-hidden .novel-mode-switch {
   transform: translateY(-64px);
 }
 @media (max-width: 800px) {
@@ -289,7 +289,7 @@
     right: 20px;
     top: 64px;
   }
-  .novel-mode-switch.is-scroll-hidden {
+  .novel-mode-switch-position.is-scroll-hidden .novel-mode-switch {
     transform: translateY(-56px);
   }
 }

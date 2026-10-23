@@ -42,10 +42,11 @@ export function MessageInput({
     element.style.height = `${Math.max(min, Math.min(max, wanted))}px`;
     element.style.overflowY = wanted > max ? 'auto' : 'hidden';
     if (transcript && transcript.clientHeight > 0) {
-      transcript.scrollTop =
+      const nextTop =
         atBottom && transcript.classList.contains('support-transcript')
-          ? transcript.scrollHeight
+          ? Math.max(0, transcript.scrollHeight - transcript.clientHeight)
           : top;
+      if (Math.abs(transcript.scrollTop - nextTop) > 0.5) transcript.scrollTop = nextTop;
       anchor.current = { top: transcript.scrollTop, atBottom, height: transcript.clientHeight };
     }
   };
@@ -55,6 +56,9 @@ export function MessageInput({
     const container = element.closest('.chat-main, .assistant, .creator-test');
     const transcript = container?.querySelector<HTMLElement>('.chat-scroll, .support-transcript');
     transcriptRef.current = transcript ?? null;
+    const header = container?.querySelector<HTMLElement>('.chat-header');
+    let headerHeight = header?.getBoundingClientRect().height ?? 0;
+    let userScrollUntil = 0;
     let content: HTMLElement | null | undefined;
     let readingTarget: { element: HTMLElement; offset: number } | undefined;
     // Explicit navigation establishes a new reading position before resize
@@ -71,10 +75,14 @@ export function MessageInput({
     snapshot();
     const remember = () => {
       if (!transcript) return;
+      const userScrolling = performance.now() < userScrollUntil;
+      // Scroll events continue during a touch fling after the finger lifts.
+      if (userScrolling) userScrollUntil = performance.now() + 200;
       // Preserve resize anchoring, but let the reader interrupt an expanding tray
       // by scrolling upward before its next ResizeObserver notification.
       if (
         transcript.clientHeight !== anchor.current.height &&
+        !userScrolling &&
         !(footerPolicy.current?.current && transcript.scrollTop < anchor.current.top - 1)
       )
         return;
@@ -84,6 +92,9 @@ export function MessageInput({
     };
     const viewport = new ResizeObserver(() => {
       if (!transcript) return;
+      const nextHeaderHeight = header?.getBoundingClientRect().height ?? 0;
+      const headerResizing = Math.abs(nextHeaderHeight - headerHeight) > 0.1;
+      headerHeight = nextHeaderHeight;
       if (readingTarget) {
         if (readingTarget.element.isConnected) {
           // HTML status frames and images above the requested passage can grow
@@ -98,14 +109,25 @@ export function MessageInput({
         }
         reset();
       }
+      // The auto-hiding header animates while the reader is scrolling. Restoring
+      // an old scrollTop here would fight wheel/touch momentum on every frame.
+      // Explicit mode/chapter navigation above still anchors its target passage.
+      if (
+        headerResizing ||
+        (performance.now() < userScrollUntil && !footerPolicy.current?.current)
+      ) {
+        snapshot();
+        return;
+      }
       if (transcript.clientHeight === anchor.current.height) return;
       anchor.current.height = transcript.clientHeight;
       if (!anchor.current.height) return;
-      transcript.scrollTop =
+      const nextTop =
         anchor.current.atBottom &&
         (transcript.classList.contains('support-transcript') || footerPolicy.current?.current)
-          ? transcript.scrollHeight
+          ? Math.max(0, transcript.scrollHeight - transcript.clientHeight)
           : anchor.current.top;
+      if (Math.abs(transcript.scrollTop - nextTop) > 0.5) transcript.scrollTop = nextTop;
       anchor.current.top = transcript.scrollTop;
     });
     const reset = (target?: HTMLElement) => {
@@ -123,6 +145,7 @@ export function MessageInput({
     };
     if (resetScrollAnchor) resetScrollAnchor.current = reset;
     const release = () => {
+      userScrollUntil = performance.now() + 200;
       if (readingTarget) reset();
     };
     const releaseOnKey = (event: KeyboardEvent) => {
@@ -133,6 +156,7 @@ export function MessageInput({
       transcript.addEventListener('scroll', remember, { passive: true });
       transcript.addEventListener('wheel', release, { passive: true });
       transcript.addEventListener('touchstart', release, { passive: true });
+      transcript.addEventListener('touchmove', release, { passive: true });
       transcript.addEventListener('pointerdown', release, { passive: true });
       transcript.addEventListener('keydown', releaseOnKey);
       viewport.observe(transcript);
@@ -156,6 +180,7 @@ export function MessageInput({
       transcript?.removeEventListener('scroll', remember);
       transcript?.removeEventListener('wheel', release);
       transcript?.removeEventListener('touchstart', release);
+      transcript?.removeEventListener('touchmove', release);
       transcript?.removeEventListener('pointerdown', release);
       transcript?.removeEventListener('keydown', releaseOnKey);
     };

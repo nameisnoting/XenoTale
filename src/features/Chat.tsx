@@ -13,7 +13,7 @@ import { PanelResizeHandles, useResizablePanels } from '../components/ResizableP
 import { StoryIntro } from '../components/StoryIntro';
 import { WorkInfoPrompt } from '../components/WorkInfoPrompt';
 import { CandidatePager } from '../components/CandidatePager';
-import { useScrollHeader } from '../components/useScrollHeader';
+import { ReadingHeader } from '../components/ReadingHeader';
 
 import { CreditBalanceButton } from '../components/CreditBalanceButton';
 import { BottomSheet, SideDrawer, MobilePage } from '../components/MobileSurfaces';
@@ -221,7 +221,6 @@ export function ChatContent({
   const [uiHidden, setUiHidden] = useState(false);
   const [opening, setOpening] = useState(false);
   const scroll = useRef<HTMLDivElement>(null);
-  const headerHidden = useScrollHeader(scroll) && !renaming;
 
   const run = useAction();
 
@@ -519,10 +518,21 @@ export function ChatContent({
           </ChatWorkspace>
         )}
         <main className={`chat-main ${mobile && pageMenu ? 'is-page-covered' : ''}`}>
-          <header
-            className={`chat-header ${headerHidden && uiType === 'novel' ? 'is-scroll-hidden' : ''}`}
-            inert={uiHidden || (headerHidden && uiType === 'novel')}
-            aria-hidden={uiHidden || (headerHidden && uiType === 'novel')}
+          <ReadingHeader
+            scroll={scroll}
+            pinned={renaming}
+            visualNovel={uiType === 'visual-novel'}
+            hidden={uiHidden}
+            modeSwitch={
+              <IconButton
+                className="novel-mode-switch"
+                title="비주얼노벨 모드로 전환"
+                disabled={busy}
+                onClick={() => switchUi('visual-novel')}
+              >
+                <PanelsTopLeft size={20} />
+              </IconButton>
+            }
           >
             <IconButton title="메인으로" disabled={preview} onClick={() => navigate('/')}>
               <ArrowLeft size={20} />
@@ -581,17 +591,7 @@ export function ChatContent({
                 {mobile ? <MoreVertical size={21} /> : <PanelRightOpen size={21} />}
               </IconButton>
             )}
-          </header>
-          {uiType === 'novel' && (
-            <IconButton
-              className={`novel-mode-switch ${headerHidden ? 'is-scroll-hidden' : ''}`}
-              title="비주얼노벨 모드로 전환"
-              disabled={busy}
-              onClick={() => switchUi('visual-novel')}
-            >
-              <PanelsTopLeft size={20} />
-            </IconButton>
-          )}
+          </ReadingHeader>
           {availableChapters(room.work, room.current.runtime).length > 0 && (
             <button className="chapter-unlock" onClick={() => showMenu('chapters')}>
               챕터 해금 ·{' '}
